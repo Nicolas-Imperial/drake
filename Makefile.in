@@ -1,0 +1,15 @@
+package = C-C++_Project
+version = 1.0
+
+prefix = $(HOME)/.local
+exec_prefix = $(prefix)
+bindir = $(exec_prefix)/bin
+libdir = $(exec_prefix)/lib
+includedir = $(prefix)/include
+
+subdirs = src include
+
+## Targets to run before any other target runs
+## Can be a custom target
+## To target by default
+FIRST=
