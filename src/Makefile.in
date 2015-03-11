@@ -8,7 +8,7 @@ CONFIG = release
 CFLAGS_BASE = 
 CFLAGS_PRIVATE = -isystem ../include 
 CFLAGS_CONFIG_release = -O3 -DNDEBUG
-CFLAGS_CONFIG_release = -g -O0 -DDEBUG=1
+CFLAGS_CONFIG_debug = -g -O0 -DDEBUG=1
 CC_LDFLAGS = 
 CC_DEPS =
 CC_PKG = 
@@ -47,7 +47,7 @@ PKG_TEST =
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
 
 ## C-compiled programs and their sources
-bincc_package = 
+bincc_package = merge 
 ## C++-compiled programs and their sources
 bincxx_package = schedeval
 
@@ -100,6 +100,17 @@ bin__embed =
 # bincc_bar_src = bar.c
 # bincc_bar_export = $(bincc_bar_src)
 
+mpb_size="8128"                 # Space allocated on MPB
+ 23 inner_buffer_size="$((64 * $KILO))"
+ 24 input_buffer_size="$((64 * KILO))"
+ 25 output_buffer_size="$((64 * $KILO))"
+
+MPB_SIZE = 8128
+INPUT_BUFFER_SIZE = 65536
+OUTPUT_BUFFER_SIZE = 65536
+INNER_BUFFER_SIZE = 65536
+SHARED_DIR=/shared/$(USER)
+
 bincc_schedeval_src = 
 bincxx_schedeval_src = schedeval.cpp schedule_handling.cpp target_functions.cpp taskgraph_handling.cpp code_generation.cpp
 bin_schedeval_export = $(bincc_schedeval_src) $(bincxx_schedeval_src)
@@ -111,6 +122,16 @@ bin_schedeval_libs =
 bin_schedeval_cxxflags = 
 bin_schedeval_cxxflags_private = 
 CXXFLAGS_schedeval.cpp = 
+
+bincc_merge_src = pipelined_merge.c
+bin_merge_export = $(bincc_merge_src) $(bincxx_merge_src)
+bin_merge_pkg = pelib pelib-scc rcce_bigflags_gory_pwrmgmt_local_icc
+bin_merge_static = 1
+bin_merge_embed = 
+bin_merge_ldflags = 
+bin_merge_libs = 
+bin_merge_cflags = -DMPB_SIZE=$(MPB_SIZE) -DINPUT_BUFFER_SIZE=$(INPUT_BUFFER_SIZE) -DOUTPUT_BUFFER_SIZE=$(OUTPUT_BUFFER_SIZE) -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE) -D_GNU_SOURCE -DSHARED_DIR=$(SHARED_DIR)
+bin_merge_cxxflags_private = 
 
 ## Static C library packages and their sources
 lib_package = unitc unitc++
