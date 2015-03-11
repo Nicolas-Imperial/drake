@@ -775,7 +775,7 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 		link = (link_t*)malloc(sizeof(link_t));
 		scc_cfifo_init_t init;
 		init.capacity = (int)ceil((double)input_size) / 8;
-		init.core = -1;
+		//init.core = -1;
 		link->buffer = pelib_alloc(scc_cfifo_t(int))((void*)&init);
 		link->cons = NULL;
 		link->prod = task;
@@ -868,7 +868,7 @@ allocate_buffers(mapping_t* mapping)
 					{
 						if(link->buffer == NULL)
 						{
-							init.core = -1;
+							//init.core = -1;
 							init.capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
 							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
@@ -884,10 +884,13 @@ allocate_buffers(mapping_t* mapping)
 						// If the task is mapped to another core: output link
 						if(link->buffer == NULL)
 						{
-							init.core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id()));
-							init.capacity = buffer_size(MPB_SIZE, nb_in_succ, nb_out_succ) / sizeof(int);
-
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
+							// Perform this allocation manually
+							link->buffer = pelib_alloc_struct(scc_cfifo_t(int))();
+							
+							int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id()));
+							size_t capacity = buffer_size(MPB_SIZE, nb_in_succ, nb_out_succ) / sizeof(int);
+							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(init.stack, sizeof(int) * capacity, core), core);
+							link->buffer->capacity = capacity;
 							pelib_init(scc_cfifo_t(int))(link->buffer);
 						}
 					}
@@ -907,7 +910,7 @@ allocate_buffers(mapping_t* mapping)
 					{
 						if(link->buffer == NULL)
 						{
-							init.core = -1;
+							//init.core = -1;
 							init.capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
 							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
@@ -922,11 +925,19 @@ allocate_buffers(mapping_t* mapping)
 						// If the task is mapped to another core: cross link
 						if(link->buffer == NULL)
 						{
-							init.core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()));
-						
-							init.capacity = buffer_size(MPB_SIZE, nb_in, nb_out) / sizeof(int);
+							// Perform this allocation manually
+							link->buffer = pelib_alloc_struct(scc_cfifo_t(int))();
+
+							int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()));
+							size_t capacity = buffer_size(MPB_SIZE, nb_in, nb_out) / sizeof(int);
+							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(init.stack, sizeof(int) * capacity, core), core);
+							link->buffer->capacity = capacity;
+							pelib_init(scc_cfifo_t(int))(link->buffer);
+
+						/*
 							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
 							pelib_init(scc_cfifo_t(int))(link->buffer);
+*/
 						}
 					}
 				}
