@@ -509,6 +509,21 @@ if(printf_enabled & 1) {
 		printf_int(link->link->buffer->last_op);
 }
 #endif
+		/* Reset all values read to CANARI */
+		/*
+		size_t i;
+		for(i = 0; i < size; i++)
+		{
+			RC_cache_invalidate();
+			//printf("[%s:%s:%d] Resetting task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->capacity + link->link->buffer->read - i - 1) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->capacity + link->link->buffer->read - i - 1) % link->link->buffer->capacity], CANARI);
+			RC_cache_invalidate();
+			link->link->buffer->buffer[(link->link->buffer->capacity + link->link->buffer->read - i - 1) % link->link->buffer->capacity] = (int)CANARI;
+			RC_cache_invalidate();
+			//printf("[%s:%s:%d] Resetting task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->capacity + link->link->buffer->read - i - 1) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->capacity + link->link->buffer->read - i - 1) % link->link->buffer->capacity], CANARI);
+			RC_cache_invalidate();
+		}
+		*/
+
 		link->total_read += size;
 		RC_cache_invalidate();
 		*link->read = link->total_read;
@@ -592,8 +607,26 @@ check_input_link(task_t *task, cross_link_t *link)
 	RC_cache_invalidate();
 	// Update input fifo length
 	size_t write = *link->write - link->total_written;
-	size_t actual_write = pelib_scc_cfifo_fill(int)(link->link->buffer, write);
-	link->actual_written = actual_write;
+	size_t actual_write = 0;
+
+	/*
+	size_t i;
+	int ok = 1;
+	for(i = 0; i < write; i++)
+	{
+		printf("[%s:%s:%d] Checking task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+		if((int)(link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity]) == (int)CANARI)
+		{
+			printf("[%s:%s:%d] Found a canari for task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+			ok = 0;
+		}
+	}
+
+	if(ok)
+	{*/
+		actual_write = pelib_scc_cfifo_fill(int)(link->link->buffer, write);
+		link->actual_written = actual_write;
+	//}
 
 	if(actual_write > 0)
 	{
@@ -773,10 +806,9 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 	if(pelib_array_length(link_tp)(task->succ) == 0) // root node
 	{
 		link = (link_t*)malloc(sizeof(link_t));
-		scc_cfifo_init_t init;
-		init.capacity = (int)ceil((double)input_size) / 8;
+		size_t capacity = (int)ceil((double)input_size) / 8;
 		//init.core = -1;
-		link->buffer = pelib_alloc(scc_cfifo_t(int))((void*)&init);
+		link->buffer = pelib_alloc(scc_cfifo_t(int))((void*)&capacity);
 		link->cons = NULL;
 		link->prod = task;
 		pelib_init(scc_cfifo_t(int))(link->buffer);
@@ -844,9 +876,9 @@ allocate_buffers(mapping_t* mapping)
 	link_t *link;
 	cross_link_t *cross_link;
 	processor_t *proc;
-	scc_cfifo_init_t init;
+	//scc_cfifo_init_t init;
 	mpb_stack_t *stack = pelib_scc_stack_malloc(MPB_SIZE);	
-	init.stack = stack;
+	//init.stack = stack;
 
 	for(i = 0; i < mapping->processor_count; i++)
 	{
@@ -869,9 +901,9 @@ allocate_buffers(mapping_t* mapping)
 						if(link->buffer == NULL)
 						{
 							//init.core = -1;
-							init.capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
+							link->buffer = pelib_alloc(scc_cfifo_t(int))(&capacity);
 							pelib_init(scc_cfifo_t(int))(link->buffer);
 						}
 					}
@@ -889,7 +921,7 @@ allocate_buffers(mapping_t* mapping)
 							
 							int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id()));
 							size_t capacity = buffer_size(MPB_SIZE, nb_in_succ, nb_out_succ) / sizeof(int);
-							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(init.stack, sizeof(int) * capacity, core), core);
+							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
 							pelib_init(scc_cfifo_t(int))(link->buffer);
 						}
@@ -911,9 +943,9 @@ allocate_buffers(mapping_t* mapping)
 						if(link->buffer == NULL)
 						{
 							//init.core = -1;
-							init.capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
+							link->buffer = pelib_alloc(scc_cfifo_t(int))(&capacity);
 							pelib_init(scc_cfifo_t(int))(link->buffer);
 						}
 					}
@@ -930,7 +962,7 @@ allocate_buffers(mapping_t* mapping)
 
 							int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()));
 							size_t capacity = buffer_size(MPB_SIZE, nb_in, nb_out) / sizeof(int);
-							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(init.stack, sizeof(int) * capacity, core), core);
+							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
 							pelib_init(scc_cfifo_t(int))(link->buffer);
 
