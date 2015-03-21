@@ -412,7 +412,7 @@ task_next_state(task_t* task)
 			all_empty = 1; // Actually means "None is empty"
 			all_killed = 1;
 
-			pelib_scc_cache_invalidate();
+			//pelib_scc_cache_invalidate(); // Not important?
 
 			for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
 			{
@@ -489,12 +489,12 @@ feedback_link(task_t *task, cross_link_t *link)
 	enum task_status new_state;
 	size_t size;
 
-	RC_cache_invalidate();
+	//RC_cache_invalidate(); // Not important?
 	size = link->available - pelib_cfifo_length(int)(*link->link->buffer);
 
 	if(size > 0)
 	{
-		RC_cache_invalidate();
+		//RC_cache_invalidate(); // Not important?
 #if PRINTF_FEEDBACK
 if(printf_enabled & 1) {
 		printf_str(".............................................................");
@@ -525,9 +525,9 @@ if(printf_enabled & 1) {
 		*/
 
 		link->total_read += size;
-		RC_cache_invalidate();
+		//pelib_scc_cache_invalidate(); // Not important ?
 		*link->read = link->total_read;
-		pelib_scc_force_wcb();
+		pelib_scc_force_wcb(); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_FEEDBACK
 if(printf_enabled & 1) {
@@ -546,13 +546,13 @@ static
 void
 push_link(task_t *task, cross_link_t* link)
 {
-	RC_cache_invalidate();
+	//RC_cache_invalidate(); // Not important?
 	size_t length = pelib_cfifo_length(int)(*link->link->buffer);
 	size_t size = length - link->available;
 
 	if(size > 0)
 	{
-		RC_cache_invalidate();
+		//RC_cache_invalidate(); // Not important?
 #if PRINTF_PUSH
 if(printf_enabled & 2) {
 		printf_str("***********************************************");
@@ -569,7 +569,7 @@ if(printf_enabled & 2) {
 #endif
 		link->total_written += size;
 		*link->write = link->total_written;
-		pelib_scc_force_wcb();
+		pelib_scc_force_wcb(); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_PUSH
 if(printf_enabled & 2) {
@@ -604,7 +604,7 @@ void
 check_input_link(task_t *task, cross_link_t *link)
 {
 	enum task_status new_state;
-	RC_cache_invalidate();
+	pelib_scc_cache_invalidate(); // Important
 	// Update input fifo length
 	size_t write = *link->write - link->total_written;
 	size_t actual_write = 0;
@@ -630,7 +630,7 @@ check_input_link(task_t *task, cross_link_t *link)
 
 	if(actual_write > 0)
 	{
-		RC_cache_invalidate();
+		//RC_cache_invalidate(); // Not important?
 #if PRINTF_CHECK_IN
 if(printf_enabled & 4) {
 		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
@@ -680,7 +680,7 @@ void
 check_output_link(task_t *task, cross_link_t *link)
 {
 	enum task_status new_state;
-	RC_cache_invalidate();
+	pelib_scc_cache_invalidate(); // Important
 	// Update input fifo length
 	size_t read = *link->read - link->total_read;
 	size_t actual_read = pelib_cfifo_discard(int)(link->link->buffer, read);
@@ -688,7 +688,7 @@ check_output_link(task_t *task, cross_link_t *link)
 
 	if(actual_read > 0)
 	{
-		RC_cache_invalidate();
+		//RC_cache_invalidate(); // Not important?
 #if PRINTF_CHECK_OUT
 		if(printf_enabled & 8) {
 			printf_str("##############################################################");
@@ -743,7 +743,6 @@ task_check(task_t *task)
 	int i;
 
 	// TODO: RC_cache_invalidate() or not?
-	RC_cache_invalidate();
 	for(i = 0; i < pelib_array_length(cross_link_tp)(task->source); i++)
 	{
 		check_input_link(task, pelib_array_read(cross_link_tp)(task->source, i));
@@ -1459,7 +1458,7 @@ PELIB_SCC_CRITICAL_END
 							cross_link_t *link = pelib_array_read(cross_link_tp)(task->sink, j);
 							*link->prod_state = task->status;
 						}
-						pelib_scc_force_wcb();
+						pelib_scc_force_wcb(); // Important
 						task->status = task_next_state(task);
 #if MEASURE_STEPS
 						end = rdtsc(); task->step_transition += end - begin;
