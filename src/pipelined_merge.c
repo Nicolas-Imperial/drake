@@ -35,11 +35,10 @@
 #include <printf.h>
 #include <pelib_scc.h>
 #define printf pelib_scc_printf
-#include <scc_integer.h>
 #include <integer.h>
 
 //enum task_status;
-#define INNER_LINK_BUFFER scc_cfifo_t(int)
+#define INNER_LINK_BUFFER cfifo_t(int)
 #define INPUT_LINK_BUFFER enum task_status
 #define OUTPUT_LINK_BUFFER enum task_status
 #include <mapping.h>
@@ -69,6 +68,7 @@ int printf_enabled = 0;
 #define PRINTF_PUSH 0
 #define PRINTF_CHECK_IN 0
 #define PRINTF_CHECK_OUT 0
+#define CHECK_CORRECT              1
 #else
 int printf_enabled = 0;
 #define assert_equal(value, expected, abort_on_failure)
@@ -417,7 +417,7 @@ task_next_state(task_t* task)
 			for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
 			{
 				link = pelib_array_read(link_tp)(task->pred, i);
-				all_empty = all_empty && !pelib_scc_cfifo_is_empty(int)(link->buffer);
+				all_empty = all_empty && !pelib_cfifo_is_empty(int)(link->buffer);
 				all_killed = all_killed && (link->prod == NULL ? 1 : link->prod->status >= TASK_KILLED);
 			}
 
@@ -440,14 +440,14 @@ task_next_state(task_t* task)
 			for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
 			{
 				link = pelib_array_read(link_tp)(task->pred, i);
-				all_empty = all_empty && pelib_scc_cfifo_is_empty(int)(link->buffer);
+				all_empty = all_empty && pelib_cfifo_is_empty(int)(link->buffer);
 				all_killed = all_killed && (link->prod == NULL ? 1 : link->prod->status >= TASK_KILLED);
 			}
 
 			for(i = 0; i < pelib_array_length(cross_link_tp)(task->sink); i++)
 			{
 				link = pelib_array_read(cross_link_tp)(task->sink, i)->link;
-				all_pushed = all_pushed && (link->cons == NULL ? 1 : pelib_scc_cfifo_is_empty(int)(link->buffer));
+				all_pushed = all_pushed && (link->cons == NULL ? 1 : pelib_cfifo_is_empty(int)(link->buffer));
 			}
 
 			if(all_empty)
@@ -490,7 +490,7 @@ feedback_link(task_t *task, cross_link_t *link)
 	size_t size;
 
 	RC_cache_invalidate();
-	size = link->available - pelib_scc_cfifo_length(int)(*link->link->buffer);
+	size = link->available - pelib_cfifo_length(int)(*link->link->buffer);
 
 	if(size > 0)
 	{
@@ -528,7 +528,7 @@ if(printf_enabled & 1) {
 		RC_cache_invalidate();
 		*link->read = link->total_read;
 		pelib_scc_force_wcb();
-		link->available = pelib_scc_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_FEEDBACK
 if(printf_enabled & 1) {
 		printf_int(link->total_read);
@@ -547,7 +547,7 @@ void
 push_link(task_t *task, cross_link_t* link)
 {
 	RC_cache_invalidate();
-	size_t length = pelib_scc_cfifo_length(int)(*link->link->buffer);
+	size_t length = pelib_cfifo_length(int)(*link->link->buffer);
 	size_t size = length - link->available;
 
 	if(size > 0)
@@ -570,7 +570,7 @@ if(printf_enabled & 2) {
 		link->total_written += size;
 		*link->write = link->total_written;
 		pelib_scc_force_wcb();
-		link->available = pelib_scc_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_PUSH
 if(printf_enabled & 2) {
 		printf_int(link->total_written);
@@ -624,7 +624,7 @@ check_input_link(task_t *task, cross_link_t *link)
 
 	if(ok)
 	{*/
-		actual_write = pelib_scc_cfifo_fill(int)(link->link->buffer, write);
+		actual_write = pelib_cfifo_fill(int)(link->link->buffer, write);
 		link->actual_written = actual_write;
 	//}
 
@@ -645,7 +645,7 @@ if(printf_enabled & 4) {
 		printf_int(link->link->buffer->last_op);
 }
 #endif
-		link->available = pelib_scc_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 		link->total_written += write;
 #if PRINTF_CHECK_IN
 if(printf_enabled & 4) {
@@ -683,7 +683,7 @@ check_output_link(task_t *task, cross_link_t *link)
 	RC_cache_invalidate();
 	// Update input fifo length
 	size_t read = *link->read - link->total_read;
-	size_t actual_read = pelib_scc_cfifo_discard(int)(link->link->buffer, read);
+	size_t actual_read = pelib_cfifo_discard(int)(link->link->buffer, read);
 	link->actual_read = actual_read;
 
 	if(actual_read > 0)
@@ -705,7 +705,7 @@ check_output_link(task_t *task, cross_link_t *link)
 		}
 #endif
 		// Keep track of how much was written before work
-		link->available = pelib_scc_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 		link->total_read += read;
 #if PRINTF_CHECK_OUT
 		if(printf_enabled & 8) {
@@ -798,7 +798,7 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 			link->prod = NULL;
 			link->cons = task;
 
-			link->buffer = (scc_cfifo_t(int)*)pelib_array_loadfilenamewindowbinary(int)(input_filename, 2 * input_buffer_size * leaf_rank(mapping, task) + input_buffer_size * i, input_buffer_size);
+			link->buffer = (cfifo_t(int)*)pelib_array_loadfilenamewindowbinary(int)(input_filename, 2 * input_buffer_size * leaf_rank(mapping, task) + input_buffer_size * i, input_buffer_size);
 			pelib_array_append(link_tp)(task->pred, link);
 		}
 	}
@@ -808,10 +808,10 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 		link = (link_t*)malloc(sizeof(link_t));
 		size_t capacity = (int)ceil((double)input_size) / 8;
 		//init.core = -1;
-		link->buffer = pelib_alloc(scc_cfifo_t(int))((void*)&capacity);
+		link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
 		link->cons = NULL;
 		link->prod = task;
-		pelib_init(scc_cfifo_t(int))(link->buffer);
+		pelib_init(cfifo_t(int))(link->buffer);
 		pelib_array_append(link_tp)(task->succ, link);
 	}
 
@@ -876,7 +876,7 @@ allocate_buffers(mapping_t* mapping)
 	link_t *link;
 	cross_link_t *cross_link;
 	processor_t *proc;
-	//scc_cfifo_init_t init;
+	//cfifo_init_t init;
 	mpb_stack_t *stack = pelib_scc_stack_malloc(MPB_SIZE);	
 	//init.stack = stack;
 
@@ -903,8 +903,8 @@ allocate_buffers(mapping_t* mapping)
 							//init.core = -1;
 							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&capacity);
-							pelib_init(scc_cfifo_t(int))(link->buffer);
+							link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
+							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
 					else
@@ -917,13 +917,13 @@ allocate_buffers(mapping_t* mapping)
 						if(link->buffer == NULL)
 						{
 							// Perform this allocation manually
-							link->buffer = pelib_alloc_struct(scc_cfifo_t(int))();
+							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 							
 							int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id()));
 							size_t capacity = buffer_size(MPB_SIZE, nb_in_succ, nb_out_succ) / sizeof(int);
 							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
-							pelib_init(scc_cfifo_t(int))(link->buffer);
+							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
 				}
@@ -945,8 +945,8 @@ allocate_buffers(mapping_t* mapping)
 							//init.core = -1;
 							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&capacity);
-							pelib_init(scc_cfifo_t(int))(link->buffer);
+							link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
+							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
 					else
@@ -958,17 +958,17 @@ allocate_buffers(mapping_t* mapping)
 						if(link->buffer == NULL)
 						{
 							// Perform this allocation manually
-							link->buffer = pelib_alloc_struct(scc_cfifo_t(int))();
+							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 
 							int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()));
 							size_t capacity = buffer_size(MPB_SIZE, nb_in, nb_out) / sizeof(int);
 							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
-							pelib_init(scc_cfifo_t(int))(link->buffer);
+							pelib_init(cfifo_t(int))(link->buffer);
 
 						/*
-							link->buffer = pelib_alloc(scc_cfifo_t(int))(&init);
-							pelib_init(scc_cfifo_t(int))(link->buffer);
+							link->buffer = pelib_alloc(cfifo_t(int))(&init);
+							pelib_init(cfifo_t(int))(link->buffer);
 */
 						}
 					}
@@ -1023,16 +1023,16 @@ merge(task_t *task)
 
 /*
 	size_t s;
-	s = pelib_scc_cfifo_discard(int)(left->buffer, pelib_scc_cfifo_length(int)(*left->buffer));
-	s += pelib_scc_cfifo_discard(int)(right->buffer, pelib_scc_cfifo_length(int)(*right->buffer));
-	pelib_scc_cfifo_fill(int)(parent->buffer, s);
+	s = pelib_cfifo_discard(int)(left->buffer, pelib_cfifo_length(int)(*left->buffer));
+	s += pelib_cfifo_discard(int)(right->buffer, pelib_cfifo_length(int)(*right->buffer));
+	pelib_cfifo_fill(int)(parent->buffer, s);
 */
 
-	size_t capacity = pelib_scc_cfifo_capacity(int)(parent->buffer);
-	size_t length = pelib_scc_cfifo_length(int)(*parent->buffer);
+	size_t capacity = pelib_cfifo_capacity(int)(parent->buffer);
+	size_t length = pelib_cfifo_length(int)(*parent->buffer);
 	size_t max_push = capacity - length;
-	size_t max_left = pelib_scc_cfifo_length(int)(*left->buffer);
-	size_t max_right = pelib_scc_cfifo_length(int)(*right->buffer);
+	size_t max_left = pelib_cfifo_length(int)(*left->buffer);
+	size_t max_right = pelib_cfifo_length(int)(*right->buffer);
 	size_t read_left = 0, read_right = 0, pushed = 0;
 	int left_val, right_val;
 	
@@ -1059,32 +1059,32 @@ merge(task_t *task)
 	}
 
 	// Update state for fifos
-	pelib_scc_cfifo_discard(int)(left->buffer, read_left);
-	pelib_scc_cfifo_discard(int)(right->buffer, read_right);
-	pelib_scc_cfifo_fill(int)(parent->buffer, pushed);
+	pelib_cfifo_discard(int)(left->buffer, read_left);
+	pelib_cfifo_discard(int)(right->buffer, read_right);
+	pelib_cfifo_fill(int)(parent->buffer, pushed);
 
 	// Flush merge
 	int left_killed = ((left->prod == NULL) ? 1 : left->prod->status >= TASK_KILLED);
-	int left_empty = pelib_scc_cfifo_is_empty(int)(left->buffer);
+	int left_empty = pelib_cfifo_is_empty(int)(left->buffer);
 
 	if(left_killed)
 	{
 		if(left_empty)
 		{
 			// Copy from fifo to fifo
-			pushed = pelib_scc_cfifo_popfifo(int)(right->buffer, parent->buffer, pelib_scc_cfifo_length(int)(*right->buffer));
+			pushed = pelib_cfifo_popfifo(int)(right->buffer, parent->buffer, pelib_cfifo_length(int)(*right->buffer));
 		}
 	}
 
 	int right_killed = ((right->prod == NULL) ? 1 : right->prod->status >= TASK_KILLED);
-	int right_empty = pelib_scc_cfifo_is_empty(int)(right->buffer);
+	int right_empty = pelib_cfifo_is_empty(int)(right->buffer);
 
 	if(right_killed)
 	{
 		if(right_empty)
 		{
 			// Copy from fifo to fifo
-			pushed = pelib_scc_cfifo_popfifo(int)(left->buffer, parent->buffer, pelib_scc_cfifo_length(int)(*left->buffer));
+			pushed = pelib_cfifo_popfifo(int)(left->buffer, parent->buffer, pelib_cfifo_length(int)(*left->buffer));
 		}
 	}
 
@@ -1113,7 +1113,7 @@ task_presort(task_t *task)
 			array = (array_t(int)*)link->buffer;
 			RCCE_qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 			// Change array to fifo
-			link->buffer = pelib_scc_cfifo_from_array(int)((array_t(int)*)link->buffer);
+			link->buffer = pelib_cfifo_from_array(int)((array_t(int)*)link->buffer);
 		}
 	}
 
@@ -1126,8 +1126,8 @@ printf_link(cross_link_t *link)
 	printf_int(link->link->buffer->read);
 	printf_int(link->link->buffer->write);
 	printf_int(link->link->buffer->last_op);
-	printf_int(pelib_scc_cfifo_length(int)(*link->link->buffer));
-	printf_int(pelib_scc_cfifo_capacity(int)(link->link->buffer));	
+	printf_int(pelib_cfifo_length(int)(*link->link->buffer));
+	printf_int(pelib_cfifo_capacity(int)(link->link->buffer));	
 
 	printf_int(link->available);
 	printf_int(link->total_read);
@@ -1514,6 +1514,7 @@ PELIB_SCC_CRITICAL_END
 	int final_size;
 	array_t(int) *sorted, *ref;
 	int error_detected = 0;
+	int got = 0;
 
 #if !SORT_SEQUENTIAL
 	for(i = 0; i < proc->handled_nodes; i++)
@@ -1525,7 +1526,7 @@ PELIB_SCC_CRITICAL_END
 
 			if(link->cons == NULL)
 			{
-				array = pelib_array_from_scc_cfifo(int)(link->buffer);
+				array = pelib_array_from_cfifo(int)(link->buffer);
 			}
 		}
 	}
@@ -1542,7 +1543,7 @@ PELIB_SCC_CRITICAL_END
 
 		if(final_size != pelib_array_length(int)(array))
 		{
-			pelib_scc_errprintf("[CORE %d][ERROR] The length of sorted array (%d) is different than expected length (%d)\n", RCCE_ue(), pelib_scc_cfifo_length(int)(*link->buffer), final_size);
+			pelib_scc_errprintf("[CORE %d][ERROR] The length of sorted array (%d) is different than expected length (%d)\n", RCCE_ue(), pelib_cfifo_length(int)(*link->buffer), final_size);
 			abort();
 			error_detected = 1;
 		}
@@ -1555,9 +1556,10 @@ PELIB_SCC_CRITICAL_END
 		{
 			if(ref->data[k] != array->data[k])
 			{
-				pelib_scc_errprintf("[CORE %d][ERROR] The sorted array did not match reference at index %d (got %d, expected %d)\n", RCCE_ue(), k, link->buffer->buffer[k], ref->data[k]);
-				abort();
+				//abort();
 				error_detected = 1;
+				got = array->data[k];
+				break;
 			}
 		}
 #if EXPORT_REFERENCE
@@ -1581,16 +1583,18 @@ PELIB_SCC_CRITICAL_END
 #endif
 
 	PELIB_SCC_CRITICAL_END
+	RCCE_barrier(&RCCE_COMM_WORLD);
 
 	if(!error_detected)
 	{
-		RCCE_barrier(&RCCE_COMM_WORLD);
+		pelib_scc_errprintf("[CORE %d] Everything went OK\n", RCCE_ue());
 	}
 	else
 	{
-		abort();
+		pelib_scc_errprintf("[CORE %d][ERROR] The sorted array did not match reference at index %d (got %d, expected %d)\n", RCCE_ue(), k, got, ref->data[k]);
 	}
 #endif
+	pelib_scc_errprintf("[CORE %d] Now finishing...\n", RCCE_ue());
 
 #if MEASURE
 #if !SORT_SEQUENTIAL
