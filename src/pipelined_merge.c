@@ -808,7 +808,7 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 		link = (link_t*)malloc(sizeof(link_t));
 		size_t capacity = (int)ceil((double)input_size) / 8;
 		//init.core = -1;
-		link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
+		link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 		link->cons = NULL;
 		link->prod = task;
 		pelib_init(cfifo_t(int))(link->buffer);
@@ -903,7 +903,7 @@ allocate_buffers(mapping_t* mapping)
 							//init.core = -1;
 							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
+							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
@@ -945,7 +945,7 @@ allocate_buffers(mapping_t* mapping)
 							//init.core = -1;
 							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
 
-							link->buffer = pelib_alloc(cfifo_t(int))((void*)capacity);
+							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
@@ -1113,7 +1113,9 @@ task_presort(task_t *task)
 			array = (array_t(int)*)link->buffer;
 			RCCE_qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 			// Change array to fifo
+			pelib_scc_errprintf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 			link->buffer = pelib_cfifo_from_array(int)((array_t(int)*)link->buffer);
+			pelib_scc_errprintf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 
@@ -1672,6 +1674,6 @@ PELIB_SCC_CRITICAL_END
 
 	pelib_scc_finalize();
 
-	return EXIT_SUCCESS;
+	return error_detected;
 }
 
