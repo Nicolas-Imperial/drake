@@ -129,6 +129,7 @@ int_cmp(const void *a, const void *b)
 
 //////////////// SCC layout \\\\\\\\\\\\\\\\\\
 
+#if 0
 static int
 core_id_in_octant(int rcce_id)
 {
@@ -154,6 +155,7 @@ core_id_in_scc(int core_id, int octant_id)
 	return core_id + 6 * (2 * (octant_id % 2 + (int) (octant_id / 4)) + octant_id
 	    / 2);
 }
+#endif
 
 //////////////// Numbers \\\\\\\\\\\\\\\\\\
 
@@ -191,8 +193,8 @@ upper_32(unsigned int v)
 static int
 leaf_rank(mapping_t* mapping, task_t* task)
 {
-	return (task->id - (1 << mapping->processor_count)) + (quadrant_id(snekkja_core())
-	    * (1 << mapping->processor_count)) - 1;
+	//return (task->id - (1 << mapping->processor_count)) + (quadrant_id(snekkja_core()) * (1 << mapping->processor_count)) - 1; // Transformed
+	return (task->id - (1 << mapping->processor_count)) - 1;
 }
 
 static int
@@ -277,6 +279,7 @@ find_task(mapping_t* mapping, task_id id)
 	return NULL;
 }
 
+/*
 static
 int
 check_input(char* buffer, size_t size, int size_elem, int canari)
@@ -293,6 +296,7 @@ check_input(char* buffer, size_t size, int size_elem, int canari)
 
 	return 1;
 }
+*/
 
 static
 void
@@ -859,11 +863,11 @@ check_mpb_size(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 	if(buffer_size(mpb_size, nb_in, nb_out) < 1)
 	{
 		error_small_mpb(mpb_size, nb_in, nb_out, proc);
-		return PELIB_FAILURE;
+		return 0;
 	}
 	else
 	{
-		return PELIB_SUCCESS;
+		return 1;
 	}
 }
 
@@ -919,7 +923,8 @@ allocate_buffers(mapping_t* mapping)
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 							
-							int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id()));
+							//int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id())); // Transformed
+							int core = link->cons->core->id;
 							size_t capacity = buffer_size(MPB_SIZE, nb_in_succ, nb_out_succ) / sizeof(int);
 							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
@@ -960,7 +965,8 @@ allocate_buffers(mapping_t* mapping)
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 
-							int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()));
+							//int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())); // Transformed
+							int core = task->core->id;
 							size_t capacity = buffer_size(MPB_SIZE, nb_in, nb_out) / sizeof(int);
 							link->buffer->buffer = (int*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
@@ -982,7 +988,8 @@ allocate_buffers(mapping_t* mapping)
 
 				if(cross_link->read == NULL)
 				{
-					cross_link->read = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())));	
+					//cross_link->read = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->read = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
 					*cross_link->read = 0;
 				}
 
@@ -996,13 +1003,15 @@ allocate_buffers(mapping_t* mapping)
 
 				if(cross_link->prod_state == NULL)
 				{
-					cross_link->prod_state = (task_status_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())));
+					//cross_link->prod_state = (task_status_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->prod_state = (task_status_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
 					*cross_link->prod_state = TASK_INIT;
 				}
 
 				if(cross_link->write == NULL)
 				{
-					cross_link->write = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())));	
+					//cross_link->write = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->write = (volatile size_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
 					*cross_link->write = 0;
 				}
 				// TODO: call a allocate_output_buffer(task, input_buffer) function. It does nothing for SCC
@@ -1303,7 +1312,7 @@ main(int argc, char **argv)
 
 	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
 	{
-		RCCE_qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
+		qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 	}
 #else
 	mapping_t *mapping;
@@ -1336,7 +1345,8 @@ PELIB_SCC_CRITICAL_END
 
 	// Build task network based on tasks' id
 	build_tree_network(mapping);
-	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(snekkja_core()))];
+	//proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(snekkja_core()))]; // Transformed
+	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, snekkja_core())];
 	task = proc->task[0];
 
 	/* Init phase: load input data into tasks */
@@ -1555,7 +1565,8 @@ PELIB_SCC_CRITICAL_END
 			abort();
 			error_detected = 1;
 		}
-		ref = pelib_array_loadfilenamewindowbinary(int)(argv[2], final_size * octant_id(snekkja_core()), final_size);
+		//ref = pelib_array_loadfilenamewindowbinary(int)(argv[2], final_size * octant_id(snekkja_core()), final_size); // Transformed
+		ref = pelib_array_loadfilenamewindowbinary(int)(argv[2], 0, final_size);
 
 		// qsort so we can compare our output to a correct output
 		qsort((char*)ref->data, final_size, sizeof(int), int_cmp);
@@ -1634,7 +1645,8 @@ PELIB_SCC_CRITICAL_END
 			"%d %d %d %d %d %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
 			snekkja_core(),
 			proc->id,
-			octant_id(snekkja_core()),
+			//octant_id(snekkja_core()), // Transformed
+			0,
 			memory_consistency_errors,
 			task->id,
 			start,
