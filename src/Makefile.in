@@ -123,7 +123,7 @@ bin_schedeval_cxxflags =
 bin_schedeval_cxxflags_private = 
 CXXFLAGS_schedeval.cpp = 
 
-bincc_merge_src = pipelined_merge.c
+bincc_merge_src = pipelined_merge.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
 bin_merge_export = $(bincc_merge_src) $(bincxx_merge_src)
 bin_merge_pkg = pelib snekkja-scc
 bin_merge_static = 1

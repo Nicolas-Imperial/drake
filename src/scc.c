@@ -18,19 +18,26 @@ typedef struct args args_t;
 
 int snekkja_arch_init(void* obj)
 {
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	// Makes sure something has been transmitted
 	if(obj == NULL)
 	{
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 		pelib_scc_errprintf("Snekkja for SCC requires the commandline parameters to transmit to RCCE\n");
-		abort();
+		//abort();
 	}
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	args_t *args = (args_t*) obj;
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	pelib_scc_init(args->argc, args->argv);
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 
 	// Initiate redirection
 	pelib_scc_init_redirect();
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	pelib_scc_set_redirect();
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 
 	return 0;
 }

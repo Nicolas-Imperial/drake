@@ -41,6 +41,10 @@
 #define INNER_LINK_BUFFER cfifo_t(int)
 #define INPUT_LINK_BUFFER enum task_status
 #define OUTPUT_LINK_BUFFER enum task_status
+#include <task.h>
+#include <link.h>
+#include <cross_link.h>
+#include <processor.h>
 #include <mapping.h>
 #undef INNER_LINK_BUFFER
 #undef INPUT_LINK_BUFFER
@@ -359,6 +363,27 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 	}
 }
 
+/*
+static array_t(task_t)
+get_task_producers(task_t *task)
+{
+	array_t(task_t) *producers;
+	task_t *producer = find_task(mapping, parent_task_id(task));
+
+	if(producer != NULL)
+	{
+		producers = pelib_alloc_collection(array_t(task_t))(1);
+		pelib_array_append(task_t)(*producer);
+	}
+	else
+	{
+		producers = pelib_alloc_collection(array_t(task_t))(0);
+	}
+
+	return producers;	
+}
+*/
+
 static
 void
 build_tree_network(mapping_t* mapping)
@@ -378,6 +403,8 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
+			
+/* TODO: Build links after taskgraph instead of task ids */
 			target_task = find_task(mapping, left_child_id(current_task));
 			if(target_task != NULL)
 			{
@@ -1265,11 +1292,17 @@ main(int argc, char **argv)
 	char* outputfile;
 	array_t(int) *array = NULL;
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
+
 	// Initialize snekkja
 	args_t args;
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	args.argc = &argc;
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	args.argv = &argv;
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	snekkja_arch_init((void*)&args);
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 
 #if !DEBUG 
 	// Initialize and redirect pelib's standard output
@@ -1290,22 +1323,26 @@ main(int argc, char **argv)
 	sigaction(SIGTERM, &sa, NULL);
 #endif
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 #if SORT_SEQUENTIAL
 	array_t(int) *tmp;
 	link_t *link;
 	int input_buffer_size, input_size, i;
 	unsigned long long int start, stop;
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	// Read input size
 	tmp = pelib_array_preloadfilenamebinary(int)(argv[2]);
 	input_size = pelib_array_length(int)(tmp) / 8;
 	pelib_free_struct(array_t(int))(tmp);
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
 	{
 		array = pelib_array_loadfilenamewindowbinary(int)(argv[2], input_size * octant_id(snekkja_core()), input_size);
 	}
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 #if MEASURE_GLOBAL
 	start = rdtsc();
 #endif
@@ -1321,12 +1358,14 @@ main(int argc, char **argv)
 	int i, j, max_nodes;
 	int rcce_id;
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	processor_t *proc;
 	task_t *task;
 	link_t* link;
 
 	unsigned long long int start, stop, begin, end;
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 PELIB_SCC_CRITICAL_BEGIN
 	// Load mappings
 	file_mapping = fopen(argv[1], "r");
@@ -1343,6 +1382,7 @@ PELIB_SCC_CRITICAL_BEGIN
 	fclose(file_mapping);
 PELIB_SCC_CRITICAL_END
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	// Build task network based on tasks' id
 	build_tree_network(mapping);
 	//proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(snekkja_core()))]; // Transformed
@@ -1357,6 +1397,7 @@ PELIB_SCC_CRITICAL_BEGIN
 		task_init(proc->task[i], argv[2], mapping);
 	}
 PELIB_SCC_CRITICAL_END
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	allocate_buffers(mapping);
 	int active_tasks = proc->handled_nodes;
 
@@ -1365,6 +1406,7 @@ PELIB_SCC_CRITICAL_END
 
 	timeref = time(NULL);
 
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 #if MEASURE_GLOBAL
 	start = rdtsc();
 #endif
@@ -1376,6 +1418,7 @@ PELIB_SCC_CRITICAL_END
 		task_presort(task);
 	}		
 #endif
+	snekkja_stderr("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 	/* Phase 1, real */
 	while(active_tasks > 0)
 	{
