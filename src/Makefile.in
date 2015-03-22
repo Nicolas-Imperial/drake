@@ -125,16 +125,17 @@ CXXFLAGS_schedeval.cpp =
 
 bincc_merge_src = pipelined_merge.c
 bin_merge_export = $(bincc_merge_src) $(bincxx_merge_src)
-bin_merge_pkg = pelib pelib-scc rcce_bigflags_gory_pwrmgmt_local_icc
+bin_merge_pkg = pelib snekkja-scc
 bin_merge_static = 1
 bin_merge_embed = 
 bin_merge_ldflags = 
 bin_merge_libs = 
+bin_merge_deps = libsnekkja-scc.a
 bin_merge_cflags = -DMPB_SIZE=$(MPB_SIZE) -DINPUT_BUFFER_SIZE=$(INPUT_BUFFER_SIZE) -DOUTPUT_BUFFER_SIZE=$(OUTPUT_BUFFER_SIZE) -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE) -D_GNU_SOURCE -DSHARED_DIR=$(SHARED_DIR)
 bin_merge_cxxflags_private = 
 
 ## Static C library packages and their sources
-lib_package = unitc unitc++
+lib_package = unitc unitc++ snekkja-scc
 
 libcc__src = 
 libcxx__src = 
@@ -159,6 +160,12 @@ lib__embed =
 libcc_unitc_src = unitc.c
 libcxx_unitc_src = 
 lib_unitc_export = $(libcc_unitc_src) $(libcxx_unitc_src)
+
+libcc_snekkja-scc_src = scc.c
+libcxx_snekkja-scc_src = 
+lib_snekkja-scc_libs = 
+lib_snekkja-scc_pkg = pelib-scc rcce_bigflags_gory_pwrmgmt_local_icc
+lib_snekkja-scc_export = $(libcc_snekkja-scc_src) $(libcxx_snekkja-scc_src)
 
 libcc_unitc++_src = 
 libcxx_unitc++_src = unitc++.cpp

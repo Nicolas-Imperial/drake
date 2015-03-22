@@ -29,12 +29,12 @@
 #include <ucontext.h>
 #endif
 
-#include <RCCE_lib.h>
+//#include <RCCE_lib.h>
 
 #include <sync.h>
-#include <printf.h>
-#include <pelib_scc.h>
-#define printf pelib_scc_printf
+//#include <printf.h>
+//#include <pelib_scc.h>
+//#define printf pelib_printf
 #include <integer.h>
 
 //enum task_status;
@@ -46,7 +46,8 @@
 #undef INPUT_LINK_BUFFER
 #undef OUTPUT_LINK_BUFFER
 
-#include <scc_printf.h>
+//#include <scc_printf.h>
+#include <architecture.h>
 #include <monitor.h>
 
 #include <sort.h>
@@ -55,15 +56,15 @@
 time_t timeref;
 #if DEBUG
 int printf_enabled = 0;
-#define assert_equal(value, expected, abort_on_failure) if(value != expected) { pelib_scc_errprintf("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
-#define assert_different(value, expected, abort_on_failure) if(value == expected) { pelib_scc_errprintf("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
-#define assert_geq(value, reference, abort_on_failure) if(value < reference) { pelib_scc_errprintf("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
-#define debug pelib_scc_printf("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
-#define debug_task pelib_scc_printf("[CORE %d][%s:%s:%d] Task %d state %d\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
-#define debug_task_output pelib_scc_printf("[CORE %d][%s:%s:%d] Task %d to task %d\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
-#define printf_addr(addr) pelib_scc_printf("[CORE %d][%s:%s:%d] %s = %X\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
-#define printf_int(integer) pelib_scc_printf("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
-#define printf_str(str) pelib_scc_printf("[CORE %d][%s:%s:%d] %s = %s\n", RCCE_ue(), __FILE__, __FUNCTION__, __LINE__, #str, str);
+#define assert_equal(value, expected, abort_on_failure) if(value != expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
+#define assert_different(value, expected, abort_on_failure) if(value == expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
+#define assert_geq(value, reference, abort_on_failure) if(value < reference) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
+#define debug snekkja_stdout("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
+#define debug_task snekkja_stdout("[CORE %d][%s:%s:%d] Task %d state %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
+#define debug_task_output snekkja_stdout("[CORE %d][%s:%s:%d] Task %d to task %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
+#define printf_addr(addr) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %X\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
+#define printf_int(integer) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
+#define printf_str(str) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %s\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #str, str);
 #define PRINTF_FEEDBACK 0
 #define PRINTF_PUSH 0
 #define PRINTF_CHECK_IN 0
@@ -190,7 +191,7 @@ upper_32(unsigned int v)
 static int
 leaf_rank(mapping_t* mapping, task_t* task)
 {
-	return (task->id - (1 << mapping->processor_count)) + (quadrant_id(RCCE_ue())
+	return (task->id - (1 << mapping->processor_count)) + (quadrant_id(snekkja_core())
 	    * (1 << mapping->processor_count)) - 1;
 }
 
@@ -474,7 +475,7 @@ task_next_state(task_t* task)
 
 		case TASK_INVALID:
 		default:
-			pelib_scc_errprintf("[CORE %d] Invalid state for task %u (state %u), killing it\n", RCCE_ue(), task->id, task->status);
+			snekkja_stderr("[CORE %d] Invalid state for task %u (state %u), killing it\n", snekkja_core(), task->id, task->status);
 			return TASK_KILLED;
 		break;
 	}
@@ -614,10 +615,10 @@ check_input_link(task_t *task, cross_link_t *link)
 	int ok = 1;
 	for(i = 0; i < write; i++)
 	{
-		printf("[%s:%s:%d] Checking task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+		snekkja_stdout("[%s:%s:%d] Checking task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
 		if((int)(link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity]) == (int)CANARI)
 		{
-			printf("[%s:%s:%d] Found a canari for task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+			snekkja_stdout("[%s:%s:%d] Found a canari for task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
 			ok = 0;
 		}
 	}
@@ -836,17 +837,17 @@ static
 void
 printf_mpb_allocation(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	pelib_scc_errprintf("MPB size: %u\n", MPB_SIZE);
-	pelib_scc_errprintf("Input links: %u\n", nb_in);
-	pelib_scc_errprintf("Output links: %u\n", nb_out);
-	pelib_scc_errprintf("Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
+	snekkja_stderr("MPB size: %u\n", MPB_SIZE);
+	snekkja_stderr("Input links: %u\n", nb_in);
+	snekkja_stderr("Output links: %u\n", nb_out);
+	snekkja_stderr("Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
 }
 
 static
 void
 error_small_mpb(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 {
-	pelib_scc_errprintf("Too much cross core links at processor %u\n", proc->id);
+	snekkja_stderr("Too much cross core links at processor %u\n", proc->id);
 	printf_mpb_allocation(mpb_size, nb_in, nb_out);
 	abort();
 }
@@ -1110,11 +1111,9 @@ task_presort(task_t *task)
 		{
 			array_t(int) *array;
 			array = (array_t(int)*)link->buffer;
-			RCCE_qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
+			qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 			// Change array to fifo
-			pelib_scc_errprintf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 			link->buffer = pelib_cfifo_from_array(int)((array_t(int)*)link->buffer);
-			pelib_scc_errprintf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 
@@ -1138,8 +1137,9 @@ printf_link(cross_link_t *link)
 	printf_int(link->actual_read);
 	printf_int(link->actual_written);
 
-	RC_cache_invalidate();
+	snekkja_arch_pull(link->read);
 	printf_int(*link->read);
+	snekkja_arch_pull(link->write);
 	printf_int(*link->write);
 }
 
@@ -1157,7 +1157,7 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 	ucontext_t *uc = (ucontext_t *)secret;
 
 	printf_str("Waiting for other cores to catch signal");
-	RCCE_barrier(&RCCE_COMM_WORLD);
+	snekkja_barrier(NULL);
 	printf_str("Ready to show state");
 
 	if(current != NULL)
@@ -1206,20 +1206,17 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	printf_int(printf_enabled);
 	printf_str("Waiting for other cores to continue");
-	RCCE_barrier(&RCCE_COMM_WORLD);
+	snekkja_barrier(NULL);
 	printf_str("Resuming computation");
 
 	/* Do something useful with siginfo_t */
 	if (sig == SIGSEGV)
 	{
-		printf("Got signal %d, faulty address is %p, "
-			"from %p\n", sig, info->si_addr, 
-			uc->uc_mcontext.gregs[REG_EIP]
-		);
+		snekkja_stdout("Got signal %d, faulty address is %p, from %p\n", sig, info->si_addr, uc->uc_mcontext.gregs[REG_EIP]);
 	}
 	else
 	{
-		printf("Got signal %d\n", sig);
+		snekkja_stdout("Got signal %d\n", sig);
 	}
 
 	trace_size = backtrace(trace, 16);
@@ -1228,10 +1225,10 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	messages = backtrace_symbols(trace, trace_size);
 	/* skip first stack frame (points here) */
-	printf("[bt] Execution path:\n");
-	for (i=1; i<trace_size; ++i)
+	snekkja_stdout("[bt] Execution path:\n");
+	for (i = 1; i < trace_size; i++)
 	{
-		printf("[bt] %s\n", messages[i]);
+		snekkja_stdout("[bt] %s\n", messages[i]);
 	}
 
 	if(printf_enabled < 32)
@@ -1245,20 +1242,30 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 }
 #endif
 
+struct args
+{
+	int *argc;
+	char ***argv;
+};
+typedef struct args args_t;
+
 int
-RCCE_APP(int argc, char **argv)
+main(int argc, char **argv)
 {
 	int k;
 	char* outputfile;
 	array_t(int) *array = NULL;
 
-	// Initialize RCCE
-	pelib_scc_init(&argc, &argv);
+	// Initialize snekkja
+	args_t args;
+	args.argc = &argc;
+	args.argv = &argv;
+	snekkja_arch_init((void*)&args);
 
 #if !DEBUG 
 	// Initialize and redirect pelib's standard output
-	pelib_scc_init_redirect();
-	pelib_scc_set_redirect();
+	//pelib_scc_init_redirect();
+	//pelib_scc_set_redirect();
 #else
 	/* Install our signal handler */
 	struct sigaction sa;
@@ -1285,16 +1292,16 @@ RCCE_APP(int argc, char **argv)
 	input_size = pelib_array_length(int)(tmp) / 8;
 	pelib_free_struct(array_t(int))(tmp);
 
-	if(core_id_in_scc(RCCE_ue(), octant_id(RCCE_ue())) == 0)
+	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
 	{
-		array = pelib_array_loadfilenamewindowbinary(int)(argv[2], input_size * octant_id(RCCE_ue()), input_size);
+		array = pelib_array_loadfilenamewindowbinary(int)(argv[2], input_size * octant_id(snekkja_core()), input_size);
 	}
 
 #if MEASURE_GLOBAL
 	start = rdtsc();
 #endif
 
-	if(core_id_in_scc(RCCE_ue(), octant_id(RCCE_ue())) == 0)
+	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
 	{
 		RCCE_qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 	}
@@ -1316,7 +1323,7 @@ PELIB_SCC_CRITICAL_BEGIN
 	file_mapping = fopen(argv[1], "r");
 	if (file_mapping == NULL)
 	{
-		fprintf(pelib_get_stderr(), "[CORE %d] Could not open mapping file:%s\n",
+		snekkja_stderr("[CORE %d] Could not open mapping file:%s\n",
 		    pelib_scc_core_id(), argv[1]);
 		abort();
 	}
@@ -1329,7 +1336,7 @@ PELIB_SCC_CRITICAL_END
 
 	// Build task network based on tasks' id
 	build_tree_network(mapping);
-	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(RCCE_ue()))];
+	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(snekkja_core()))];
 	task = proc->task[0];
 
 	/* Init phase: load input data into tasks */
@@ -1344,7 +1351,7 @@ PELIB_SCC_CRITICAL_END
 	int active_tasks = proc->handled_nodes;
 
 	// Make sure everyone starts at the same time
-	RCCE_barrier(&RCCE_COMM_WORLD);
+	snekkja_barrier(NULL);
 
 	timeref = time(NULL);
 
@@ -1544,14 +1551,14 @@ PELIB_SCC_CRITICAL_END
 
 		if(final_size != pelib_array_length(int)(array))
 		{
-			pelib_scc_errprintf("[CORE %d][ERROR] The length of sorted array (%d) is different than expected length (%d)\n", RCCE_ue(), pelib_cfifo_length(int)(*link->buffer), final_size);
+			snekkja_stderr("[CORE %d][ERROR] The length of sorted array (%d) is different than expected length (%d)\n", snekkja_core(), pelib_cfifo_length(int)(*link->buffer), final_size);
 			abort();
 			error_detected = 1;
 		}
-		ref = pelib_array_loadfilenamewindowbinary(int)(argv[2], final_size * octant_id(RCCE_ue()), final_size);
+		ref = pelib_array_loadfilenamewindowbinary(int)(argv[2], final_size * octant_id(snekkja_core()), final_size);
 
 		// qsort so we can compare our output to a correct output
-		RCCE_qsort((char*)ref->data, final_size, sizeof(int), int_cmp);
+		qsort((char*)ref->data, final_size, sizeof(int), int_cmp);
 
 		for(k = 0; k < final_size; k++)
 		{
@@ -1565,7 +1572,7 @@ PELIB_SCC_CRITICAL_END
 		}
 #if EXPORT_REFERENCE
 		outputfile = malloc(strlen(argv[2]) + 4 + 3);
-		sprintf(outputfile, "%s.ref.%d", argv[2], octant_id(RCCE_ue()));
+		sprintf(outputfile, "%s.ref.%d", argv[2], octant_id(snekkja_core()));
 		pelib_array_storefilename(int)(ref, outputfile);
 		free(outputfile);
 #endif
@@ -1577,29 +1584,29 @@ PELIB_SCC_CRITICAL_END
 		umask(022);
 		// Save output file to disk
 		outputfile = malloc(strlen(argv[2]) + 3);
-		sprintf(outputfile, "%s.%d", argv[2], octant_id(RCCE_ue()));
+		sprintf(outputfile, "%s.%d", argv[2], octant_id(snekkja_core()));
 		pelib_array_storefilename(int)(array, outputfile);
 		free(outputfile);
 	}
 #endif
 
 	PELIB_SCC_CRITICAL_END
-	RCCE_barrier(&RCCE_COMM_WORLD);
+	snekkja_barrier(NULL);
 
 	if(!error_detected)
 	{
-		pelib_scc_errprintf("[CORE %d] Everything went OK\n", RCCE_ue());
+		snekkja_stderr("[CORE %d] Everything went OK\n", snekkja_core());
 	}
 	else
 	{
-		pelib_scc_errprintf("[CORE %d][ERROR] The sorted array did not match reference at index %d (got %d, expected %d)\n", RCCE_ue(), k, got, ref->data[k]);
+		snekkja_stderr("[CORE %d][ERROR] The sorted array did not match reference at index %d (got %d, expected %d)\n", snekkja_core(), k, got, ref->data[k]);
 	}
 #endif
-	pelib_scc_errprintf("[CORE %d] Now finishing...\n", RCCE_ue());
+	snekkja_stderr("[CORE %d] Now finishing...\n", snekkja_core());
 
 #if MEASURE
 #if !SORT_SEQUENTIAL
-	pelib_scc_printf("%% table_columns = \
+	snekkja_stdout("%% table_columns = \
 		core \
 		proc_id \
 		octant_id \
@@ -1623,11 +1630,11 @@ PELIB_SCC_CRITICAL_END
 	for(i = 0; i < proc->handled_nodes; i++)
 	{
 		task = proc->task[i];
-		pelib_scc_printf(
+		snekkja_stdout(
 			"%d %d %d %d %d %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu\n",
-			RCCE_ue(),
+			snekkja_core(),
 			proc->id,
-			octant_id(RCCE_ue()),
+			octant_id(snekkja_core()),
 			memory_consistency_errors,
 			task->id,
 			start,
@@ -1647,20 +1654,20 @@ PELIB_SCC_CRITICAL_END
 		);
 	}
 #else
-	if(core_id_in_octant(RCCE_ue()) == 0)
+	if(core_id_in_octant(snekkja_core()) == 0)
 	{
-		pelib_scc_printf("%% table_columns = \
+		snekkja_stdout("%% table_columns = \
 			core \
 			proc_id \
 			octant_id \
 			start \
 			stop \
 		\n");
-		pelib_scc_printf(
+		snekkja_stdout(
 			"%d %d %d %llu %llu\n",
-			RCCE_ue(),
+			snekkja_core(),
 			0,
-			octant_id(RCCE_ue()),
+			octant_id(snekkja_core()),
 			start,
 			stop
 		);
@@ -1668,11 +1675,12 @@ PELIB_SCC_CRITICAL_END
 #endif
 #endif
 	
-	pelib_scc_stop_redirect();
-	pelib_scc_finalize_redirect();
+	//pelib_scc_stop_redirect();
+	//pelib_scc_finalize_redirect();
 
-	pelib_scc_finalize();
+	snekkja_arch_finalize(NULL);
 
 	return error_detected;
+	return 0;
 }
 

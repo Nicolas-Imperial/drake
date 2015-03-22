@@ -1,5 +1,5 @@
 ## All files to include in a distribution package
-attach = unitc.h unitc++.h schedeval.h target_functions.h taskgraph_handling.h schedule_handling.h code_generation.h
+attach = unitc.h unitc++.h schedeval.h target_functions.h taskgraph_handling.h schedule_handling.h code_generation.h architecture.h
 
 ## Further directories to follow
 subdirs =

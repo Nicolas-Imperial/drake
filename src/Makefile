@@ -248,6 +248,7 @@ $(embed_object): $$(call embed_src,$$@)
 	$(LD) -r -b binary -o $@ $(patsubst %.o,%,$@)
 
 $(cc_object): $$(call source,$$@,$$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang))),$$(call typeof,$$@),cc)
+	$(CC) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
 	$(CC) -c $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) -o $@ $<
 	$(CC) -M $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) $< -MF $(patsubst %.o,%.d,$@)
 	@# Generate dependencies to header files
@@ -258,7 +259,7 @@ $(cc_object): $$(call source,$$@,$$(foreach lang,cc cxx,$$(call projectof,$$@,$$
 	@rm -f $(patsubst %.o,%.d,$@).tmp
 
 $(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang)))),$$(call typeof,$$@),cxx)
-	@#$(CXX) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
+	@$(CXX) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
 	$(CXX) -c $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $@ $<
 	$(CXX) -M $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) $< -MF $(patsubst %.o,%.d,$@)
 	@# Generate dependencies to header files
@@ -286,7 +287,7 @@ $(testcxx_list): $$(call object,$$(patsubst test_%,%,$$@),test,cxx) $$(call obje
 $(lib_pkgconfig): Makefile Makefile.in
 	@echo prefix=$(final_prefix) > $@
 	@echo exec_prefix=$(if $(call lib_$(patsubst %.pc,%,$@)_pkg_exec_prefix),$(call lib_$(patsubst %.pc,%,$@)_pkg_exec_prefix),'$$'\{prefix\}/bin) >> $@
-	@echo libdir=$(if $(call lib_$(patsubst %.pc,%,$@)_pkg_libdir),$(call lib_$(patsubst %.pc,%,$@)_pkg_libdir),'$$'\{exec_prefix\}/lib) >> $@
+	@echo libdir=$(if $(call lib_$(patsubst %.pc,%,$@)_pkg_libdir),$(call lib_$(patsubst %.pc,%,$@)_pkg_libdir),'$$'\{prefix\}/lib) >> $@
 	@echo includedir=$(if $(call lib_$(patsubst %.pc,%,$@)_pkg_includedir),$(call lib_$(patsubst %.pc,%,$@)_pkg_includedir),'$$'\{prefix\}/include) >> $@
 	@echo >> $@
 	@echo Name: $(if $(call lib_$(patsubst %.pc,%,$@)_pkg_name),$(call lib_$(patsubst %.pc,%,$@)_pkg_name),$(patsubst %.pc,lib%,$@)) >> $@
@@ -295,8 +296,8 @@ $(lib_pkgconfig): Makefile Makefile.in
 	@echo URL: $(call lib_$(patsubst %.pc,%,$@)_pkg_url) >> $@
 	@echo Libs: -L'$$'\{libdir\} -l$(patsubst %.pc,%,$@) $(call lib_$(patsubst %.pc,%,$@)_pkg_libs) >> $@
 	@echo Libs.private: $(GLOBAL_LDFLAGS) $(call $2_$1_ldflags) $(GLOBAL_LIBS) $(call lib_$(patsubst %.pc,%,$@)_libs) $(call lib_$(patsubst %.pc,%,$@)_pkg_libs_private) >> $@
-	@echo Require: $(call lib_$(patsubst %.pc,%,$@)_pkg_require) >> $@
-	@echo Require.private: $(foreach var,$(PKG),"$(var) $(call PKG_$(var)_version)") $(foreach var,$(call lib_$(patsubst %.pc,%,$@)_pkg),"$(var) $(call lib_$(patsubst %.pc,%,$@)_pkg_$(var)_version)") $(call lib_$(patsubst %.pc,%,$@)_pkg_require_private) >> $@
+	@echo Requires: $(call lib_$(patsubst %.pc,%,$@)_pkg_require) >> $@
+	@echo Requires.private: $(foreach var,$(PKG),"$(var) $(call PKG_$(var)_version)") $(foreach var,$(call lib_$(patsubst %.pc,%,$@)_pkg),"$(var) $(call lib_$(patsubst %.pc,%,$@)_pkg_$(var)_version)") $(call lib_$(patsubst %.pc,%,$@)_pkg_require_private) >> $@
 	@echo Conflicts: $(call lib_$(patsubst %.pc,%,$@)_pkg_conflicts) >> $@
 	@echo Cflags: $(GLOBAL_CFLAGS_EXPORT) $() -I'$$'\{includedir\} $(foreach var,cc cxx,$(call cflags_project_export,$(patsubst %.pc,%,$@),lib,$(var))) $(CPPFLAGS) $(foreach var,cc cxx,$(call lib_$(patsubst %.pc,%,$@)_pkg_$(call prefix_cflags,$(var))flags)) >> $@
 
@@ -312,8 +313,8 @@ $(cxx_pkgconfig): Makefile Makefile.in
 	@echo URL: $(call libcxx_$(patsubst %.pc,%,$@)_pkg_url) >> $@
 	@echo Libs: -L'$$'\{libdir\} -l$(patsubst %.pc,%,$@) $(call libcxx_$(patsubst %.pc,%,$@)_pkg_libs) >> $@
 	@echo Libs.private: $(GLOBAL_CXX_LDFLAGS) $(call ldflags_project,$(call suffixin,$(patsubst %.pc,%,$@),$(libcxx_package),lib,cxx),lib,cxx) $(GLOBAL_CXX_LIBS) $(call libs_project,$(patsubst %.pc,%,$@),lib,cxx) $(GLOBAL_CXX_PKG) $(call pkg_project,$(patsubst %.pc,%,$@),lib,cxx) $(call libcxx_$(patsubst %.pc,%,$@)_pkg_libs_private) >> $@
-	@echo Require: $(call libcxx_$(patsubst %.pc,%,$@)_pkg_require) >> $@
-	@echo Require.private: $(foreach var,$(CXX_PKG),"$(var) $(call CXX_PKG_$(var)_version)") $(foreach var,$(call libcxx_$(patsubst %.pc,%,$@)_pkg),"$(var) $(call libcxx_$(patsubst %.pc,%,$@)_pkg_$(var)_version)") $(call libcxx_$(patsubst %.pc,%,$@)_pkg_require_private) >> $@
+	@echo Requires: $(call libcxx_$(patsubst %.pc,%,$@)_pkg_require) >> $@
+	@echo Requires.private: $(foreach var,$(CXX_PKG),"$(var) $(call CXX_PKG_$(var)_version)") $(foreach var,$(call libcxx_$(patsubst %.pc,%,$@)_pkg),"$(var) $(call libcxx_$(patsubst %.pc,%,$@)_pkg_$(var)_version)") $(call libcxx_$(patsubst %.pc,%,$@)_pkg_require_private) >> $@
 	@echo Conflicts: $(call libcxx_$(patsubst %.pc,%,$@)_pkg_conflicts) >> $@
 	@echo Cflags: $(GLOBAL_CXXFLAGS_EXPORT) -I'$$'\{includedir\} $(call cxxflags_project_export,$(patsubst %.pc,%,$@),lib,cxx) $(CPPFLAGS) $(call libcxx_$(patsubst %.pc,%,$@)_pkg_cxxflags) >> $@
 
@@ -329,8 +330,8 @@ dist: submake
 	$(if $(strip $(testcxx_package:%=testcxx_%_export)),cp $(sort $(foreach var,$(testcxx_package:%=testcxx_%_export),$(call $(var)))) $(distdir),)
         
 clean: submake
-	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d))
-	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d))
+	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
+	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d)) $(foreach var,$(cxx_object),$(var:%.o=%.e))
 	$(RM) $(cc_pkgconfig) $(cxx_pkgconfig)
 	$(RM) $(embed_object)
 	$(RM) $(test_target)
@@ -350,12 +351,12 @@ install: submake $(bin_list) $(lib_target) $(cc_pkgconfig) $(cxx_pkgconfig)
 	$(if $(strip $(bin_list)),install -d $(DESTDIR)$(final_bindir))
 	$(if $(strip $(bin_list)),install -m 755 $(bin_list) $(DESTDIR)$(final_bindir))
 	$(if $(strip $(lib_target)),install -d $(DESTDIR)$(final_libdir)/pkgconfig)
-	$(if $(strip $(cc_pkgconfig)) $(cxx_pkgconfig),install -m 644 $(cc_pkgconfig) $(cxx_pkgconfig) $(DESTDIR)$(final_libdir)/pkgconfig)
+	$(if $(strip $(lib_pkgconfig)),install -m 644 $(lib_pkgconfig) $(DESTDIR)$(final_libdir)/pkgconfig)
 
 uninstall: submake
 	$(RM) $(foreach var,$(bin_list), $(DESTDIR)$(final_bindir)/$(var))
 	$(RM) $(foreach var,$(lib_target), $(DESTDIR)$(final_libdir)/$(var))
-	$(RM) $(foreach var,$(cc_pkgconfig) $(cxx_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(var))
+	$(RM) $(foreach var,$(lib_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(var))
 	
 submake:
 	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i \|\| exit \$$? \; done)
