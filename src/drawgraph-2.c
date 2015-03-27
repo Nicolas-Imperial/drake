@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
+#include <architecture.h>
 
 #include <mapping.h>
 #include "drawgraph-2.h"

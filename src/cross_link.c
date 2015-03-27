@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include <link.h>
 #include <cross_link.h>
 #include <architecture.h>

@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include <mapping.h>
 #include <architecture.h>
 #include <assert.h>
@@ -70,8 +73,8 @@ pelib_mapping_insert_task(mapping_t* mapping, processor_id pid, task_t* task)
   int processor_index;
 
   processor_index = pelib_mapping_find_processor_index(mapping, pid);
-  if (pelib_processor_insert_task(mapping->proc[processor_index], task)
-      == 1)
+  
+  if (pelib_processor_insert_task(mapping->proc[processor_index], task) == 1)
     {
       mapping->task_count++;
 
@@ -137,12 +140,13 @@ pelib_mapping_insert_processor(mapping_t* mapping, processor_t* processor)
       && pelib_mapping_find_processor_index(mapping, processor->id)
           == mapping->processor_count)
     {
-      pelib_copy(processor_t)(*processor, mapping->proc[mapping->processor_count]);
+	mapping->proc[mapping->processor_count] = pelib_alloc_collection(processor_t)(processor->node_capacity);
 
 //      printf("%s: %X\n", __FUNCTION__, mapping->proc[mapping->processor_count]);
 
       if (mapping->proc[mapping->processor_count] != NULL)
         {
+      pelib_copy(processor_t)(*processor, mapping->proc[mapping->processor_count]);
           mapping->processor_count++;
 
           return 1;

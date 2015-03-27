@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include <processor.h>
 #include <architecture.h>
 
@@ -26,6 +29,7 @@ pelib_alloc_collection(processor_t)(size_t size)
           return proc;
         }
     }
+
   // TODO: also deallocate all allocated tasks to proc
   free(proc);
   return NULL;
@@ -50,7 +54,7 @@ pelib_copy(processor_t)(processor_t source, processor_t * copy)
 {
   size_t i;
 
-  copy = pelib_alloc_collection(processor_t)(source.node_capacity);
+  //copy = pelib_alloc_collection(processor_t)(source.node_capacity);
   copy->id = source.id;
   copy->source = source.source;
   copy->sink = source.sink;
@@ -59,6 +63,8 @@ pelib_copy(processor_t)(processor_t source, processor_t * copy)
     {
       pelib_processor_insert_task(copy, source.task[i]);
     }
+
+  
 
   return 1;
 }
@@ -149,7 +155,8 @@ pelib_processor_find_task(processor_t * proc, task_id task)
   size_t i;
   task_t * p_node;
 
-  for (i = 0; i < proc->handled_nodes; i++)
+size_t r = proc->handled_nodes;
+  for (i = 0; i < r; i++)
     {
       p_node = proc->task[i];
       if (p_node->id == task)
