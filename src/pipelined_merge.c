@@ -309,7 +309,7 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 	int i, j, k;
 	link_t *link = NULL;
 	cross_link_t *cross_link;
-
+	
 	// Find in target task if this link doesn't already exist
 	for(k = 0; k < pelib_array_length(link_tp)(prod->succ); k++)
 	{
@@ -363,26 +363,45 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 	}
 }
 
-/*
-static array_t(task_t)
-get_task_producers(task_t *task)
+static array_t(task_tp)*
+get_task_consumers(mapping_t *mapping, task_t *task)
 {
-	array_t(task_t) *producers;
-	task_t *producer = find_task(mapping, parent_task_id(task));
+	array_t(task_tp) *consumers;
+	task_t *consumer = find_task(mapping, parent_task_id(task));
 
-	if(producer != NULL)
+	if(consumer != NULL)
 	{
-		producers = pelib_alloc_collection(array_t(task_t))(1);
-		pelib_array_append(task_t)(*producer);
+		consumers = pelib_alloc_collection(array_t(task_tp))(1);
+		pelib_array_append(task_tp)(consumers, consumer);
 	}
 	else
 	{
-		producers = pelib_alloc_collection(array_t(task_t))(0);
+		consumers = pelib_alloc_collection(array_t(task_tp))(0);
+	}
+
+	return consumers;	
+}
+
+static array_t(task_tp)*
+get_task_producers(mapping_t *mapping, task_t *task)
+{
+	array_t(task_tp) *producers;
+	task_t *left_producer = find_task(mapping, left_child_id(task));
+	task_t *right_producer = find_task(mapping, right_child_id(task));
+
+	if(left_producer != NULL && right_producer != NULL)
+	{
+		producers = pelib_alloc_collection(array_t(task_tp))(2);
+		pelib_array_append(task_tp)(producers, left_producer);
+		pelib_array_append(task_tp)(producers, right_producer);
+	}
+	else
+	{
+		producers = pelib_alloc_collection(array_t(task_tp))(0);
 	}
 
 	return producers;	
 }
-*/
 
 static
 void
@@ -403,8 +422,17 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
-			
-/* TODO: Build links after taskgraph instead of task ids */
+			array_t(task_tp) *producers = get_task_producers(mapping, current_task);
+			for(k = 0; k < pelib_array_length(task_tp)(producers); k++)
+			{
+				target_task = pelib_array_read(task_tp)(producers, k);
+				if(target_task != NULL)
+				{
+					build_link(mapping, proc, target_task, current_task);
+				}
+			}
+			pelib_free(array_t(task_tp))(producers);
+/*
 			target_task = find_task(mapping, left_child_id(current_task));
 			if(target_task != NULL)
 			{
@@ -416,12 +444,25 @@ build_tree_network(mapping_t* mapping)
 			{
 				build_link(mapping, proc, target_task, current_task);
 			}
+*/
 
+			array_t(task_tp) *consumers = get_task_consumers(mapping, current_task);
+			for(k = 0; k < pelib_array_length(task_tp)(consumers); k++)
+			{
+				target_task = pelib_array_read(task_tp)(consumers, k);
+				if(target_task != NULL)
+				{
+					build_link(mapping, proc, current_task, target_task);
+				}
+			}
+			pelib_free(array_t(task_tp))(consumers);
+/*
 			target_task = find_task(mapping, parent_task_id(current_task));
 			if(target_task != NULL)
 			{
 				build_link(mapping, proc, current_task, target_task);
 			}
+*/
 		}
 	}
 }
