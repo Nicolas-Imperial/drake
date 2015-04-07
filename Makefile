@@ -55,7 +55,7 @@ version:
 	$(if $(findstring GNU Make,echo $(VERSION)),,@/bin/false)
 
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i\; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=.\; done)
 
 FORCE:
 .PHONY: FORCE all version clean dist distcheck copy clean-dist clean-tree

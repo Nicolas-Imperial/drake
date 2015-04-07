@@ -1,4 +1,4 @@
-package = C-C++_Project
+package = snekkja
 version = 1.0
 
 prefix = $(HOME)/.local

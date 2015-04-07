@@ -1,8 +1,8 @@
 ## All files to include in a distribution package
-attach = unitc.h unitc++.h schedeval.h target_functions.h taskgraph_handling.h schedule_handling.h code_generation.h architecture.h
+attach = unitc.h unitc++.h schedeval.h target_functions.h taskgraph_handling.h schedule_handling.h code_generation.h 
 
 ## Further directories to follow
-subdirs =
+subdirs = snekkja
 
 ## Targets to run before any other target runs
 ## Can be a custom target

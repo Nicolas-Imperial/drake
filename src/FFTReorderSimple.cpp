@@ -6,7 +6,7 @@
 static int totalData;
 static int n;
 static channel_t in, out;
-int TASKSETUP(channelc_t incoming,channelc_t outgoing, int argc, char *argv[])
+int TASKSETUP(channelc_t incoming, channelc_t outgoing, int argc, char *argv[])
 {
   in = get_channel(incoming,0);
   out = get_channel(outgoing,0);

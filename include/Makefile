@@ -30,11 +30,11 @@ dist: submake
 	$(if $(strip $(attach)),cp $(attach) $(distdir))
 	
 install: submake
-	$(if $(strip $(attach)),install -d $(DESTDIR)$(final_includedir))
-	$(if $(strip $(attach)),install -m 644 $(attach) $(DESTDIR)$(final_includedir))
+	$(if $(strip $(attach)),install -d $(DESTDIR)$(final_includedir)/$(subdir))
+	$(if $(strip $(attach)),install -m 644 $(attach) $(DESTDIR)$(final_includedir)/$(subdir))
 	
 uninstall: submake
-	$(RM) $(foreach var,$(attach), $(DESTDIR)$(final_includedir)/$(var))
+	$(RM) $(foreach var,$(attach), $(DESTDIR)$(final_includedir)/$(subdir)/$(var))
 	
 check: submake
 	$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $@ \; done)
@@ -42,6 +42,6 @@ check: submake
 checkdist distcheck: dist
 
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i\; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\; done)
         
 .PHONY: all dist install check submake

@@ -86,7 +86,7 @@ endef
 
 ## Gives object files of projects in list $1, of type $2 (bin|lib|test) with language $3 (cc|cxx), prefixed with their project name, project variant and source file variant
 define embed
-$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(call $2$3_$(proj)_graph)))
+$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(if $(patsubst kkj,$2,$2),$(call $2$3_$(proj)_graph))))
 endef
 
 ## Gives the source files of the embedded object files in $1
@@ -105,6 +105,7 @@ endef
 define projectof
 $(call longest,$(foreach proj,$(call $2$(if $(filter bin,$2),$3,$(if $(filter test,$2),$3,))_package),$(foreach lang,cc cxx,$(if $(filter $2$(lang)_$(proj)%,$1),$(proj),))))
 endef
+#$(call longest,$(foreach proj,$(call $2$(if $(filter bin,$2),$3,$(if $(filter test,$2),$3,))_package),$(foreach lang,cc cxx,$(if $(filter $2$(lang)_$(proj)%,$1),$(proj),))))
 
 ## Gives the type of project (bin|lib|test) the object file $1 is part of
 define typeof
@@ -123,7 +124,7 @@ endef
 
 ## Gives the source file of object $1 of project $2 of type $3 (bin|lib|test) in language $4 (cc/cxx)
 define source
-$(if $(filter kkj%.o,$1),$(if $(call $3$4_$2_$(shell snekkja -i $(call $3$4_$2_graph) --read task $(call kkj_task,$1,$4,$2))),$(call $3$4_$2_$(shell snekkja -i $(call $3$4_$2_graph) --read task $(call kkj_task,$1,$4,$2))),$(shell snekkja -i $(call $3$4_$2_graph) --read task $(call $3_task,$1,$4,$2)).$(call ext,$4)),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$2,$3,$4)))
+$(if $(filter kkj%.o,$1),$(if $(call $3$4_$(sort $2)_$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call kkj_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call kkj_task,$1,$4,$(sort $2)))),$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4)),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
 endef
 
 # Returns the package main language of object $1 of project type $2 (bin|lib|test)
@@ -165,7 +166,7 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),)) $(if $(filter kkj%,$1),-DAUT=$(strip $(foreach lang,cc cxx,$(call kkj_project,$1,$(lang)))) -DTASKNAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja -i $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --read task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASKID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),)) $(if $(filter kkj%,$1),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja -i $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --read task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
@@ -212,10 +213,10 @@ $(call pkg-config,$(call $2_$1_pkg),libs-only-l $(if $(strip $(call $2_$1_static
 endef
 
 ## All C and C++ objects, eliminating duplicates
-cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx))
+cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call kkj_object,$(kkj_package),kkj,cc))
 cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc)) $(call kkj_object,$(kkj_package),kkj,cxx)
 lib_pkgconfig = $(foreach var,$(lib_package) $(kkj_package),$(patsubst %,%.pc,$(var)))
-embed_object = $(sort $(call embed,$(bincc_package),bin,cc) $(call embed,$(libcc_package),lib,cc) $(call embed,$(testcc_package),test,cc)) $(sort $(call embed,$(bincxx_package),bin,cxx) $(call embed,$(libcxx_package),lib,cxx) $(call embed,$(testcxx_package),test,cxx))
+embed_object = $(sort $(call embed,$(bincc_package),bin,cc) $(call embed,$(testcc_package),test,cc) $(call embed,$(lib_package),lib,cc) $(call embed,$(kkj_package),kkj,cc)) $(sort $(call embed,$(bincxx_package),bin,cxx) $(call embed,$(testcxx_package),test,cxx) $(call embed,$(lib_package),lib,cxx) $(call embed,$(kkj_package),kkj,cxx)) 
 
 -include $(foreach file,$(cc_object) $(cxx_object),$(patsubst %.o,%.d,$(file)))
 
@@ -359,7 +360,8 @@ uninstall: submake
 	$(RM) $(foreach var,$(lib_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(var))
 	
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i \|\| exit \$$? \; done)
+	@#@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i \|\| exit \$$? \; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\; done)
 
 FORCE:
 .PHONY: all clean check install uninstall dist FORCE submake bin_package lib_target test_target

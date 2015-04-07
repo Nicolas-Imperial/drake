@@ -41,17 +41,17 @@
 #define INNER_LINK_BUFFER cfifo_t(int)
 #define INPUT_LINK_BUFFER enum task_status
 #define OUTPUT_LINK_BUFFER enum task_status
-#include <task.h>
-#include <link.h>
-#include <cross_link.h>
-#include <processor.h>
-#include <mapping.h>
+#include <snekkja/task.h>
+#include <snekkja/link.h>
+#include <snekkja/cross_link.h>
+#include <snekkja/processor.h>
+#include <snekkja/mapping.h>
 #undef INNER_LINK_BUFFER
 #undef INPUT_LINK_BUFFER
 #undef OUTPUT_LINK_BUFFER
 
 //#include <scc_printf.h>
-#include <architecture.h>
+#include <snekkja/platform.h>
 #include <monitor.h>
 
 #include <sort.h>
@@ -1088,9 +1088,7 @@ allocate_buffers(mapping_t* mapping)
 	}
 }
 
-	int mem[300];
-static
-void
+int
 merge(task_t *task)
 {
 	link_t *left, *right, *parent;
@@ -1150,6 +1148,7 @@ merge(task_t *task)
 		{
 			// Copy from fifo to fifo
 			pushed = pelib_cfifo_popfifo(int)(right->buffer, parent->buffer, pelib_cfifo_length(int)(*right->buffer));
+			left_empty = (pushed == pelib_cfifo_length(int)(*right->buffer));
 		}
 	}
 
@@ -1162,9 +1161,18 @@ merge(task_t *task)
 		{
 			// Copy from fifo to fifo
 			pushed = pelib_cfifo_popfifo(int)(left->buffer, parent->buffer, pelib_cfifo_length(int)(*left->buffer));
+			right_empty = (pushed == pelib_cfifo_length(int)(*left->buffer));
 		}
 	}
 
+	if(left_killed && left_empty && right_killed && right_empty)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 int
@@ -1173,8 +1181,7 @@ greater(const void *a, const void *b)
 	return *(int*)a - *(int*)b;
 }
 
-static
-void
+int
 task_presort(task_t *task)
 {
 	link_t *link;
@@ -1194,6 +1201,7 @@ task_presort(task_t *task)
 		}
 	}
 
+	return 1;
 }
 
 #if DEBUG 
@@ -1444,6 +1452,9 @@ PELIB_SCC_CRITICAL_END
 		task_presort(task);
 	}		
 #endif
+
+	int done = 0;
+
 	/* Phase 1, real */
 	while(active_tasks > 0)
 	{
@@ -1466,7 +1477,7 @@ PELIB_SCC_CRITICAL_END
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
 #if INTERLACE_PRESORT
-					task_presort(task);
+					done = task_presort(task);
 #endif
 					task_check(task);
 					if(task->status == TASK_START)
@@ -1506,7 +1517,7 @@ PELIB_SCC_CRITICAL_END
 					begin = rdtsc();
 #endif
 					// Work
-					merge(task);
+					done = merge(task);
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_work += end - begin;
 #endif
@@ -1542,8 +1553,9 @@ PELIB_SCC_CRITICAL_END
 						{
 							cross_link_t *link = pelib_array_read(cross_link_tp)(task->sink, j);
 							*link->prod_state = task->status;
+							snekkja_arch_commit(link->prod_state);
 						}
-						pelib_scc_force_wcb(); // Important
+						//pelib_scc_force_wcb(); // Important
 						task->status = task_next_state(task);
 #if MEASURE_STEPS
 						end = rdtsc(); task->step_transition += end - begin;
