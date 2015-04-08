@@ -26,7 +26,7 @@ CXXFLAGS_CONFIG_release = -g -O0 -DDEBUG=1
 CXX_LDFLAGS = -L.
 CXX_DEPS = 
 CXX_PKG = 
-CXX_LIBS = 
+CXX_LIBS = -lrt
 CXX_TEST_PKG = $(CXX_PKG)
 CXX_TEST_LIBS = $(CXX_LIBS) -lunitc++ 
 CXX_TEST_DEPS = $(CXX_DEPS) libunitc++.a
@@ -46,10 +46,31 @@ PKG_TEST =
 #CFLAGS_foo.c = -DFOO_CROSS=foo_cross
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
 
-## C-compiled programs and their sources
-bincc_package = pipelined_merge
 ## C++-compiled programs and their sources
-bincxx_package = schedeval
+#bincxx_package = snekkja
+
+bincxx_snekkja_src = snekkja.cpp
+bin_snekkja_export = $(bincxx_snekkja_embed) $(bincxx_snekkja_src) $(bin_snekkja_src)
+bin_snekkja_deps = 
+bin_snekkja_libs = 
+bin_snekkja_pkg = cppelib crown
+bin_snekkja_ldflags = -L.
+bin_snekkja_static = 1
+
+## C-compiled programs and their sources
+#bincc_package = pipelined_merge
+INNER_BUFFER_SIZE = 65536
+
+bincc_pipelined_merge_src = pipelined_merge.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
+bin_pipelined_merge_export = $(bincc_pipelined_merge_src) $(bincxx_pipelined_merge_src)
+bin_pipelined_merge_pkg = snekkja-scc merge cppelib
+bin_pipelined_merge_static = 1
+bin_pipelined_merge_embed = 
+bin_pipelined_merge_ldflags = 
+bin_pipelined_merge_libs = 
+bin_pipelined_merge_deps = libsnekkja-scc.a libmerge.a
+bin_pipelined_merge_cflags = -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE)
+bin_pipelined_merge_cxxflags_private = 
 
 bincc__src = 
 bincxx__src = 
@@ -100,42 +121,8 @@ bin__embed =
 # bincc_bar_src = bar.c
 # bincc_bar_export = $(bincc_bar_src)
 
-mpb_size="8128"                 # Space allocated on MPB
- 23 inner_buffer_size="$((64 * $KILO))"
- 24 input_buffer_size="$((64 * KILO))"
- 25 output_buffer_size="$((64 * $KILO))"
-
-MPB_SIZE = 8128
-INPUT_BUFFER_SIZE = 65536
-OUTPUT_BUFFER_SIZE = 65536
-INNER_BUFFER_SIZE = 65536
-SHARED_DIR=/shared/$(USER)
-
-bincc_schedeval_src = 
-bincxx_schedeval_src = schedeval.cpp schedule_handling.cpp target_functions.cpp taskgraph_handling.cpp code_generation.cpp
-bin_schedeval_export = $(bincc_schedeval_src) $(bincxx_schedeval_src)
-bin_schedeval_pkg = igraph libxml++-2.6
-bin_schedeval_static = 1
-bin_schedeval_embed = fft2.graphml
-bin_schedeval_ldflags = 
-bin_schedeval_libs = 
-bin_schedeval_cxxflags = 
-bin_schedeval_cxxflags_private = 
-CXXFLAGS_schedeval.cpp = 
-
-bincc_pipelined_merge_src = pipelined_merge.c
-bin_pipelined_merge_export = $(bincc_pipelined_merge_src) $(bincxx_pipelined_merge_src)
-bin_pipelined_merge_pkg = snekkja snekkja-scc
-bin_pipelined_merge_static = 1
-bin_pipelined_merge_embed = 
-bin_pipelined_merge_ldflags = 
-bin_pipelined_merge_libs = 
-bin_pipelined_merge_deps = libsnekkja.a libsnekkja-scc.a libmerge.a
-bin_pipelined_merge_cflags = -DMPB_SIZE=$(MPB_SIZE) -DINPUT_BUFFER_SIZE=$(INPUT_BUFFER_SIZE) -DOUTPUT_BUFFER_SIZE=$(OUTPUT_BUFFER_SIZE) -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE) -D_GNU_SOURCE -DSHARED_DIR=$(SHARED_DIR)
-bin_pipelined_merge_cxxflags_private = 
-
 ## Static C library packages and their sources
-lib_package = unitc unitc++ snekkja snekkja-scc
+#lib_package = unitc unitc++ snekkja-scc
 
 libcc__src = 
 libcxx__src = 
@@ -163,6 +150,8 @@ lib_unitc_export = $(libcc_unitc_src) $(libcxx_unitc_src)
 
 libcc_snekkja_src = task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c schedule.c
 libcxx_snekkja_src = 
+lib_snekkja_cflags = -DINPUT_BUFFER_SIZE=$(INPUT_BUFFER_SIZE)
+#-DOUTPUT_BUFFER_SIZE=$(OUTPUT_BUFFER_SIZE) -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE) 
 lib_snekkja_export = $(libcc_snekkja_src) $(libcxx_snekkja_src)
 lib_snekkja_pkg = pelib
 
@@ -176,7 +165,7 @@ libcc_unitc++_src =
 libcxx_unitc++_src = unitc++.cpp
 lib_unitc++_export = $(libcc_unitc++_src) $(libcxx_unitc++_src)
 
-kkj_package = merge #fft2
+kkj_package = merge 
 
 kkjcxx_fft2_generator = FFTTestSource.cpp
 kkjcc_fft2_graph = 
@@ -195,6 +184,8 @@ kkj_fft2_pkg_description =
 
 kkjcc_merge_graph = merge.graphml 
 kkjcxx_merge_graph = #merge.graphml
+kkj_merge_scheduler = crown_binary_annealing_allocation_off
+kkj_merge_platform = scc_32.dat
 kkj_merge_embed = 
 kkjcc_merge_src = 
 #kkjcxx_merge_src = floatreceiver.c
@@ -240,20 +231,11 @@ clean = *.o *.txt *.fig *.bin *.e *.d *.obj
 #FIRST=first
 
 first:
-	@echo cc_object = \"$(cc_object)\"
-	@#echo cxx_object = \"$(cxx_object)\"
-	@#echo libfft2.a: $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,libfft2.a),lib,$(lang)) $(call kkj_object,$(patsubst lib%.a,%,libfft2.a),kkj,$(lang)) $(foreach type,lib kkj,$(call embed,$(patsubst lib%.a,%,libfft2.a),$(type),$(lang)) $(call $(patsubst %,$(type)$(lang)_%_deps,$(call suffixin,$(patsubst lib%.a,%,libfft2.a),$($(type)$_package))))) $(call suffixin,$(patsubst lib%.a,%,libfft2.a),$(lib_package) $(kkj_package)).pc)
-	@#echo $(call source,kkjcxx_fft2_1.o,fft2,kkj,cxx)
-	@#echo $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2)
-	@#echo                                            $(call kkjcxx_fft2_$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2)))
-	@#echo                                       $(if $(call kkjcxx_fft2_$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2))),$(call kkjcxx_fft2_$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2))),$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2)).$(call ext,cxx))
-	@#echo $(if $(filter kkj%.o,kkjcxx_fft2_1.o),$(if $(call kkjcxx_fft2_$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2))),$(call kkjcxx_fft2_$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2))),$(shell snekkja -i $(call kkjcxx_fft2_graph) --read task $(call kkj_task,kkjcxx_fft2_1.o,cxx,fft2)).$(call ext,cxx)),$(call suffixin,$(patsubst %.o,%.$(call ext,cxx),kkjkkj_fft2_1.o),$(call src,fft2,kkj,cxx)))
-	@#echo $(patsubst kkjcxx_fft2_%.o,%,kkjcxx_fft2_1.o)
-	@#echo $(call projectof,kkjcxx_fft2_1.o,$(call typeof,kkjcxx_fft2_1.o),cxx)
-	@#echo $(call longest,$(foreach proj,$(call kkj_package),$(foreach lang,cc cxx,$(if $(filter kkj$(lang)_$(proj)%,kkjcxx_fft2_1.o),$(proj),))))
-	@#echo $(sort $(foreach lang,cc cxx,$(call projectof,kkjcxx_fft2_1.o,$(call typeof,kkjcxx_fft2_1.o),$(lang))))
-	@#echo $(call typeof,kkjcxx_fft2_1.o)
-	@#echo $(sort $(foreach lang,cc cxx,$(call projectof,kkjcxx_fft2_1.o,$(call typeof,kkjcxx_fft2_1.o),$(lang))))
-	@#echo $(call typeof,kkjcxx_fft2_1.o)
-	@#echo kkjcxx_fft2_1.o: $(call source,kkjcxx_fft2_1.o,$(sort $(foreach lang,cc cxx,$(call projectof,kkjcxx_fft2_1.o,$(call typeof,kkjcxx_fft2_1.o),$(lang)))),$(call typeof,kkjcxx_fft2_1.o),cxx)
+	@#echo snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph) --platform $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_platform) --scheduler $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_scheduler) #> merge.schedule.c
+	@echo snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph) --platform $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_platform) --scheduler $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_scheduler)
+#> merge.schedule.c
+	@echo $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph)
+	@echo kkjcc_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph
+	@echo reverse-ext: $(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))
+	@echo ext: $(filter %.c,merge.schedule.c)$(filter %.cpp,merge.schedule.c)
 	@/bin/false

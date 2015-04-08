@@ -22,12 +22,12 @@ export PKG_CONFIG_PATH:=.:$(PKG_CONFIG_PATH)
 ## Default target
 DEFAULT=all
 
+## Targets asked for running, or default target if none
+TARGETS=$(if $(MAKECMDGOALS),$(MAKECMDGOALS),$(DEFAULT))
+
 ## The default target is the first target in the makefile
 $(DEFAULT):
 include Makefile.in
-
-## Targets asked for running, or default target if none
-TARGETS=$(if $(MAKECMDGOALS),$(MAKECMDGOALS),$(DEFAULT))
 
 ## Make all targets called dependent on some action to be run beforehand
 $(TARGETS): $(FIRST)
@@ -35,6 +35,8 @@ $(TARGETS): $(FIRST)
 ####################################################################
 ##### Here begin the region you really don't want to mess with #####
 ####################################################################
+
+snekkja_schedule=schedule
 
 ## Gives the longest prefix in the prefix list (all elements must have the same character at the same index, or no character at that index)
 # $(if $1,$(word $(words $1),$(sort $1)),)
@@ -81,12 +83,12 @@ endef
 
 ## Same as above, for snekkja projects
 define kkj_object
-$(foreach proj,$1,$(if $(call $2$3_$(proj)_graph),$(foreach task,$(shell snekkja -i $(call $2$3_$(proj)_graph) --read tasks),$2$3_$(proj)_$(task).o)))
+$(foreach proj,$1,$(if $(call $2$3_$(proj)_graph),$(foreach task,$(shell snekkja --taskgraph $(call $2$3_$(proj)_graph) --get tasks),$2$3_$(proj)_$(task).o))) $(foreach proj,$1,$(foreach src,$(call kkj_schedule_src,$(proj),$3),$2$3_$(patsubst %.$(call ext,$3),%,$(src)).o))
 endef
 
 ## Gives object files of projects in list $1, of type $2 (bin|lib|test) with language $3 (cc|cxx), prefixed with their project name, project variant and source file variant
 define embed
-$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(if $(patsubst kkj,$2,$2),$(call $2$3_$(proj)_graph))))
+$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(if $(patsubst kkj,$2,$2),$(if $(call $2cc_$(proj)_graph),$(call $2cc_$(proj)_graph),$(call $2cxx_$(proj)_graph)) $(call $2_$(proj)_platform))))
 endef
 
 ## Gives the source files of the embedded object files in $1
@@ -123,8 +125,9 @@ $(if $(filter kkj$2_$3%.o,$1),$(patsubst kkj$2_$3_%.o,%,$1))
 endef
 
 ## Gives the source file of object $1 of project $2 of type $3 (bin|lib|test) in language $4 (cc/cxx)
+#$(shell echo test $0 \"$1\" \"$2\" \"$3\" \"$4\" > /dev/stderr)
 define source
-$(if $(filter kkj%.o,$1),$(if $(call $3$4_$(sort $2)_$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call kkj_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call kkj_task,$1,$4,$(sort $2)))),$(shell snekkja -i $(call $3$4_$(sort $2)_graph) --read task $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4)),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
+$(if $(filter kkj%.o,$1),$(if $(filter %.$(snekkja_schedule).o,$1),$(patsubst $3$4_%.$(snekkja_schedule).o,%.$(snekkja_schedule).$(call ext,$4),$1),$(if $(call $3$4_$(sort $2)_$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call kkj_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call kkj_task,$1,$4,$(sort $2)))),$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4))),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
 endef
 
 # Returns the package main language of object $1 of project type $2 (bin|lib|test)
@@ -166,7 +169,7 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),)) $(if $(filter kkj%,$1),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja -i $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --read task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),) $(if $(filter kkj%,$1),$(if $(filter %.$(snekkja_schedule).o,$1),-DAPP_NAME=$(patsubst kkj$(lang)_%.$(snekkja_schedule).o,%,$1),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja --taskgraph $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --get task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
@@ -212,11 +215,18 @@ define pkg_project
 $(call pkg-config,$(call $2_$1_pkg),libs-only-l $(if $(strip $(call $2_$1_static)),$(if $(filter 0,$(strip $(call $2_$1_static))),,--static),),$2_$1_pkg_)
 endef
 
+## A source filename for snekkja application $1 in language $2
+define kkj_schedule_src
+$(if $(strip $(call kkj$2_$1_graph)),$1.$(snekkja_schedule).$(if $(filter cc,$2),c,$(if $(filter cxx,$2),cxx)))
+endef
+
 ## All C and C++ objects, eliminating duplicates
+snekkja_schedule_src = $(foreach proj,$(kkj_package),$(foreach lang,cc cxx,$(call kkj_schedule_src,$(proj),$(lang))))
+#$(foreach proj,$(kkj_package),$(shell snekkja --get schedule --taskgraph $(foreach lang,cc cxx,$(call kkj$(lang)_$(proj)_graph) --platform $(call kkj_$(proj)_platform)))
 cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call kkj_object,$(kkj_package),kkj,cc))
 cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc)) $(call kkj_object,$(kkj_package),kkj,cxx)
 lib_pkgconfig = $(foreach var,$(lib_package) $(kkj_package),$(patsubst %,%.pc,$(var)))
-embed_object = $(sort $(call embed,$(bincc_package),bin,cc) $(call embed,$(testcc_package),test,cc) $(call embed,$(lib_package),lib,cc) $(call embed,$(kkj_package),kkj,cc)) $(sort $(call embed,$(bincxx_package),bin,cxx) $(call embed,$(testcxx_package),test,cxx) $(call embed,$(lib_package),lib,cxx) $(call embed,$(kkj_package),kkj,cxx)) 
+embed_object = $(sort $(call embed,$(bincc_package),bin) $(call embed,$(testcc_package),test) $(call embed,$(lib_package),lib) $(call embed,$(kkj_package),kkj))
 
 -include $(foreach file,$(cc_object) $(cxx_object),$(patsubst %.o,%.d,$(file)))
 
@@ -227,7 +237,6 @@ bincc_list = $(foreach var,$(bincc_package),$(call VARIANT_$(var))$(var))
 bincxx_list = $(foreach var,$(bincxx_package),$(call VARIANT_$(var))$(var))
 bin_list = $(bincc_list) $(bincxx_list)
 
-lib_target = $(lib_package:%=lib%.a) 
 lib_list = $(foreach var,$(lib_package),lib$(call VARIANT_lib$(var).a)$(var).a) $(foreach var,$(kkj_package),lib$(call VARIANT_lib$(var).a)$(var).a)
 
 testcc_target = $(testcc_package:%=test_%)
@@ -245,10 +254,14 @@ all: submake $(bin_list) $(lib_list)
 ## Force rebuild upon Makefile update
 $(cc_object) $(cxx_object) $(embed_object) $(cc_pkgconfig) $(cxx_pkgconfig): Makefile Makefile.in
 
+## Generate snekkja schedules
+$(snekkja_schedule_src): $$(call kkj$$(if $$(filter %.c,$$@),cc,$$(if $$(filter %.cpp,$$@),cxx))_$$(patsubst %.$$(snekkja_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_graph) $$(call kkj_$$(patsubst %.$$(snekkja_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_platform)
+	snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,$@),cc,$(if $(filter %.cpp,$@),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_graph) --platform $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_platform) --scheduler $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_scheduler) > $@
+
 $(embed_object): $$(call embed_src,$$@)
 	$(LD) -r -b binary -o $@ $(patsubst %.o,%,$@)
 
-$(cc_object): $$(call source,$$@,$$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang))),$$(call typeof,$$@),cc)
+$(cc_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang)))),$$(call typeof,$$@),cc)
 	$(CC) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
 	$(CC) -c $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) -o $@ $<
 	$(CC) -M $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cc),$(call typeof,$@),cc) $(call cflags_private_object,$@) $(call cflags_file,$@,$(call typeof,$@)) $(GLOBAL_CFLAGS) $(CPPFLAGS) $< -MF $(patsubst %.o,%.d,$@)
@@ -259,7 +272,7 @@ $(cc_object): $$(call source,$$@,$$(foreach lang,cc cxx,$$(call projectof,$$@,$$
 	@sed -e 's/.*://' -e 's/\\$$//' < $(patsubst %.o,%.d,$@).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(patsubst %.o,%.d,$@)
 	@rm -f $(patsubst %.o,%.d,$@).tmp
 
-$(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang)))),$$(call typeof,$$@),cxx)
+$(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang))))),$$(call typeof,$$@),cxx)
 	@$(CXX) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
 	$(CXX) -c $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $@ $<
 	$(CXX) -M $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) $< -MF $(patsubst %.o,%.d,$@)
@@ -270,20 +283,20 @@ $(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call project
 	@sed -e 's/.*://' -e 's/\\$$//' < $(patsubst %.o,%.d,$@).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(patsubst %.o,%.d,$@)
 	@rm -f $(patsubst %.o,%.d,$@).tmp
 
-$(bincc_list): $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cc) $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cxx,cc) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincc_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincc_package)),bin,cc)
-	$(CC) -o $@ $(if $(strip $(call bin_$@_static)),$(if $(filter 0,$(strip $(call bin_$@_static))),,--static),) $(GLOBAL_CC_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincc_package),bin,cc),bin,cc) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincc_package)),bin,cc) $(call object,$(call suffixin,$@,$(bincc_package)),bin,cxx,cc) $(call embed,$(call suffixin,$@,$(bincc_package)),bin,cc) $(call libs_project,$@,bin,cc) $(call pkg_project,$@,bin,cc) $(GLOBAL_CC_PKG) $(GLOBAL_CC_LIBS) $(LIBS)
+$(bincc_list): $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cc) $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cxx,cc) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincc_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincc_package)),bin)
+	$(CC) -o $@ $(if $(strip $(call bin_$@_static)),$(if $(filter 0,$(strip $(call bin_$@_static))),,--static),) $(GLOBAL_CC_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincc_package),bin,cc),bin,cc) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincc_package)),bin,cc) $(call object,$(call suffixin,$@,$(bincc_package)),bin,cxx,cc) $(call embed,$(call suffixin,$@,$(bincc_package)),bin) $(call libs_project,$@,bin,cc) $(call pkg_project,$@,bin,cc) $(GLOBAL_CC_PKG) $(GLOBAL_CC_LIBS) $(LIBS)
 
-$(bincxx_list): $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cxx) $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cc,cxx) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincxx_package)),bin,cxx)
-	$(CXX) -o $@ $(if $(strip $(call bin_$@_static)),$(if $(filter 0,$(strip $(call bin_$@_static))),,--static),) $(GLOBAL_CXX_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincxx_package),bin,cxx),bin,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cxx) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cc,cxx) $(call embed,$(call suffixin,$@,$(bincxx_package)),bin,cxx) $(call libs_project,$@,bin,cxx) $(call pkg_project,$@,bin,cxx) $(GLOBAL_CXX_PKG) $(GLOBAL_CXX_LIBS) $(LIBS)
+$(bincxx_list): $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cxx) $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cc,cxx) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincxx_package)),bin)
+	$(CXX) -o $@ $(if $(strip $(call bin_$@_static)),$(if $(filter 0,$(strip $(call bin_$@_static))),,--static),) $(GLOBAL_CXX_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincxx_package),bin,cxx),bin,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cxx) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cc,cxx) $(call embed,$(call suffixin,$@,$(bincxx_package)),bin) $(call libs_project,$@,bin,cxx) $(call pkg_project,$@,bin,cxx) $(GLOBAL_CXX_PKG) $(GLOBAL_CXX_LIBS) $(LIBS)
 
-$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call kkj_object,$$(patsubst lib%.a,%,$$@),kkj,$$(lang)) $$(foreach type,lib kkj,$$(call embed,$$(patsubst lib%.a,%,$$@),$$(type),$$(lang)) $$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package))))) $$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(lib_package) $$(kkj_package)).pc)
-	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call kkj_object,$(patsubst lib%.a,%,$@),kkj,$(lang)) $(call embed,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call embed,$(patsubst lib%.a,%,$@),kkj,$(lang)))
+$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call kkj_object,$$(patsubst lib%.a,%,$$@),kkj,$$(lang)) $$(foreach type,lib kkj,$$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package))))) $$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(lib_package) $$(kkj_package)).pc) $$(foreach type,lib kkj,$$(call embed,$$(patsubst lib%.a,%,$$@),$$(type),$$(lang)))
+	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call kkj_object,$(patsubst lib%.a,%,$@),kkj,$(lang))) $(call embed,$(patsubst lib%.a,%,$@),lib,) $(call embed,$(patsubst lib%.a,%,$@),kkj,)
 
-$(testcc_list): $$(call object,$$(patsubst test_%,%,$$@),test,cc) $$(call object,$$(patsubst test_%,%,$$@),test,cxx,cc) $$(call $$(patsubst %,testcc_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcc_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcc_package)),test,cc)
-	$(CC) -o $@ $(if $(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static)),$(if $(filter 0,$(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static))),,--static),) $(GLOBAL_CC_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcc_package),test,cc),test,cc) $(GLOBAL_CC_TEST_LDFLAGS) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcc_package)),test,cc) $(call object,$(call suffixin,$@,$(testcc_package)),test,cxx,cc) $(call embed,$(call suffixin,$@,$(testcc_package)),test,cc) $(call libs_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(call pkg_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(GLOBAL_CC_TEST_PKG) $(GLOBAL_CC_TEST_LIBS) $(LIBS)
+$(testcc_list): $$(call object,$$(patsubst test_%,%,$$@),test,cc) $$(call object,$$(patsubst test_%,%,$$@),test,cxx,cc) $$(call $$(patsubst %,testcc_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcc_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcc_package)),test)
+	$(CC) -o $@ $(if $(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static)),$(if $(filter 0,$(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static))),,--static),) $(GLOBAL_CC_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcc_package),test,cc),test,cc) $(GLOBAL_CC_TEST_LDFLAGS) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcc_package)),test,cc) $(call object,$(call suffixin,$@,$(testcc_package)),test,cxx,cc) $(call embed,$(call suffixin,$@,$(testcc_package)),test) $(call libs_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(call pkg_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(GLOBAL_CC_TEST_PKG) $(GLOBAL_CC_TEST_LIBS) $(LIBS)
 
-$(testcxx_list): $$(call object,$$(patsubst test_%,%,$$@),test,cxx) $$(call object,$$(patsubst test_%,%,$$@),test,cc,cxx) $$(call $$(patsubst %,testcxx_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcxx_package)),test,cxx)
-	$(CXX) -o $@ $(if $(strip $(call testcxx_$(call suffixin,$@,$(testcxx_package))_static)),$(if $(filter 0,$(strip $(call testcxx_$(call suffixin,$@,$(testcxx_package))_static))),,--static),) $(GLOBAL_CXX_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcxx_package),test,cxx),test,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(call object,$(call suffixin,$@,$(testcxx_package)),test,cc,cxx) $(call embed,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(call libs_project,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(call pkg_project,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(GLOBAL_CXX_TEST_PKG) $(GLOBAL_CXX_TEST_LIBS) $(LIBS)
+$(testcxx_list): $$(call object,$$(patsubst test_%,%,$$@),test,cxx) $$(call object,$$(patsubst test_%,%,$$@),test,cc,cxx) $$(call $$(patsubst %,testcxx_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcxx_package)),test)
+	$(CXX) -o $@ $(if $(strip $(call testcxx_$(call suffixin,$@,$(testcxx_package))_static)),$(if $(filter 0,$(strip $(call testcxx_$(call suffixin,$@,$(testcxx_package))_static))),,--static),) $(GLOBAL_CXX_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcxx_package),test,cxx),test,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(call object,$(call suffixin,$@,$(testcxx_package)),test,cc,cxx) $(call embed,$(call suffixin,$@,$(testcxx_package)),test) $(call libs_project,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(call pkg_project,$(call suffixin,$@,$(testcxx_package)),test,cxx) $(GLOBAL_CXX_TEST_PKG) $(GLOBAL_CXX_TEST_LIBS) $(LIBS)
 
 $(lib_pkgconfig): Makefile Makefile.in
 	@echo prefix=$(final_prefix) > $@
@@ -334,10 +347,11 @@ clean: submake
 	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
 	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d)) $(foreach var,$(cxx_object),$(var:%.o=%.e))
 	$(RM) $(cc_pkgconfig) $(cxx_pkgconfig)
+	$(RM) $(snekkja_schedule_src)
 	$(RM) $(embed_object)
 	$(RM) $(test_target)
 	$(RM) $(bin_list)
-	$(RM) $(lib_target)
+	$(RM) $(lib_list)
 	$(RM) $(clean)
 
 check: submake $(test_list)
@@ -346,17 +360,17 @@ check: submake $(test_list)
 
 checkdist distcheck: dist
         
-install: submake $(bin_list) $(lib_target) $(cc_pkgconfig) $(cxx_pkgconfig)
-	$(if $(strip $(lib_target)),install -d $(DESTDIR)$(final_libdir))
-	$(if $(strip $(lib_target)),install -m 644 $(lib_target) $(DESTDIR)$(final_libdir))
+install: submake $(bin_list) $(lib_list) $(cc_pkgconfig) $(cxx_pkgconfig)
+	$(if $(strip $(lib_list)),install -d $(DESTDIR)$(final_libdir))
+	$(if $(strip $(lib_list)),install -m 644 $(lib_list) $(DESTDIR)$(final_libdir))
 	$(if $(strip $(bin_list)),install -d $(DESTDIR)$(final_bindir))
 	$(if $(strip $(bin_list)),install -m 755 $(bin_list) $(DESTDIR)$(final_bindir))
-	$(if $(strip $(lib_target)),install -d $(DESTDIR)$(final_libdir)/pkgconfig)
+	$(if $(strip $(lib_list)),install -d $(DESTDIR)$(final_libdir)/pkgconfig)
 	$(if $(strip $(lib_pkgconfig)),install -m 644 $(lib_pkgconfig) $(DESTDIR)$(final_libdir)/pkgconfig)
 
 uninstall: submake
 	$(RM) $(foreach var,$(bin_list), $(DESTDIR)$(final_bindir)/$(var))
-	$(RM) $(foreach var,$(lib_target), $(DESTDIR)$(final_libdir)/$(var))
+	$(RM) $(foreach var,$(lib_list), $(DESTDIR)$(final_libdir)/$(var))
 	$(RM) $(foreach var,$(lib_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(var))
 	
 submake:
@@ -364,4 +378,4 @@ submake:
 	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\; done)
 
 FORCE:
-.PHONY: all clean check install uninstall dist FORCE submake bin_package lib_target test_target
+.PHONY: all clean check install uninstall dist FORCE submake

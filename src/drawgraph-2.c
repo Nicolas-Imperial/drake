@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
-#include <architecture.h>
 
-#include <mapping.h>
+#include <snekkja/mapping.h>
+#include <snekkja/platform.h>
 #include "drawgraph-2.h"
 
 FILE *input, *output, *error;

@@ -1,8 +1,10 @@
+
+
 #include <stdlib.h>
 #include <string.h>
 
-#include <mapping.h>
-#include <architecture.h>
+#include <snekkja/mapping.h>
+#include <snekkja/platform.h>
 #include <assert.h>
 
 #include "drawgraph-2.h"

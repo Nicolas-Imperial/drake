@@ -1,0 +1,5 @@
+# Number of cores
+param p := 32;
+
+# Frequency levels
+set F := 100 106 114 123 133 145 160 178 200 228 266 320 400 533 800 ;

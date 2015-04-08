@@ -21,7 +21,7 @@
  * 
  */
 
-#include <mapping.h>
+#include <snekkja/mapping.h>
 
 #ifndef DRAWGRAPH2_H_
 #define DRAWGRAPH2_H_
