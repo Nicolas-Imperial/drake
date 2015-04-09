@@ -311,7 +311,6 @@ pelib_mapping_loadfilterfile(mapping_t * mapping, FILE * file, int (filter)(task
         }
         //fclose ( file );
         return NULL;*/
-
   mapping = pelib_drawgraph2_load(file, mapping, filter);
   //printf("[%s] ", __func__);
   //pelib_mapping_display(mapping);

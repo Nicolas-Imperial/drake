@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <link.h>
-#include <cross_link.h>
-#include <architecture.h>
+#include <snekkja/link.h>
+#include <snekkja/cross_link.h>
+#include <snekkja/platform.h>
 
 cross_link_tp *
 pelib_alloc_struct(cross_link_tp)()

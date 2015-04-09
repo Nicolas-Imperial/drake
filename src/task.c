@@ -2,8 +2,8 @@
 #include <string.h>
 #include <math.h>
 
-#include <task.h>
-#include <architecture.h>
+#include <snekkja/task.h>
+#include <snekkja/platform.h>
 
 int
 pelib_printf(task_tp)(task_tp task)

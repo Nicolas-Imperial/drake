@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <link.h>
-#include <architecture.h>
+#include <snekkja/link.h>
+#include <snekkja/platform.h>
 
 link_tp *
 pelib_alloc_struct(link_tp)()

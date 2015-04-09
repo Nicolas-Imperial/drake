@@ -398,13 +398,13 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 				task.id = i;
 
 				task.pred = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-//				pelib_init(array_t(task_tp))(task.pred);
+//				pelib_init(array_t(link_tp))(task.pred);
 				task.succ = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-//				pelib_init(array_t(task_tp))(task.succ);
+//				pelib_init(array_t(link_tp))(task.succ);
 				task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//				pelib_init(array_t(task_tp))(task.source);
+//				pelib_init(array_t(cross_link_tp))(task.source);
 				task.sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//				pelib_init(array_t(task_tp))(task.sink);
+//				pelib_init(array_t(cross_link_tp))(task.sink);
 
 				task.status = TASK_INIT;
 

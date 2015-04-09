@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <architecture.h>
+#include <snekkja/platform.h>
 #include <pelib_scc.h>
 #include <scc_printf.h>
 #include <RCCE.h>

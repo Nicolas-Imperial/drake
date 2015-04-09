@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <processor.h>
-#include <architecture.h>
+#include <snekkja/processor.h>
+#include <snekkja/platform.h>
 
 processor_t*
 pelib_alloc_collection(processor_t)(size_t size)

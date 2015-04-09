@@ -336,6 +336,8 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 		link->buffer = NULL;
 
 		// Add it as source and sink to both current and target tasks
+		printf_int(cons->id);
+		printf_addr(cons->pred);
 		pelib_array_append(link_tp)(cons->pred, link);
 		pelib_array_append(link_tp)(prod->succ, link);
 
@@ -861,6 +863,8 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 	task->step_transition = 0;
 #endif
 
+	printf_int(task->id);
+	printf_addr(task->pred);
 	// If the task has no predecessor (is a leaf)
 	if(pelib_array_length(link_tp)(task->pred) == 0)
 	{
@@ -1095,93 +1099,6 @@ allocate_buffers(mapping_t* mapping)
 }
 
 int
-merge(task_t *task)
-{
-	link_t *left, *right, *parent;
-	left = pelib_array_read(link_tp)(task->pred, 0);
-	right = pelib_array_read(link_tp)(task->pred, 1);
-	parent = pelib_array_read(link_tp)(task->succ, 0);
-
-/*
-	size_t s;
-	s = pelib_cfifo_discard(int)(left->buffer, pelib_cfifo_length(int)(*left->buffer));
-	s += pelib_cfifo_discard(int)(right->buffer, pelib_cfifo_length(int)(*right->buffer));
-	pelib_cfifo_fill(int)(parent->buffer, s);
-*/
-
-	size_t capacity = pelib_cfifo_capacity(int)(parent->buffer);
-	size_t length = pelib_cfifo_length(int)(*parent->buffer);
-	size_t max_push = capacity - length;
-	size_t max_left = pelib_cfifo_length(int)(*left->buffer);
-	size_t max_right = pelib_cfifo_length(int)(*right->buffer);
-	size_t read_left = 0, read_right = 0, pushed = 0;
-	int left_val, right_val;
-	
-	while(max_push > 0 && max_left > 0 && max_right > 0)
-	{
-		left_val = left->buffer->buffer[(left->buffer->read + read_left) % left->buffer->capacity];
-		right_val = right->buffer->buffer[(right->buffer->read + read_right) % right->buffer->capacity];
-
-		if(left_val < right_val)
-		{
-			read_left++;
-			max_left--;
-			parent->buffer->buffer[(parent->buffer->write + pushed) % parent->buffer->capacity] = left_val;
-		}
-		else
-		{
-			read_right++;
-			max_right--;
-			parent->buffer->buffer[(parent->buffer->write + pushed) % parent->buffer->capacity] = right_val;
-		}
-
-		pushed++;
-		max_push--;
-	}
-
-	// Update state for fifos
-	pelib_cfifo_discard(int)(left->buffer, read_left);
-	pelib_cfifo_discard(int)(right->buffer, read_right);
-	pelib_cfifo_fill(int)(parent->buffer, pushed);
-
-	// Flush merge
-	int left_killed = ((left->prod == NULL) ? 1 : left->prod->status >= TASK_KILLED);
-	int left_empty = pelib_cfifo_is_empty(int)(left->buffer);
-
-	if(left_killed)
-	{
-		if(left_empty)
-		{
-			// Copy from fifo to fifo
-			pushed = pelib_cfifo_popfifo(int)(right->buffer, parent->buffer, pelib_cfifo_length(int)(*right->buffer));
-			left_empty = (pushed == pelib_cfifo_length(int)(*right->buffer));
-		}
-	}
-
-	int right_killed = ((right->prod == NULL) ? 1 : right->prod->status >= TASK_KILLED);
-	int right_empty = pelib_cfifo_is_empty(int)(right->buffer);
-
-	if(right_killed)
-	{
-		if(right_empty)
-		{
-			// Copy from fifo to fifo
-			pushed = pelib_cfifo_popfifo(int)(left->buffer, parent->buffer, pelib_cfifo_length(int)(*left->buffer));
-			right_empty = (pushed == pelib_cfifo_length(int)(*left->buffer));
-		}
-	}
-
-	if(left_killed && left_empty && right_killed && right_empty)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-int
 greater(const void *a, const void *b)
 {
 	return *(int*)a - *(int*)b;
@@ -1408,7 +1325,6 @@ main(int argc, char **argv)
 	link_t* link;
 
 	unsigned long long int start, stop, begin, end;
-
 PELIB_SCC_CRITICAL_BEGIN
 	// Load mappings
 	file_mapping = fopen(argv[1], "r");
@@ -1472,7 +1388,7 @@ PELIB_SCC_CRITICAL_END
 				case TASK_INIT:
 					if(task->status == TASK_INIT)
 					{
-						task->init(task, NULL);
+						//task->init(task, NULL);
 						task->status = task_next_state(task);
 #if MEASURE_STEPS
 						task->start_presort = rdtsc();
@@ -1489,7 +1405,7 @@ PELIB_SCC_CRITICAL_END
 					task_check(task);
 					if(task->status == TASK_START)
 					{
-						task->start(task);
+						//task->start(task);
 						task->status = task_next_state(task);
 					}
 #if INTERLACE_PRESORT
@@ -1525,8 +1441,7 @@ PELIB_SCC_CRITICAL_END
 					begin = rdtsc();
 #endif
 					// Work
-					//done = merge(task);
-					task->run(task);
+					done = task->run(task);
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_work += end - begin;
 #endif
@@ -1557,7 +1472,7 @@ PELIB_SCC_CRITICAL_END
 #if MEASURE_STEPS
 						begin = rdtsc();
 #endif
-						task->destroy(task);
+						//task->destroy(task);
 						// Send successor tasks the task killed information
 						for(j = 0; j < pelib_array_length(cross_link_tp)(task->sink); j++)
 						{
