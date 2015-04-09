@@ -23,6 +23,8 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
+#include <snekkja/schedule.h>
+
 #if DEBUG
 /* get REG_EIP from ucontext.h */
 //#define __USE_GNU
@@ -888,6 +890,10 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 	}
 
 	task->status = TASK_INIT;
+	task->init = (int (*)(task_t*, void*))snekkja_function(task->id, TASK_INIT);
+	task->start = (int (*)(task_t*))snekkja_function(task->id, TASK_START);
+	task->run = (int (*)(task_t*))snekkja_function(task->id, TASK_RUN);
+	task->destroy = (int (*)(task_t*))snekkja_function(task->id, TASK_KILLED);
 }
 
 static
@@ -1466,6 +1472,7 @@ PELIB_SCC_CRITICAL_END
 				case TASK_INIT:
 					if(task->status == TASK_INIT)
 					{
+						task->init(task, NULL);
 						task->status = task_next_state(task);
 #if MEASURE_STEPS
 						task->start_presort = rdtsc();
@@ -1482,6 +1489,7 @@ PELIB_SCC_CRITICAL_END
 					task_check(task);
 					if(task->status == TASK_START)
 					{
+						task->start(task);
 						task->status = task_next_state(task);
 					}
 #if INTERLACE_PRESORT
@@ -1517,7 +1525,8 @@ PELIB_SCC_CRITICAL_END
 					begin = rdtsc();
 #endif
 					// Work
-					done = merge(task);
+					//done = merge(task);
+					task->run(task);
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_work += end - begin;
 #endif
@@ -1548,6 +1557,7 @@ PELIB_SCC_CRITICAL_END
 #if MEASURE_STEPS
 						begin = rdtsc();
 #endif
+						task->destroy(task);
 						// Send successor tasks the task killed information
 						for(j = 0; j < pelib_array_length(cross_link_tp)(task->sink); j++)
 						{

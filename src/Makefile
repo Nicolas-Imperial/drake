@@ -169,7 +169,7 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),) $(if $(filter kkj%,$1),$(if $(filter %.$(snekkja_schedule).o,$1),-DAPP_NAME=$(patsubst kkj$(lang)_%.$(snekkja_schedule).o,%,$1),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja --taskgraph $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --get task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter kkj%,$1),$(if $(filter %.$(snekkja_schedule).o,$1),-DAPP_NAME=$(foreach lang,cc cxx,$(if $(filter kkj$(lang)_%.$(snekkja_schedule).o,$1),$(patsubst kkj$(lang)_%.$(snekkja_schedule).o,%,$1))),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja --taskgraph $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --get task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang)))))))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
@@ -272,7 +272,7 @@ $(cc_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projecto
 	@sed -e 's/.*://' -e 's/\\$$//' < $(patsubst %.o,%.d,$@).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(patsubst %.o,%.d,$@)
 	@rm -f $(patsubst %.o,%.d,$@).tmp
 
-$(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang))))),$$(call typeof,$$@),cxx)
+$(cxx_object): $$(call source,$$@,$$(sort $$(foreach lang,cc cxx,$$(call projectof,$$@,$$(call typeof,$$@),$$(lang)))) ,$$(call typeof,$$@),cxx)
 	@$(CXX) -E $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $(patsubst %.o,%.e,$@) $<
 	$(CXX) -c $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) -o $@ $<
 	$(CXX) -M $(call cflags_project,$(call projectof,$@,$(call typeof,$@),cxx),$(call typeof,$@),cxx) $(call cflags_private_object,$@) $(call cxxflags_file,$@,$(call typeof,$@)) $(GLOBAL_CXXFLAGS) $(CPPFLAGS) $< -MF $(patsubst %.o,%.d,$@)

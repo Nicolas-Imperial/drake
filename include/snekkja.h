@@ -33,10 +33,11 @@
 #if PELIB_CONCAT_3(DONE_, TASK_NAME, TASK_ID) == 0
 
 #ifdef _SNEKKJA_COMPILE
+
 #define snekkja_init PELIB_CONCAT_3(TASK_NAME,_init_,TASK_ID)
 #define snekkja_start PELIB_CONCAT_3(TASK_NAME,_start_,TASK_ID)
 #define snekkja_run PELIB_CONCAT_3(TASK_NAME,_run_,TASK_ID)
-#define snekkja_destroy PELIB_CONCAT_3(TASK_NAME,_destroy_,TASK_ID)
+#define snekkja_destroy PELIB_##CONCAT_3(TASK_NAME, _destroy_, TASK_ID)
 int snekkja_init(task_t *, void *aux);
 int snekkja_start(task_t *);
 int snekkja_run(task_t *);
@@ -51,9 +52,10 @@ int snekkja_init(TASK_NAME, TASK_ID)(task_t *, void *aux);
 int snekkja_start(TASK_NAME, TASK_ID)(task_t *);
 int snekkja_run(TASK_NAME, TASK_ID)(task_t *);
 int snekkja_destroy(TASK_NAME, TASK_ID)(task_t *);
+
+#undef TASK_NAME
+#undef TASK_ID
 #endif
 
 #endif
-#undef TASK_NAME
-#undef TASK_ID
 

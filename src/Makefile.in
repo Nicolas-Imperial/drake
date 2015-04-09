@@ -47,7 +47,7 @@ PKG_TEST =
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
 
 ## C++-compiled programs and their sources
-#bincxx_package = snekkja
+bincxx_package = snekkja
 
 bincxx_snekkja_src = snekkja.cpp
 bin_snekkja_export = $(bincxx_snekkja_embed) $(bincxx_snekkja_src) $(bin_snekkja_src)
@@ -58,7 +58,7 @@ bin_snekkja_ldflags = -L.
 bin_snekkja_static = 1
 
 ## C-compiled programs and their sources
-#bincc_package = pipelined_merge
+bincc_package = pipelined_merge
 INNER_BUFFER_SIZE = 65536
 
 bincc_pipelined_merge_src = pipelined_merge.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
@@ -122,7 +122,7 @@ bin__embed =
 # bincc_bar_export = $(bincc_bar_src)
 
 ## Static C library packages and their sources
-#lib_package = unitc unitc++ snekkja-scc
+lib_package = unitc unitc++ snekkja-scc
 
 libcc__src = 
 libcxx__src = 
@@ -144,8 +144,8 @@ lib__deps =
 ## Embed these files into the final archive
 lib__embed = 
 
-libcc_unitc_src = unitc.c
-libcxx_unitc_src = 
+libcc_unitc_src = unitc.c 
+libcxx_unitc_src =  
 lib_unitc_export = $(libcc_unitc_src) $(libcxx_unitc_src)
 
 libcc_snekkja_src = task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c schedule.c
@@ -231,11 +231,5 @@ clean = *.o *.txt *.fig *.bin *.e *.d *.obj
 #FIRST=first
 
 first:
-	@#echo snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph) --platform $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_platform) --scheduler $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_scheduler) #> merge.schedule.c
-	@echo snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph) --platform $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_platform) --scheduler $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_scheduler)
-#> merge.schedule.c
-	@echo $(call kkj$(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph)
-	@echo kkjcc_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,merge.schedule.c),c)$(if $(filter %.cpp,merge.schedule.c),cpp),%,merge.schedule.c)_graph
-	@echo reverse-ext: $(if $(filter %.c,merge.schedule.c),cc,$(if $(filter %.cpp,merge.schedule.c),cxx))
-	@echo ext: $(filter %.c,merge.schedule.c)$(filter %.cpp,merge.schedule.c)
+	@echo $(call source,libcxx_unitc++_unitc++.o,unitc++,lib,cxx)
 	@/bin/false
