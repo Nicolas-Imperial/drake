@@ -38,6 +38,8 @@
 #define snekkja_start PELIB_CONCAT_3(TASK_NAME,_start_,TASK_ID)
 #define snekkja_run PELIB_CONCAT_3(TASK_NAME,_run_,TASK_ID)
 #define snekkja_destroy PELIB_##CONCAT_3(TASK_NAME, _destroy_, TASK_ID)
+#define snekkja_user(name) PELIB_##CONCAT_5(TASK_NAME, _user_, TASK_ID, _, name)
+
 int snekkja_init(task_t *, void *aux);
 int snekkja_start(task_t *);
 int snekkja_run(task_t *);

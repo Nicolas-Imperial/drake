@@ -471,6 +471,7 @@ build_tree_network(mapping_t* mapping)
 	}
 }
 
+#if 0
 static
 task_status_t
 task_next_state(task_t* task)
@@ -485,7 +486,7 @@ task_next_state(task_t* task)
 		break;
 
 		case TASK_START:
-#if MEASURE_TASK || 1
+#if MEASURE_TASK && 0
 			all_empty = 1; // Actually means "None is empty"
 			all_killed = 1;
 
@@ -558,6 +559,7 @@ task_next_state(task_t* task)
 
 	return TASK_INVALID;
 }
+#endif
 
 static
 void
@@ -1098,35 +1100,6 @@ allocate_buffers(mapping_t* mapping)
 	}
 }
 
-int
-greater(const void *a, const void *b)
-{
-	return *(int*)a - *(int*)b;
-}
-
-int
-task_presort(task_t *task)
-{
-	link_t *link;
-	int j;
-
-	for(j = 0; j < pelib_array_length(link_tp)(task->pred); j++)
-	{
-		link = pelib_array_read(link_tp)(task->pred, j);
-
-		if(link->prod == NULL)
-		{
-			array_t(int) *array;
-			array = (array_t(int)*)link->buffer;
-			qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
-			// Change array to fifo
-			link->buffer = pelib_cfifo_from_array(int)((array_t(int)*)link->buffer);
-		}
-	}
-
-	return 1;
-}
-
 #if DEBUG 
 void
 printf_link(cross_link_t *link)
@@ -1366,14 +1339,6 @@ PELIB_SCC_CRITICAL_END
 #if MEASURE_GLOBAL
 	start = rdtsc();
 #endif
-#if !INTERLACE_PRESORT
-	/* Phase 0: sequential sorting of all input buffers */
-	for(i = 0; i < proc->handled_nodes; i++)
-	{
-		task = proc->task[i];
-		task_presort(task);
-	}		
-#endif
 
 	int done = 0;
 
@@ -1389,7 +1354,8 @@ PELIB_SCC_CRITICAL_END
 					if(task->status == TASK_INIT)
 					{
 						//task->init(task, NULL);
-						task->status = task_next_state(task);
+						//task->status = task_next_state(task);
+						task->status = TASK_START;
 #if MEASURE_STEPS
 						task->start_presort = rdtsc();
 #endif
@@ -1399,14 +1365,13 @@ PELIB_SCC_CRITICAL_END
 #endif
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
-#if INTERLACE_PRESORT
-					done = task_presort(task);
-#endif
+					done = task->start(task);
 					task_check(task);
-					if(task->status == TASK_START)
+					if(task->status == TASK_START && done)
 					{
 						//task->start(task);
-						task->status = task_next_state(task);
+						//task->status = task_next_state(task);
+						task->status = TASK_RUN;
 					}
 #if INTERLACE_PRESORT
 					// Start this task right away if input are available
@@ -1458,9 +1423,11 @@ PELIB_SCC_CRITICAL_END
 #if MEASURE_STEPS
 					begin = rdtsc();
 #endif
-					if(task->status == TASK_RUN)
+					if(task->status == TASK_RUN && done != 0)
 					{
-						task->status = task_next_state(task);
+						
+						task->status = TASK_KILLED;
+						//task->status = task_next_state(task);
 					}
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_transition += end - begin;
@@ -1481,7 +1448,8 @@ PELIB_SCC_CRITICAL_END
 							snekkja_arch_commit(link->prod_state);
 						}
 						//pelib_scc_force_wcb(); // Important
-						task->status = task_next_state(task);
+						//task->status = task_next_state(task);
+						task->status = TASK_ZOMBIE;
 #if MEASURE_STEPS
 						end = rdtsc(); task->step_transition += end - begin;
 #endif
@@ -1506,7 +1474,8 @@ PELIB_SCC_CRITICAL_END
 #endif
 					if(task->status == TASK_ZOMBIE)
 					{
-						task->status = task_next_state(task);
+						//task->status = task_next_state(task);
+						task->status = TASK_ZOMBIE;
 					}
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_transition += end - begin;
@@ -1514,11 +1483,16 @@ PELIB_SCC_CRITICAL_END
 				break;
 
 				// Should not happen. If it does happen, let the scheduler decide what to do
+				case TASK_INVALID:
+					task->status = TASK_ZOMBIE;
+				break;
+
 				default:
 #if MEASURE_STEPS
 					begin = rdtsc();
 #endif
-					task->status = task_next_state(task);
+					//task->status = task_next_state(task);
+					task->status = TASK_INVALID;
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_transition += end - begin;
 #endif
