@@ -377,18 +377,24 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 	num_tasks = 0;
 	inputstructure();
 
+	fprintf(stderr, "[%s:%s:%d] mapping = pelib_alloc_collection(mapping_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, PELIB_MAPPING_MAX_PROCESSOR_COUNT);
 	mapping = pelib_alloc_collection(mapping_t)(PELIB_MAPPING_MAX_PROCESSOR_COUNT);
 	//  mapping->processor_count = p;
 
 	// Fills mapping with processors and processors with tasks
 	for (j = 1; j <= num_procs; j++)
 	{
+		fprintf(stderr, "[%s:%s:%d] processor = pelib_alloc_collection(processor_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, PELIB_MAPPING_MAX_TASK_COUNT);
 		processor = pelib_alloc_collection(processor_t)(PELIB_MAPPING_MAX_TASK_COUNT);
+		fprintf(stderr, "[%s:%s:%d] processor->id = %d - 1;\n", __FILE__, __FUNCTION__, __LINE__, j);
 		processor->id = j - 1;
+		fprintf(stderr, "[%s:%s:%d] processor->source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 		processor->source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
 //		pelib_init(array_t(task_tp))(processor->source);
+		fprintf(stderr, "[%s:%s:%d] processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
 //		pelib_init(array_t(task_tp))(processor->sink);
+		fprintf(stderr, "[%s:%s:%d] nb_mapping_insert_processor(mapping, processor);\n", __FILE__, __FUNCTION__, __LINE__);
 		pelib_mapping_insert_processor(mapping, processor);
 
 		for (i = 1; i < num_tasks; i++)
@@ -396,20 +402,27 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 			if (x[i][j] == 1)
 			{
 				task.id = i;
-
-				task.pred = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-//				pelib_init(array_t(link_tp))(task.pred);
-				task.succ = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-//				pelib_init(array_t(link_tp))(task.succ);
-				task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//				pelib_init(array_t(cross_link_tp))(task.source);
-				task.sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//				pelib_init(array_t(cross_link_tp))(task.sink);
-
-				task.status = TASK_INIT;
-
 				if (filter(&task) != 0)
 				{
+					fprintf(stderr, "[%s:%s:%d] task.id = %d\n", __FILE__, __FUNCTION__, __LINE__, i);
+
+					fprintf(stderr, "[%s:%s:%d] task.pred = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+					task.pred = pelib_alloc_collection(array_t(link_tp))(num_tasks);
+	//				pelib_init(array_t(link_tp))(task.pred);
+					fprintf(stderr, "[%s:%s:%d] task.succ = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+					task.succ = pelib_alloc_collection(array_t(link_tp))(num_tasks);
+	//				pelib_init(array_t(link_tp))(task.succ);
+					fprintf(stderr, "[%s:%s:%d] task.source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+					task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
+	//				pelib_init(array_t(cross_link_tp))(task.source);
+					fprintf(stderr, "[%s:%s:%d] task.sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+					task.sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
+	//				pelib_init(array_t(cross_link_tp))(task.sink);
+
+					fprintf(stderr, "[%s:%s:%d] task.status = TASK_INIT;\n", __FILE__, __FUNCTION__, __LINE__);
+					task.status = TASK_INIT;
+
+					fprintf(stderr, "[%s:%s:%d] pelib_mapping_insert_task(mapping, %d - 1, &task);\n", __FILE__, __FUNCTION__, __LINE__, j);
 					pelib_mapping_insert_task(mapping, j - 1, &task);
 				}
 				continue;
