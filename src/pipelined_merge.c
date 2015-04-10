@@ -1243,7 +1243,6 @@ prepare_mapping()
 	task_t task;
 
 	size_t num_cores = _snekkja_p;
-	fprintf(stderr, "[%s:%s:%d] mapping = pelib_alloc_collection(mapping_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_cores);
 	mapping = pelib_alloc_collection(mapping_t)(num_cores);
 
 /*
@@ -1262,40 +1261,28 @@ prepare_mapping()
 	{
 		size_t num_tasks = 128;
 		size_t tasks_in_core = 256; // _snekkja_tasks_in_core[j - 1];
-		fprintf(stderr, "[%s:%s:%d] processor = pelib_alloc_collection(processor_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, tasks_in_core);
 		processor = pelib_alloc_collection(processor_t)(tasks_in_core);
-		fprintf(stderr, "[%s:%s:%d] processor->id = %d - 1;\n", __FILE__, __FUNCTION__, __LINE__, j);
 		processor->id = j - 1;
-		size_t producers_in_core = num_tasks; // _snekkja_producers_in_core[j - 1];
-		size_t consumers_in_core = num_tasks; // _snekkja_consumers_in_core[j - 1];
-		size_t producers_in_task = num_tasks; // _snekkja_producers_in_task[task.id];
-		size_t consumers_in_task = num_tasks; // _snekkja_consumers_in_task[task.id]
-		size_t remote_producers_in_task = num_tasks; //_snekkja_producers_in_task[task.id];
-		size_t remote_consumers_in_task = num_tasks; //_snekkja_consumers_in_task[task.id];
-		fprintf(stderr, "[%s:%s:%d] processor->source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, producers_in_core);
+		size_t producers_in_core = _snekkja_producers_in_core[j - 1];
+		size_t consumers_in_core = _snekkja_consumers_in_core[j - 1];
 		processor->source = pelib_alloc_collection(array_t(cross_link_tp))(producers_in_core);
-		fprintf(stderr, "[%s:%s:%d] processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, consumers_in_core);
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(consumers_in_core);
-		fprintf(stderr, "[%s:%s:%d] nb_mapping_insert_processor(mapping, processor);\n", __FILE__, __FUNCTION__, __LINE__);
 		pelib_mapping_insert_processor(mapping, processor);
 
 		for(i = 1; i <= _snekkja_tasks_in_core[j - 1]; i++)
 		{
-			fprintf(stderr, "[%s:%s:%d] task.id = %d\n", __FILE__, __FUNCTION__, __LINE__, _snekkja_schedule[(j - 1) * 32 + (i - 1)].id);
 			task.id = _snekkja_schedule[(j - 1) * 32 + (i - 1)].id;
-			fprintf(stderr, "[%s:%s:%d] task.pred = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, producers_in_task);
+			size_t producers_in_task = _snekkja_producers_in_task[task.id - 1];
+			size_t consumers_in_task = _snekkja_consumers_in_task[task.id - 1];
+			size_t remote_producers_in_task = _snekkja_remote_producers_in_task[task.id - 1];
+			size_t remote_consumers_in_task = _snekkja_remote_consumers_in_task[task.id - 1];
 			task.pred = pelib_alloc_collection(array_t(link_tp))(producers_in_task);
-			fprintf(stderr, "[%s:%s:%d] task.succ = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, consumers_in_task);
 			task.succ = pelib_alloc_collection(array_t(link_tp))(consumers_in_task);
-			fprintf(stderr, "[%s:%s:%d] task.source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, remote_producers_in_task);
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
-			fprintf(stderr, "[%s:%s:%d] task.sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, remote_consumers_in_task);
 			task.sink = pelib_alloc_collection(array_t(cross_link_tp))(remote_consumers_in_task);
 
-			fprintf(stderr, "[%s:%s:%d] task.status = TASK_INIT;\n", __FILE__, __FUNCTION__, __LINE__);
 			task.status = TASK_INIT;
 
-			fprintf(stderr, "[%s:%s:%d] pelib_mapping_insert_task(mapping, %d - 1, &task);\n", __FILE__, __FUNCTION__, __LINE__, j);
 			pelib_mapping_insert_task(mapping, j - 1, &task);
 		}
 	}
