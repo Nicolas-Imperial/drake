@@ -1259,8 +1259,7 @@ prepare_mapping()
 
 	for(j = 1; j <= _snekkja_p; j++)
 	{
-		size_t num_tasks = 128;
-		size_t tasks_in_core = 256; // _snekkja_tasks_in_core[j - 1];
+		size_t tasks_in_core = _snekkja_tasks_in_core[j - 1];
 		processor = pelib_alloc_collection(processor_t)(tasks_in_core);
 		processor->id = j - 1;
 		size_t producers_in_core = _snekkja_producers_in_core[j - 1];
