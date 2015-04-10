@@ -57,6 +57,7 @@
 #include <monitor.h>
 
 #include <sort.h>
+#include <merge.h>
 
 #define PRINTF_TIMEOUT 5
 time_t timeref;
@@ -894,12 +895,6 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 		pelib_init(cfifo_t(int))(link->buffer);
 		pelib_array_append(link_tp)(task->succ, link);
 	}
-
-	task->status = TASK_INIT;
-	task->init = (int (*)(task_t*, void*))snekkja_function(task->id, TASK_INIT);
-	task->start = (int (*)(task_t*))snekkja_function(task->id, TASK_START);
-	task->run = (int (*)(task_t*))snekkja_function(task->id, TASK_RUN);
-	task->destroy = (int (*)(task_t*))snekkja_function(task->id, TASK_KILLED);
 }
 
 static
@@ -1270,7 +1265,7 @@ prepare_mapping()
 
 		for(i = 1; i <= _snekkja_tasks_in_core[j - 1]; i++)
 		{
-			task.id = _snekkja_schedule[(j - 1) * 32 + (i - 1)].id;
+			task.id = _snekkja_schedule[j - 1][i - 1].id;
 			size_t producers_in_task = _snekkja_producers_in_task[task.id - 1];
 			size_t consumers_in_task = _snekkja_consumers_in_task[task.id - 1];
 			size_t remote_producers_in_task = _snekkja_remote_producers_in_task[task.id - 1];
@@ -1375,6 +1370,7 @@ main(int argc, char **argv)
 
 	unsigned long long int start, stop, begin, end;
 	mapping_filename = argv[1];
+	snekkja_schedule_init();
 	mapping = prepare_mapping();
 
 	// Build task network based on tasks' id
@@ -1383,14 +1379,32 @@ main(int argc, char **argv)
 	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, snekkja_core())];
 	task = proc->task[0];
 
-	/* Init phase: load input data into tasks */
-PELIB_SCC_CRITICAL_BEGIN
+	// Initialize task's pointer
 	max_nodes = proc->handled_nodes;
 	for(i = 0; i < max_nodes; i++)
 	{
-		task_init(proc->task[i], argv[2], mapping);
+		task_t *task = proc->task[i];
+		task->status = TASK_INIT;
+		task->init = (int (*)(task_t*, void*))snekkja_function(task->id, TASK_INIT);
+		task->start = (int (*)(task_t*))snekkja_function(task->id, TASK_START);
+		task->run = (int (*)(task_t*))snekkja_function(task->id, TASK_RUN);
+		task->destroy = (int (*)(task_t*))snekkja_function(task->id, TASK_KILLED);
 	}
-PELIB_SCC_CRITICAL_END
+	/* Init phase: load input data into tasks */
+
+	snekkja_exclusive_begin();
+	for(i = 0; i < max_nodes; i++)
+	{
+		//task_init(proc->task[i], argv[2], mapping);
+		merge_t args;
+		args.filename = argv[2];
+		//args.mapping = mapping;
+		task->init(proc->task[i], &args);
+		
+	}
+	snekkja_exclusive_end();
+
+
 	allocate_buffers(mapping);
 	int active_tasks = proc->handled_nodes;
 
@@ -1403,6 +1417,7 @@ PELIB_SCC_CRITICAL_END
 	start = rdtsc();
 #endif
 
+	snekkja_schedule_destroy();
 	int done = 0;
 
 	/* Phase 1, real */

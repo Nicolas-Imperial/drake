@@ -195,7 +195,7 @@ kkj_merge_cflags_private =
 kkj_merge_export = 
 kkj_merge_libs =
 kkj_merge_ldflags =
-kkj_merge_pkg = 
+kkj_merge_pkg = pelib-scc 
 kkj_merge_pkg_description = 
 
 ## C test packages and their sources

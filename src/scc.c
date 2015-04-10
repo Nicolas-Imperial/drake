@@ -5,6 +5,7 @@
 #include <pelib_scc.h>
 #include <scc_printf.h>
 #include <RCCE.h>
+#include <sync.h>
 
 static volatile void* mpb;
 static void* alloc_ptr;
@@ -110,4 +111,16 @@ void
 snekkja_barrier(void* channel)
 {
 	RCCE_barrier(&RCCE_COMM_WORLD);
+}
+
+void
+snekkja_exclusive_begin()
+{
+	PELIB_SCC_CRITICAL_BEGIN
+}
+
+void
+snekkja_exclusive_end()
+{
+	PELIB_SCC_CRITICAL_END
 }
