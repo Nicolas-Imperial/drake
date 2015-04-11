@@ -372,6 +372,7 @@ static array_t(task_tp)*
 get_task_consumers(mapping_t *mapping, task_t *task)
 {
 	array_t(task_tp) *consumers;
+	/*
 	task_t *consumer = find_task(mapping, parent_task_id(task));
 
 	if(consumer != NULL)
@@ -383,6 +384,13 @@ get_task_consumers(mapping_t *mapping, task_t *task)
 	{
 		consumers = pelib_alloc_collection(array_t(task_tp))(0);
 	}
+	*/
+	size_t i;
+	consumers = pelib_alloc_collection(array_t(task_tp))(_snekkja_consumers_in_task[task->id - 1]);
+	for(i = 0; i < _snekkja_consumers_in_task[task->id - 1]; i++)
+	{
+		pelib_array_append(task_tp)(consumers, pelib_mapping_find_task(mapping, _snekkja_consumers_id[task->id - 1][i]));
+	}
 
 	return consumers;	
 }
@@ -391,19 +399,32 @@ static array_t(task_tp)*
 get_task_producers(mapping_t *mapping, task_t *task)
 {
 	array_t(task_tp) *producers;
+#if 0
 	task_t *left_producer = find_task(mapping, left_child_id(task));
 	task_t *right_producer = find_task(mapping, right_child_id(task));
 
 	if(left_producer != NULL && right_producer != NULL)
 	{
 		producers = pelib_alloc_collection(array_t(task_tp))(2);
+		snekkja_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, left_producer->id);
 		pelib_array_append(task_tp)(producers, left_producer);
+		snekkja_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, right_producer->id);
 		pelib_array_append(task_tp)(producers, right_producer);
 	}
 	else
 	{
 		producers = pelib_alloc_collection(array_t(task_tp))(0);
 	}
+#else
+	size_t i;
+	producers = pelib_alloc_collection(array_t(task_tp))(_snekkja_producers_in_task[task->id - 1]);
+	for(i = 0; i < _snekkja_producers_in_task[task->id - 1]; i++)
+	{
+		size_t task_id = _snekkja_producers_id[task->id - 1][i];
+		task_t *prod = pelib_mapping_find_task(mapping, task_id);
+		pelib_array_append(task_tp)(producers, prod);
+	}
+#endif
 
 	return producers;	
 }
