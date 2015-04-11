@@ -6,16 +6,10 @@
 #include <scc_printf.h>
 #include <RCCE.h>
 #include <sync.h>
+#include <scc.h>
 
 static volatile void* mpb;
 static void* alloc_ptr;
-
-struct args
-{
-	int *argc;
-	char ***argv;
-};
-typedef struct args args_t;
 
 int snekkja_arch_init(void* obj)
 {
@@ -26,8 +20,8 @@ int snekkja_arch_init(void* obj)
 		//abort();
 	}
 
-	args_t *args = (args_t*) obj;
-	pelib_scc_init(args->argc, args->argv);
+	scc_args_t *args = (scc_args_t*) obj;
+	pelib_scc_init((int*)args->argc, args->argv);
 
 	// Initiate redirection
 	//pelib_scc_init_redirect();

@@ -58,11 +58,12 @@
 
 #include <sort.h>
 #include <merge.h>
+#include <scc.h>
 
 #define PRINTF_TIMEOUT 5
-time_t timeref;
+//time_t timeref;
 #if DEBUG
-int printf_enabled = 0;
+//int printf_enabled = 0;
 #define assert_equal(value, expected, abort_on_failure) if(value != expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
 #define assert_different(value, expected, abort_on_failure) if(value == expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
 #define assert_geq(value, reference, abort_on_failure) if(value < reference) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
@@ -78,7 +79,7 @@ int printf_enabled = 0;
 #define PRINTF_CHECK_OUT 0
 #define CHECK_CORRECT              1
 #else
-int printf_enabled = 0;
+//int printf_enabled = 0;
 #define assert_equal(value, expected, abort_on_failure)
 #define assert_different(value, expected, abort_on_failure)
 #define assert_geq(value, reference, abort_on_failure)
@@ -123,10 +124,24 @@ int printf_enabled = 0;
 #define MEASURE_PRESORT            0
 #define MEASURE_TASK               0
 #else
-unsigned long long int begin, end, obegin, oend;
+//unsigned long long int begin, end, obegin, oend;
 #endif
 
-static unsigned int memory_consistency_errors = 0;
+//static unsigned int memory_consistency_errors = 0;
+
+typedef struct {
+	size_t argc;
+	char **argv;
+} snekkja_setup_args_t;
+
+typedef struct {
+	char *filename;
+} snekkja_setup_tasks_args_t;
+
+typedef struct {
+	mapping_t *mapping;
+	processor_t *proc;
+} snekkja_stream_t;
 
 static int
 int_cmp(const void *a, const void *b)
@@ -1239,16 +1254,6 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 }
 #endif
 
-struct args
-{
-	int *argc;
-	char ***argv;
-};
-typedef struct args args_t;
-
-//TODO: remove
-char *mapping_filename;
-
 static mapping_t*
 prepare_mapping()
 {
@@ -1323,18 +1328,16 @@ PELIB_SCC_CRITICAL_END
 	return mapping;
 }
 
-int
-main(int argc, char **argv)
+snekkja_stream_t
+snekkja_stream_setup(void* aux)
 {
 	int k;
 	char* outputfile;
 	array_t(int) *array = NULL;
+	snekkja_stream_t stream;
 
 	// Initialize snekkja
-	args_t args;
-	args.argc = &argc;
-	args.argv = &argv;
-	snekkja_arch_init((void*)&args);
+	snekkja_arch_init(aux);
 
 #if !DEBUG 
 	// Initialize and redirect pelib's standard output
@@ -1390,7 +1393,6 @@ main(int argc, char **argv)
 	link_t* link;
 
 	unsigned long long int start, stop, begin, end;
-	mapping_filename = argv[1];
 	snekkja_schedule_init();
 	mapping = prepare_mapping();
 
@@ -1413,26 +1415,50 @@ main(int argc, char **argv)
 	}
 	/* Init phase: load input data into tasks */
 
+	stream.mapping = mapping;
+	stream.proc = proc;
+
+	return stream;
+}
+
+int
+snekkja_stream_setup_tasks(snekkja_stream_t *stream, void *aux)
+{
+	int success = 1;
+	size_t i;
+	size_t max_nodes = stream->proc->handled_nodes;
+	
 	snekkja_exclusive_begin();
 	for(i = 0; i < max_nodes; i++)
 	{
 		//task_init(proc->task[i], argv[2], mapping);
-		merge_t args;
-		args.filename = argv[2];
 		//args.mapping = mapping;
-		task->init(proc->task[i], &args);
+		task_t *task = stream->proc->task[i];
+		int run = task->init(task, aux);
+		success = success && run;
 		
 	}
 	snekkja_exclusive_end();
 
+	return success;
+}
 
+int
+snekkja_stream_start(snekkja_stream_t* stream)
+{
+	unsigned long long int start, stop;
+	size_t i, j;
+	task_t *task;
+	mapping_t *mapping = stream->mapping;
+	processor_t *proc = stream->proc;
 	allocate_buffers(mapping);
 	int active_tasks = proc->handled_nodes;
+	unsigned long long int begin, end, obegin, oend;
 
 	// Make sure everyone starts at the same time
 	snekkja_barrier(NULL);
 
-	timeref = time(NULL);
+	time_t timeref = time(NULL);
 
 #if MEASURE_GLOBAL
 	start = rdtsc();
@@ -1605,6 +1631,30 @@ main(int argc, char **argv)
 #if MEASURE_GLOBAL
 	stop = rdtsc();
 #endif
+
+	return 0;
+}
+
+int
+main(size_t argc, char **argv)
+{
+	scc_args_t args1;
+	args1.argc = &argc;
+	args1.argv = &argv;
+	snekkja_stream_t stream = snekkja_stream_setup((void*)&args1);
+
+	snekkja_setup_tasks_args_t args2;
+	args2.filename = argv[2];
+	snekkja_stream_setup_tasks(&stream, &args2);
+
+	snekkja_stream_start(&stream);
+
+	size_t i, j, k, memory_consistency_errors;
+	unsigned long long int start, stop;
+	processor_t *proc = stream.proc;
+	task_t *task;
+	link_tp link;
+	array_t(int) *array;
 
 #if CHECK_CORRECT
 	int final_size;
