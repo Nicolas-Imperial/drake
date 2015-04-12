@@ -77,10 +77,16 @@ int snekkja_arch_commit(volatile void* addr)
 	return 1;
 }
 
-int
+size_t
 snekkja_core()
 {
 	return RCCE_ue();
+}
+
+size_t
+snekkja_core_size()
+{
+	return RCCE_num_ues();
 }
 
 void
@@ -117,4 +123,40 @@ void
 snekkja_exclusive_end()
 {
 	PELIB_SCC_CRITICAL_END
+}
+
+void*
+snekkja_local_malloc(size_t size)
+{
+	return (void*)RCCE_malloc(size);
+}
+
+void
+snekkja_local_free(void *addr)
+{
+	RCCE_free(addr);
+}
+
+void*
+snekkja_private_malloc(size_t size)
+{
+	return malloc(size);
+}
+
+void
+snekkja_private_free(void *addr)
+{
+	free(addr);
+}
+
+void*
+snekkja_remote_addr(void* addr, size_t core)
+{
+	return pelib_scc_global_ptr(addr, core);
+}
+
+size_t
+snekkja_arch_local_size()
+{
+	return mpb_size;
 }

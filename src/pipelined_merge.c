@@ -51,9 +51,10 @@
 #undef INNER_LINK_BUFFER
 #undef INPUT_LINK_BUFFER
 #undef OUTPUT_LINK_BUFFER
-
+#undef MPB_SIZE
 //#include <scc_printf.h>
 #include <snekkja/platform.h>
+#include <snekkja/stream.h>
 #include <monitor.h>
 
 #include <sort.h>
@@ -137,11 +138,6 @@ typedef struct {
 typedef struct {
 	char *filename;
 } snekkja_setup_tasks_args_t;
-
-typedef struct {
-	mapping_t *mapping;
-	processor_t *proc;
-} snekkja_stream_t;
 
 static int
 int_cmp(const void *a, const void *b)
@@ -937,7 +933,7 @@ static
 size_t
 buffer_size(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	return (MPB_SIZE // total allocable MPB size
+	return (mpb_size // total allocable MPB size
 		- nb_in // As many input buffer as
 			* (sizeof(size_t)  // Size of a write
 				+ sizeof(enum task_status) // State of a task
@@ -952,7 +948,7 @@ static
 void
 printf_mpb_allocation(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	snekkja_stderr("MPB size: %u\n", MPB_SIZE);
+	snekkja_stderr("MPB size: %u\n", mpb_size);
 	snekkja_stderr("Input links: %u\n", nb_in);
 	snekkja_stderr("Output links: %u\n", nb_out);
 	snekkja_stderr("Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
@@ -982,6 +978,218 @@ check_mpb_size(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 	}
 }
 
+#if 0
+#define stack_malloc_printf_addr(addr) fprintf(stderr, "[%s:%s:%d] @%s: %08X\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr);
+#define stack_malloc_printf_int(addr) fprintf(stderr, "[%s:%s:%d] %s: %d (signed) = %u (unsigned)\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr, addr);
+#else
+#define stack_malloc_printf_addr(addr)
+#define stack_malloc_printf_int(addr)
+#endif
+static snekkja_stack_t*
+stack_malloc(size_t size)
+{
+	snekkja_stack_t *stack = (snekkja_stack_t*)malloc(sizeof(snekkja_stack_t));
+	stack_malloc_printf_int(size);
+	stack->base_ptr = (void*)snekkja_local_malloc(size);
+	stack_malloc_printf_addr(stack->base_ptr);
+	stack->size = size;
+	stack->stack_ptr = (size_t*)malloc(sizeof(size_t) * snekkja_core_size());
+	memset(stack->stack_ptr, 0, sizeof(size_t) * snekkja_core_size());
+	return stack;
+}
+
+#if 0
+#define stack_grow_printf_addr(addr) fprintf(stderr, "[%s:%s:%d] @%s: %08X\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr);
+#define stack_grow_printf_int(addr) fprintf(stderr, "[%s:%s:%d] %s: %d (signed) = %u (unsigned)\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr, addr);
+#else
+#define stack_grow_printf_addr(addr)
+#define stack_grow_printf_int(addr)
+#endif
+static void*
+stack_grow(snekkja_stack_t *stack, size_t size, int id)
+{
+	stack_grow_printf_int(size);
+	stack_grow_printf_int(id);
+	stack_grow_printf_addr(stack->base_ptr);
+	stack_grow_printf_int(stack->stack_ptr[id]);
+	if((size_t)(stack->stack_ptr[id]) + size <= stack->size)
+	{
+		size_t ptr = stack->stack_ptr[id];
+		stack->stack_ptr[id] += size;
+		
+		return (void*)((size_t)stack->base_ptr + ptr);
+	}
+	fprintf(stderr, "[%s:%s:%d] Not enough local memory\n", __FILE__, __FUNCTION__, __LINE__);
+	abort();
+	return NULL;
+}
+
+static int
+stack_free(snekkja_stack_t* stack)
+{
+	free(stack->stack_ptr);
+	snekkja_local_free(stack->base_ptr);
+	free(stack);
+
+	return 1;
+}
+
+#if 1
+static
+void
+allocate_buffers(snekkja_stream_t* stream)
+{
+	int i, j, k, nb, nb_in, nb_out;
+	task_t* task;
+	link_t *link;
+	cross_link_t *cross_link;
+	processor_t *proc;
+	//cfifo_init_t init;
+	mapping_t *mapping = stream->mapping;
+	/*
+	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack);
+	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->base_ptr);
+	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->stack_ptr);
+	snekkja_stack_t *stack = stream->stack; /**/
+	snekkja_stack_t *stack = stack_malloc(stream->local_memory_size);
+	//init.stack = stack;
+
+	for(i = 0; i < mapping->processor_count; i++)
+	{
+		proc = mapping->proc[i];
+
+		for(j = 0; j < proc->handled_nodes; j++)
+		{
+			task = proc->task[j];
+
+			// Take care of all successor links
+			for(k = 0; k < pelib_array_length(link_tp)(task->succ); k++)
+			{
+				link = pelib_array_read(link_tp)(task->succ, k);
+				// If this is not the root task
+				if(link->cons != NULL)
+				{
+					// If the task is mapped to the same core: inner link
+					if(link->cons->core->id == proc->id)
+					{
+						if(link->buffer == NULL)
+						{
+							//init.core = -1;
+							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+
+							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
+							pelib_init(cfifo_t(int))(link->buffer);
+						}
+					}
+					else
+					{
+						size_t nb_in_succ = pelib_array_length(cross_link_tp)(link->cons->core->source);
+						size_t nb_out_succ = pelib_array_length(cross_link_tp)(link->cons->core->sink);
+						check_mpb_size(stream->local_memory_size, nb_in_succ, nb_out_succ, proc);
+
+						// If the task is mapped to another core: output link
+						if(link->buffer == NULL)
+						{
+							// Perform this allocation manually
+							link->buffer = pelib_alloc_struct(cfifo_t(int))();
+							
+							//int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id())); // Transformed
+							int core = link->cons->core->id;
+							size_t capacity = buffer_size(stream->local_memory_size, nb_in_succ, nb_out_succ) / sizeof(int);
+							link->buffer->buffer = (int*)snekkja_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
+							link->buffer->capacity = capacity;
+							pelib_init(cfifo_t(int))(link->buffer);
+						}
+					}
+				}
+			}
+
+			// Take care of all predecessor links
+			for(k = 0; k < pelib_array_length(link_tp)(task->pred); k++)
+			{
+				link = pelib_array_read(link_tp)(task->pred, k);
+
+				// If this is not the root task
+				if(link->prod != NULL)
+				{
+					// If the task is mapped to the same core: inner link
+					if(link->prod->core->id == proc->id)
+					{
+						if(link->buffer == NULL)
+						{
+							//init.core = -1;
+							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+
+							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
+							pelib_init(cfifo_t(int))(link->buffer);
+						}
+					}
+					else
+					{
+						nb_in = pelib_array_length(cross_link_tp)(proc->source);
+						nb_out = pelib_array_length(cross_link_tp)(proc->sink);
+						check_mpb_size(stream->local_memory_size, nb_in, nb_out, proc);
+						// If the task is mapped to another core: cross link
+						if(link->buffer == NULL)
+						{
+							// Perform this allocation manually
+							link->buffer = pelib_alloc_struct(cfifo_t(int))();
+
+							//int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())); // Transformed
+							int core = task->core->id;
+							size_t capacity = buffer_size(stream->local_memory_size, nb_in, nb_out) / sizeof(int);
+							link->buffer->buffer = (int*)snekkja_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
+							link->buffer->capacity = capacity;
+							pelib_init(cfifo_t(int))(link->buffer);
+
+						/*
+							link->buffer = pelib_alloc(cfifo_t(int))(&init);
+							pelib_init(cfifo_t(int))(link->buffer);
+*/
+						}
+					}
+				}
+			}
+
+			// Take care of all output links
+			for(k = 0; k < pelib_array_length(cross_link_tp)(task->sink); k++)
+			{
+				cross_link = pelib_array_read(cross_link_tp)(task->sink, k);
+
+				if(cross_link->read == NULL)
+				{
+					//cross_link->read = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->read = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
+					*cross_link->read = 0;
+				}
+
+				// TODO: call a allocate_output_buffer(task, output_buffer) function doing what's below
+			}
+
+			// Take care of all input links
+			for(k = 0; k < pelib_array_length(cross_link_tp)(task->source); k++)
+			{
+				cross_link = pelib_array_read(cross_link_tp)(task->source, k);
+
+				if(cross_link->prod_state == NULL)
+				{
+					//cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
+					*cross_link->prod_state = TASK_INIT;
+				}
+
+				if(cross_link->write == NULL)
+				{
+					//cross_link->write = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->write = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
+					*cross_link->write = 0;
+				}
+				// TODO: call a allocate_output_buffer(task, input_buffer) function. It does nothing for SCC
+			}
+		}
+	}
+}
+#else
 static
 void
 allocate_buffers(mapping_t* mapping)
@@ -1130,6 +1338,7 @@ allocate_buffers(mapping_t* mapping)
 		}
 	}
 }
+#endif
 
 #if DEBUG 
 void
@@ -1329,7 +1538,7 @@ PELIB_SCC_CRITICAL_END
 }
 
 snekkja_stream_t
-snekkja_stream_setup(void* aux)
+snekkja_stream_create(void* aux)
 {
 	int k;
 	char* outputfile;
@@ -1417,18 +1626,19 @@ snekkja_stream_setup(void* aux)
 
 	stream.mapping = mapping;
 	stream.proc = proc;
+	stream.local_memory_size = snekkja_arch_local_size() - 32;
+	/**/
 
 	return stream;
 }
 
 int
-snekkja_stream_setup_tasks(snekkja_stream_t *stream, void *aux)
+snekkja_stream_init(snekkja_stream_t *stream, void *aux)
 {
 	int success = 1;
 	size_t i;
 	size_t max_nodes = stream->proc->handled_nodes;
 	
-	snekkja_exclusive_begin();
 	for(i = 0; i < max_nodes; i++)
 	{
 		//task_init(proc->task[i], argv[2], mapping);
@@ -1438,25 +1648,32 @@ snekkja_stream_setup_tasks(snekkja_stream_t *stream, void *aux)
 		success = success && run;
 		
 	}
-	snekkja_exclusive_end();
+	allocate_buffers(stream);
 
 	return success;
 }
 
 int
-snekkja_stream_start(snekkja_stream_t* stream)
+snekkja_stream_destroy(snekkja_stream_t* stream, void* aux)
+{
+	snekkja_schedule_destroy();
+	return snekkja_arch_finalize(aux);
+}
+
+int
+snekkja_stream_run(snekkja_stream_t* stream)
 {
 	unsigned long long int start, stop;
 	size_t i, j;
 	task_t *task;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
-	allocate_buffers(mapping);
+	//allocate_buffers(mapping);
+	allocate_buffers(stream);
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
 	// Make sure everyone starts at the same time
-	snekkja_barrier(NULL);
 
 	time_t timeref = time(NULL);
 
@@ -1464,7 +1681,6 @@ snekkja_stream_start(snekkja_stream_t* stream)
 	start = rdtsc();
 #endif
 
-	snekkja_schedule_destroy();
 	int done = 0;
 
 	/* Phase 1, real */
@@ -1641,13 +1857,18 @@ main(size_t argc, char **argv)
 	scc_args_t args1;
 	args1.argc = &argc;
 	args1.argv = &argv;
-	snekkja_stream_t stream = snekkja_stream_setup((void*)&args1);
+	snekkja_stream_t stream = snekkja_stream_create((void*)&args1);
 
 	snekkja_setup_tasks_args_t args2;
 	args2.filename = argv[2];
-	snekkja_stream_setup_tasks(&stream, &args2);
+	snekkja_exclusive_begin();
+	snekkja_stream_init(&stream, &args2);
+	snekkja_exclusive_end();
 
-	snekkja_stream_start(&stream);
+	// Not actually necessary, because of the exclusive section above, that ends with a barrier
+	snekkja_barrier(NULL);
+
+	snekkja_stream_run(&stream);
 
 	size_t i, j, k, memory_consistency_errors;
 	unsigned long long int start, stop;
@@ -1818,8 +2039,8 @@ main(size_t argc, char **argv)
 	//pelib_scc_stop_redirect();
 	//pelib_scc_finalize_redirect();
 
-	snekkja_arch_finalize(NULL);
 
+	snekkja_stream_destroy(&stream, NULL);
 	return error_detected;
 	return 0;
 }
