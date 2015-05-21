@@ -59,7 +59,7 @@
 
 #include <sort.h>
 #include <merge.h>
-#include <scc.h>
+#include <snekkja/scc.h>
 
 #define PRINTF_TIMEOUT 5
 //time_t timeref;
@@ -177,6 +177,7 @@ core_id_in_scc(int core_id, int octant_id)
 
 //////////////// Numbers \\\\\\\\\\\\\\\\\\
 
+#if 0
 static int
 log2_int(unsigned int n)
 {
@@ -296,6 +297,7 @@ find_task(mapping_t* mapping, task_id id)
 	
 	return NULL;
 }
+#endif
 
 /*
 static
@@ -866,6 +868,7 @@ task_check(task_t *task)
 	}
 }
 
+#if 0
 static
 void
 task_init(task_t *task, char *input_filename, mapping_t *mapping)
@@ -928,6 +931,7 @@ task_init(task_t *task, char *input_filename, mapping_t *mapping)
 		pelib_array_append(link_tp)(task->succ, link);
 	}
 }
+#endif
 
 static
 size_t
@@ -1175,7 +1179,7 @@ allocate_buffers(snekkja_stream_t* stream)
 				{
 					//cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 					cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
-					*cross_link->prod_state = TASK_INIT;
+					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
@@ -1324,7 +1328,7 @@ allocate_buffers(mapping_t* mapping)
 				{
 					//cross_link->prod_state = (task_status_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 					cross_link->prod_state = (task_status_t*)pelib_scc_global_ptr(pelib_scc_stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
-					*cross_link->prod_state = TASK_INIT;
+					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
@@ -1510,7 +1514,7 @@ prepare_mapping()
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
 			task.sink = pelib_alloc_collection(array_t(cross_link_tp))(remote_consumers_in_task);
 
-			task.status = TASK_INIT;
+			task.status = TASK_START;
 
 			pelib_mapping_insert_task(mapping, j - 1, &task);
 		}
@@ -1616,17 +1620,19 @@ snekkja_stream_create(void* aux)
 	for(i = 0; i < max_nodes; i++)
 	{
 		task_t *task = proc->task[i];
-		task->status = TASK_INIT;
+		task->status = TASK_START;
 		task->init = (int (*)(task_t*, void*))snekkja_function(task->id, TASK_INIT);
 		task->start = (int (*)(task_t*))snekkja_function(task->id, TASK_START);
 		task->run = (int (*)(task_t*))snekkja_function(task->id, TASK_RUN);
 		task->destroy = (int (*)(task_t*))snekkja_function(task->id, TASK_KILLED);
+		task->frequency = _snekkja_task_frequency[task->id - 1];
 	}
 	/* Init phase: load input data into tasks */
 
 	stream.mapping = mapping;
 	stream.proc = proc;
 	stream.local_memory_size = snekkja_arch_local_size() - 32;
+	//stream.stage_time = _snekkja_stage_time;
 	/**/
 
 	return stream;
@@ -1673,6 +1679,7 @@ snekkja_stream_run(snekkja_stream_t* stream)
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
+
 	// Make sure everyone starts at the same time
 
 	time_t timeref = time(NULL);
@@ -1691,6 +1698,7 @@ snekkja_stream_run(snekkja_stream_t* stream)
 			task = proc->task[i];
 			switch(task->status)
 			{
+#if 0
 				case TASK_INIT:
 					if(task->status == TASK_INIT)
 					{
@@ -1703,6 +1711,7 @@ snekkja_stream_run(snekkja_stream_t* stream)
 					}
 #if MEASURE_STEPS && 0
 					end = rdtsc(); task->step_transition += end - begin;
+#endif
 #endif
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
@@ -1747,6 +1756,11 @@ snekkja_stream_run(snekkja_stream_t* stream)
 					begin = rdtsc();
 #endif
 					// Work
+					// Switch frequency
+					if(snekkja_arch_get_frequency() != task->frequency)
+					{
+						snekkja_arch_set_frequency(task->frequency);
+					}
 					done = task->run(task);
 #if MEASURE_STEPS
 					end = rdtsc(); task->step_work += end - begin;

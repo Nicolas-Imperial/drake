@@ -1,5 +1,5 @@
 ## All files to include in a distribution package
-attach = unitc.h unitc++.h scc.h
+attach = unitc.h unitc++.h
 
 ## Further directories to follow
 subdirs = snekkja

@@ -58,19 +58,8 @@ bin_snekkja_ldflags = -L.
 bin_snekkja_static = 1
 
 ## C-compiled programs and their sources
-bincc_package = pipelined_merge
+bincc_package = 
 INNER_BUFFER_SIZE = 65536
-
-bincc_pipelined_merge_src = pipelined_merge.c
-bin_pipelined_merge_export = $(bincc_pipelined_merge_src) $(bincxx_pipelined_merge_src)
-bin_pipelined_merge_pkg = snekkja snekkja-scc merge cppelib
-bin_pipelined_merge_static = 1
-bin_pipelined_merge_embed = 
-bin_pipelined_merge_ldflags = 
-bin_pipelined_merge_libs = 
-bin_pipelined_merge_deps = libsnekkja.a libsnekkja-scc.a libmerge.a
-bin_pipelined_merge_cflags = -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE)
-bin_pipelined_merge_cxxflags_private = 
 
 bincc__src = 
 bincxx__src = 
@@ -122,7 +111,7 @@ bin__embed =
 # bincc_bar_export = $(bincc_bar_src)
 
 ## Static C library packages and their sources
-lib_package = unitc unitc++ snekkja-scc snekkja
+lib_package = unitc unitc++ snekkja
 
 libcc__src = 
 libcxx__src = 
@@ -154,51 +143,14 @@ lib_snekkja_cflags = -DOUTPUT_BUFFER_SIZE=$(OUTPUT_BUFFER_SIZE) -DINNER_BUFFER_S
 lib_snekkja_export = $(libcc_snekkja_src) $(libcxx_snekkja_src)
 lib_snekkja_pkg = pelib
 
-libcc_snekkja-scc_src = scc.c
-libcxx_snekkja-scc_src = 
-lib_snekkja-scc_libs = 
-lib_snekkja-scc_pkg = pelib-scc rcce_bigflags_gory_pwrmgmt_local_icc
-lib_snekkja-scc_export = $(libcc_snekkja-scc_src) $(libcxx_snekkja-scc_src)
-
 libcc_unitc++_src = 
 libcxx_unitc++_src = unitc++.cpp
 lib_unitc++_export = $(libcc_unitc++_src) $(libcxx_unitc++_src)
 
-kkj_package = merge 
-
-kkjcxx_fft2_generator = FFTTestSource.cpp
-kkjcc_fft2_graph = 
-kkjcxx_fft2_graph = fft2.graphml
-kkj_fft2_embed = 
-kkjcc_fft2_src = 
-#kkjcxx_fft2_src = floatreceiver.c
-#kkjcxx_fft2_src = CombineDFT.c CombineDFT.c FFTReorderSimple.c FFTTestSource.c split.c join.c floatreceiver.c
-kkj_fft2_cflags =  
-kkj_fft2_cflags_private = 
-kkj_fft2_export = 
-kkj_fft2_libs =
-kkj_fft2_ldflags =
-kkj_fft2_pkg = 
-kkj_fft2_pkg_description = 
-
-kkjcc_merge_graph = merge.graphml 
-kkjcxx_merge_graph = #merge.graphml
-kkj_merge_scheduler = crown_binary_annealing_allocation_off
-kkj_merge_platform = scc_32.dat
-kkj_merge_embed = 
-kkjcc_merge_src = 
-#kkjcxx_merge_src = floatreceiver.c
-#kkjcxx_merge_src = CombineDFT.c CombineDFT.c FFTReorderSimple.c FFTTestSource.c split.c join.c floatreceiver.c
-kkj_merge_cflags =  
-kkj_merge_cflags_private = 
-kkj_merge_export = 
-kkj_merge_libs =
-kkj_merge_ldflags =
-kkj_merge_pkg = pelib-scc 
-kkj_merge_pkg_description = 
+kkj_package =  
 
 ## C test packages and their sources
-testcc_package = test
+testcc_package = 
 ## C++ test packages and their sources
 testcxx_package = 
 
