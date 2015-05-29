@@ -145,6 +145,8 @@ int_cmp(const void *a, const void *b)
 	return *(int*)a - *(int*)b;
 }
 
+snekkja_time_t zero = NULL;
+
 //////////////// SCC layout \\\\\\\\\\\\\\\\\\
 
 #if 0
@@ -1344,7 +1346,7 @@ allocate_buffers(mapping_t* mapping)
 }
 #endif
 
-#if DEBUG 
+#if DEBUG && 0 
 void
 printf_link(cross_link_t *link)
 {
@@ -1552,7 +1554,7 @@ snekkja_stream_create(void* aux)
 	// Initialize snekkja
 	snekkja_arch_init(aux);
 
-#if !DEBUG 
+#if !DEBUG || 1 
 	// Initialize and redirect pelib's standard output
 	//pelib_scc_init_redirect();
 	//pelib_scc_set_redirect();
@@ -1632,8 +1634,18 @@ snekkja_stream_create(void* aux)
 	stream.mapping = mapping;
 	stream.proc = proc;
 	stream.local_memory_size = snekkja_arch_local_size() - 32;
-	//stream.stage_time = _snekkja_stage_time;
+	stream.stage_start_time = snekkja_time_alloc();
+	stream.stage_stop_time = snekkja_time_alloc();
+	stream.stage_sleep_time = snekkja_time_alloc();
+	stream.stage_time = snekkja_time_alloc();
+	snekkja_time_init(stream.stage_time, _snekkja_stage_time);
 	/**/
+
+	if(zero == NULL)
+	{
+		zero = snekkja_time_alloc();
+		snekkja_time_init(zero, 0);
+	}
 
 	return stream;
 }
@@ -1663,6 +1675,12 @@ int
 snekkja_stream_destroy(snekkja_stream_t* stream, void* aux)
 {
 	snekkja_schedule_destroy();
+	free(stream->stage_start_time);
+	free(stream->stage_stop_time);
+	free(stream->stage_sleep_time);
+	free(stream->stage_time);
+	free(zero);
+	zero = NULL;
 	return snekkja_arch_finalize(aux);
 }
 
@@ -1693,6 +1711,9 @@ snekkja_stream_run(snekkja_stream_t* stream)
 	/* Phase 1, real */
 	while(active_tasks > 0)
 	{
+		// Capture the stage starting time
+		snekkja_get_time(stream->stage_start_time);
+		
 		for(i = 0; i < proc->handled_nodes; i++)
 		{
 			task = proc->task[i];
@@ -1853,6 +1874,21 @@ snekkja_stream_run(snekkja_stream_t* stream)
 #endif
 				break;
 			}
+		}
+
+		// Pause until the stage time elapses, if any
+		//snekkja_stdout("[%s:%s:%d] End of the round.\n", __FILE__, __FUNCTION__, __LINE__);
+		if(snekkja_time_greater(stream->stage_time, zero))
+		{
+			//snekkja_stdout("[%s:%s:%d] Sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
+			snekkja_get_time(stream->stage_stop_time);
+			snekkja_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
+			snekkja_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
+			snekkja_arch_sleep(stream->stage_sleep_time);
+		}
+		else
+		{
+			//snekkja_stdout("[%s:%s:%d] Not sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 #endif

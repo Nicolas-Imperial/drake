@@ -197,6 +197,8 @@ int main(int argc, char **argv)
 			myfile.open (input_file, std::ios::in);
 			tg = input.parse(myfile);
 			myfile.close();
+			//trace(tg->getTasks().begin()->getProducers().size());
+			//trace(tg->getTasks().rbegin()->getConsumers().size());
 		}
 		else
 		{
@@ -285,7 +287,11 @@ int main(int argc, char **argv)
 					schedule = schedule.merge(param);
 					schedule = crown_binary_annealing_allocation_off(schedule, 8, 0.6, 0.9, 2, 2, 0.5);
 					schedule = CrownUtil::crownToSchedule(schedule);
-					SnekkjaCSchedule().dump(cout, Schedule("crown_binary_annaling_allocation_", tg, schedule));
+					SnekkjaCSchedule cSched;
+					Schedule sched("crown_binary_annaling_allocation_", tg, schedule);
+					//trace(sched.getTaskgraph().getTasks().begin()->getProducers().size());
+					//trace(sched.getTaskgraph().getTasks().rbegin()->getConsumers().size());
+					cSched.dump(cout, sched);
 				}	
 				break;
 			}
