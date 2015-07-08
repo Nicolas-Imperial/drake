@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <snekkja/processor.h>
-#include <snekkja/platform.h>
+#include <drake/processor.h>
+#include <drake/platform.h>
 
 processor_t*
 pelib_alloc_collection(processor_t)(size_t size)
@@ -61,7 +61,7 @@ pelib_copy(processor_t)(processor_t source, processor_t * copy)
 
   for (i = 0; i < source.handled_nodes; i++)
     {
-      pelib_processor_insert_task(copy, source.task[i]);
+      drake_processor_insert_task(copy, source.task[i]);
     }
 
   
@@ -76,8 +76,8 @@ pelib_string(processor_t)(processor_t proc)
   char *str_p, *str_node;
   char *str;
 
-  str = malloc(sizeof(char) * (PELIB_MAPPING_PROC_ID_CHAR_LENGTH
-      + (sizeof(PELIB_MAPPING_SEPARATOR) + PELIB_MAPPING_NODE_CHAR_LENGTH)
+  str = malloc(sizeof(char) * (DRAKE_MAPPING_PROC_ID_CHAR_LENGTH
+      + (sizeof(DRAKE_MAPPING_SEPARATOR) + DRAKE_MAPPING_NODE_CHAR_LENGTH)
           * proc.handled_nodes + 1));
 
   sprintf(str, "%u", proc.id);
@@ -86,7 +86,7 @@ pelib_string(processor_t)(processor_t proc)
   for (i = 0; i < proc.handled_nodes; i++)
     {
       str_node = pelib_string(task_tp)(proc.task[i]);
-      sprintf(str_p, "%c%s", PELIB_MAPPING_SEPARATOR, str_node);
+      sprintf(str_p, "%c%s", DRAKE_MAPPING_SEPARATOR, str_node);
       free(str_node);
       str_p = &(str[strlen(str)]);
     }
@@ -100,16 +100,16 @@ pelib_printf(processor_t)(processor_t proc)
 {
   char *str = pelib_string(processor_t)(proc);
 
-  snekkja_stdout("%s\n", str);
+  drake_stdout("%s\n", str);
   free(str);
 
   return 1;
 }
 
 int
-pelib_processor_insert_task(processor_t * proc, task_t * task)
+drake_processor_insert_task(processor_t * proc, task_t * task)
 {
-  if (!(pelib_processor_find_task(proc, task->id) < proc->handled_nodes))
+  if (!(drake_processor_find_task(proc, task->id) < proc->handled_nodes))
     {
       //printf("%s: task %d\n", __FUNCTION__, task->id);
       *(proc->task[proc->handled_nodes]) = *task;
@@ -125,12 +125,12 @@ pelib_processor_insert_task(processor_t * proc, task_t * task)
 }
 
 int
-pelib_processor_remove_task(processor_t * proc, task_id task)
+drake_processor_remove_task(processor_t * proc, task_id task)
 {
   size_t index;
   task_t * pivot;
 
-  index = pelib_processor_find_task(proc, task);
+  index = drake_processor_find_task(proc, task);
   if (index < proc->handled_nodes)
     {
       pivot = proc->task[index];
@@ -150,7 +150,7 @@ pelib_processor_remove_task(processor_t * proc, task_id task)
 
 // Processors properties
 size_t
-pelib_processor_find_task(processor_t * proc, task_id task)
+drake_processor_find_task(processor_t * proc, task_id task)
 {
   size_t i;
   task_t * p_node;

@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <snekkja/mapping.h>
-#include <snekkja/platform.h>
+#include <drake/mapping.h>
+#include <drake/platform.h>
 #include <assert.h>
 
 #include "drawgraph-2.h"
@@ -56,13 +56,13 @@ pelib_copy(mapping_t)(mapping_t source, mapping_t *copy)
 {
   size_t i;
 
-  //copy = pelib_alloc(mapping_t)(PELIB_MAPPING_MAX_TASK_COUNT);
+  //copy = pelib_alloc(mapping_t)(DRAKE_MAPPING_MAX_TASK_COUNT);
   copy->processor_count = source.processor_count;
   copy->task_count = source.task_count;
 
   for (i = 0; i < copy->processor_count; i++)
     {
-      //pelib_processor_destroy(copy->proc[i]);
+      //drake_processor_destroy(copy->proc[i]);
       pelib_copy(processor_t)(*source.proc[i], copy->proc[i]);
     }
 
@@ -70,13 +70,13 @@ pelib_copy(mapping_t)(mapping_t source, mapping_t *copy)
 }
 
 int
-pelib_mapping_insert_task(mapping_t* mapping, processor_id pid, task_t* task)
+drake_mapping_insert_task(mapping_t* mapping, processor_id pid, task_t* task)
 {
   int processor_index;
 
-  processor_index = pelib_mapping_find_processor_index(mapping, pid);
+  processor_index = drake_mapping_find_processor_index(mapping, pid);
   
-  if (pelib_processor_insert_task(mapping->proc[processor_index], task) == 1)
+  if (drake_processor_insert_task(mapping->proc[processor_index], task) == 1)
     {
       mapping->task_count++;
 
@@ -88,13 +88,13 @@ pelib_mapping_insert_task(mapping_t* mapping, processor_id pid, task_t* task)
     }
 }
 int
-pelib_mapping_remove_task(mapping_t* mapping, task_id task)
+drake_mapping_remove_task(mapping_t* mapping, task_id task)
 {
   processor_id pid;
 
-  pid = pelib_mapping_find_processor(mapping, task);
+  pid = drake_mapping_find_processor(mapping, task);
 
-  if (pid < mapping->processor_count && pelib_processor_remove_task(
+  if (pid < mapping->processor_count && drake_processor_remove_task(
       mapping->proc[pid], task) == 1)
     {
       mapping->task_count--;
@@ -107,7 +107,7 @@ pelib_mapping_remove_task(mapping_t* mapping, task_id task)
     }
 }
 int
-pelib_mapping_find_processor_index(mapping_t* mapping, processor_id pid)
+drake_mapping_find_processor_index(mapping_t* mapping, processor_id pid)
 {
   int i;
   for (i = 0; i < mapping->processor_count; i++)
@@ -120,12 +120,12 @@ pelib_mapping_find_processor_index(mapping_t* mapping, processor_id pid)
   return i;
 }
 processor_id
-pelib_mapping_find_processor(mapping_t* mapping, task_id tid)
+drake_mapping_find_processor(mapping_t* mapping, task_id tid)
 {
   int i;
   for (i = 0; i < mapping->processor_count; i++)
     {
-      if (pelib_processor_find_task(mapping->proc[i], tid)
+      if (drake_processor_find_task(mapping->proc[i], tid)
           != mapping->proc[i]->handled_nodes)
         {
           return mapping->proc[i]->id;
@@ -135,11 +135,11 @@ pelib_mapping_find_processor(mapping_t* mapping, task_id tid)
   return -1;
 }
 int
-pelib_mapping_insert_processor(mapping_t* mapping, processor_t* processor)
+drake_mapping_insert_processor(mapping_t* mapping, processor_t* processor)
 {
   // If there is room for a new processor in mapping, and this processor id was not already present
   if (mapping->processor_count < mapping->max_processor_count
-      && pelib_mapping_find_processor_index(mapping, processor->id)
+      && drake_mapping_find_processor_index(mapping, processor->id)
           == mapping->processor_count)
     {
 	mapping->proc[mapping->processor_count] = pelib_alloc_collection(processor_t)(processor->node_capacity);
@@ -164,7 +164,7 @@ pelib_mapping_insert_processor(mapping_t* mapping, processor_t* processor)
     }
 }
 int
-pelib_mapping_remove_processor(mapping_t* mapping, int processor_id)
+drake_mapping_remove_processor(mapping_t* mapping, int processor_id)
 {
   // TODO: implement
   return 0;
@@ -172,7 +172,7 @@ pelib_mapping_remove_processor(mapping_t* mapping, int processor_id)
 
 // Mapping properties
 int
-pelib_mapping_violations(mapping_t* mapping)
+drake_mapping_violations(mapping_t* mapping)
 {
   // A mapping is correct iff every task is mapped to exactly one processor
   processor_id pid, found_pid;
@@ -185,7 +185,7 @@ pelib_mapping_violations(mapping_t* mapping)
     {
       for (i = 0; i < mapping->proc[pid]->handled_nodes; i++)
         {
-          found_pid = pelib_mapping_find_processor(mapping,
+          found_pid = drake_mapping_find_processor(mapping,
               mapping->proc[pid]->task[i]->id);
 
           if (found_pid == pid) // All good
@@ -218,7 +218,7 @@ int
 pelib_printf(mapping_t)(mapping_t mapping)
 {
   char *str = pelib_string(mapping_t)(mapping);
-  snekkja_stdout("%s\n", str);
+  drake_stdout("%s\n", str);
 
   free(str);
 
@@ -233,8 +233,8 @@ pelib_string(mapping_t)(mapping_t mapping)
   total_length = 0;
   for (i = 0; i < mapping.processor_count; i++)
     {
-      total_length += (PELIB_MAPPING_PROC_ID_CHAR_LENGTH
-          + (sizeof(PELIB_MAPPING_SEPARATOR) + PELIB_MAPPING_NODE_CHAR_LENGTH)
+      total_length += (DRAKE_MAPPING_PROC_ID_CHAR_LENGTH
+          + (sizeof(DRAKE_MAPPING_SEPARATOR) + DRAKE_MAPPING_NODE_CHAR_LENGTH)
               * mapping.proc[i]->handled_nodes + 2);
     }
   total_length++; // Provide space for the trailing character \0
@@ -267,7 +267,7 @@ mapping_loadstr(mapping_t * mapping, char * str, int(filter)(task_t*))
   stream_str = fmemopen((void*)str, strlen(str), "r");
  // printf("file descriptor: %i\n", *stream_str);
 
-  mapping = pelib_mapping_loadfilterfile(mapping, stream_str, filter);
+  mapping = drake_mapping_loadfilterfile(mapping, stream_str, filter);
   fclose(stream_str);
   //printf("%i\n", i == EOF);
 
@@ -275,13 +275,13 @@ mapping_loadstr(mapping_t * mapping, char * str, int(filter)(task_t*))
 }
 
 mapping_t*
-pelib_mapping_loadstr(mapping_t * mapping, char * str)
+drake_mapping_loadstr(mapping_t * mapping, char * str)
 {
   return mapping_loadstr(mapping, str, take_all_tasks);
 }
 
 mapping_t*
-pelib_mapping_loadfilterstr(mapping_t* mapping, char* str, int (filter)(task_t*))
+drake_mapping_loadfilterstr(mapping_t* mapping, char* str, int (filter)(task_t*))
 {
   //printf("[%s] %s\n", __func__, str);
   return mapping_loadstr(mapping, str, filter);
@@ -295,13 +295,13 @@ mapping_draw(FILE* read, FILE* write, FILE* err)
 }
 
 mapping_t*
-pelib_mapping_loadfile(mapping_t * mapping, FILE * file)
+drake_mapping_loadfile(mapping_t * mapping, FILE * file)
 {
-  return pelib_mapping_loadfilterfile(mapping, file, take_all_tasks);
+  return drake_mapping_loadfilterfile(mapping, file, take_all_tasks);
 }
 
 mapping_t*
-pelib_mapping_loadfilterfile(mapping_t * mapping, FILE * file, int (filter)(task_t*))
+drake_mapping_loadfilterfile(mapping_t * mapping, FILE * file, int (filter)(task_t*))
 {
 /*  char line [ 128 ];
   printf("[%s] ", __func__);
@@ -313,12 +313,12 @@ pelib_mapping_loadfilterfile(mapping_t * mapping, FILE * file, int (filter)(task
         return NULL;*/
   mapping = pelib_drawgraph2_load(file, mapping, filter);
   //printf("[%s] ", __func__);
-  //pelib_mapping_display(mapping);
+  //drake_mapping_display(mapping);
   return mapping;/**/
 }
 
 char*
-pelib_mapping_drawstr(mapping_t * mapping, char * str)
+drake_mapping_drawstr(mapping_t * mapping, char * str)
 {
   unsigned int i, k, proc_index, task_index;
   unsigned int length;
@@ -330,35 +330,35 @@ pelib_mapping_drawstr(mapping_t * mapping, char * str)
 
   // Warm-up
   fprintf(stream, "k = %u\n", mapping->processor_count);
-  fprintf(stream, PELIB_MAPPING_OUT_WARMUP);
-  fprintf(stream, "%-*c", PELIB_MAPPING_OUT_NODE_COLUMN_WIDTH, ':');
+  fprintf(stream, DRAKE_MAPPING_OUT_WARMUP);
+  fprintf(stream, "%-*c", DRAKE_MAPPING_OUT_NODE_COLUMN_WIDTH, ':');
   for (i = 0; i < mapping->processor_count; i++)
     {
-      fprintf(stream, "%-*u", PELIB_MAPPING_OUT_PROC_COLUMN_WIDTH, i + 1);
+      fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_PROC_COLUMN_WIDTH, i + 1);
     }
-  fprintf(stream, "%s\n", PELIB_MAPPING_OUT_AFFECT);
+  fprintf(stream, "%s\n", DRAKE_MAPPING_OUT_AFFECT);
 
   for (task_index = 0; task_index < mapping->task_count; task_index++)
     {
-      proc_index = pelib_mapping_find_processor_index(mapping,
-          pelib_mapping_find_processor(mapping, task_index + 1));
-      fprintf(stream, "%-*u", PELIB_MAPPING_OUT_NODE_COLUMN_WIDTH, task_index
+      proc_index = drake_mapping_find_processor_index(mapping,
+          drake_mapping_find_processor(mapping, task_index + 1));
+      fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_NODE_COLUMN_WIDTH, task_index
           + 1);
 
       for (k = 0; k < mapping->processor_count; k++)
         {
           if (k != proc_index)
             {
-              fprintf(stream, "%-*u", PELIB_MAPPING_OUT_PROC_COLUMN_WIDTH, 0);
+              fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_PROC_COLUMN_WIDTH, 0);
             }
           else
             {
-              fprintf(stream, "%-*u", PELIB_MAPPING_OUT_PROC_COLUMN_WIDTH, 1);
+              fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_PROC_COLUMN_WIDTH, 1);
             }
         }
       fprintf(stream, "\n");
     }
-  fprintf(stream, PELIB_MAPPING_OUT_ENDING);
+  fprintf(stream, DRAKE_MAPPING_OUT_ENDING);
 
   // Closes the stream
   fflush(stream);
@@ -368,16 +368,16 @@ pelib_mapping_drawstr(mapping_t * mapping, char * str)
 }
 
 task_t*
-pelib_mapping_find_task(mapping_t* mapping, task_id id)
+drake_mapping_find_task(mapping_t* mapping, task_id id)
 {
 	int target_task_rank, target_proc_rank;
 	processor_t *target_proc;
 
-	target_proc_rank = pelib_mapping_find_processor(mapping, id);
+	target_proc_rank = drake_mapping_find_processor(mapping, id);
 	if(target_proc_rank >= 0)
 	{
 		target_proc = mapping->proc[target_proc_rank];
-		target_task_rank = pelib_processor_find_task(target_proc, id);
+		target_task_rank = drake_processor_find_task(target_proc, id);
 
 		if(target_task_rank >= 0)
 		{
@@ -389,12 +389,12 @@ pelib_mapping_find_task(mapping_t* mapping, task_id id)
 }
 
 int
-pelib_mapping_draw(mapping_t * mapping, FILE * file)
+drake_mapping_draw(mapping_t * mapping, FILE * file)
 {
   char * str = NULL;
   FILE *stream;
 
-  str = pelib_mapping_drawstr(mapping, str);
+  str = drake_mapping_drawstr(mapping, str);
   stream = fmemopen(str, strlen(str) + 1, "r");
 
   mapping_draw(stream, file, stderr);

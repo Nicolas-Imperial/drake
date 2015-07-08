@@ -2,15 +2,15 @@
 #include <string.h>
 #include <math.h>
 
-#include <snekkja/task.h>
-#include <snekkja/platform.h>
+#include <drake/task.h>
+#include <drake/platform.h>
 
 int
 pelib_printf(task_tp)(task_tp task)
 {
   char * str = NULL;
   str = pelib_string(task_tp)(task);
-  snekkja_stdout("%s\n", str);
+  drake_stdout("%s\n", str);
 
   free(str);
 
@@ -71,7 +71,7 @@ task_str_det_chk
 }
 
 char*
-pelib_task_tp_string_detail(task_tp task, int level)
+drake_task_tp_string_detail(task_tp task, int level)
 {
 task_str_det_chk
 	if(level == 0)
@@ -156,13 +156,13 @@ pelib_compare(task_tp)(task_tp a, task_tp b)
 }
 
 task_t*
-pelib_task_alloc()
+drake_task_alloc()
 {
 	return malloc(sizeof(task_t));
 }
 
 task_tp*
-pelib_task_tp_alloc(void* aux)
+drake_task_tp_alloc(void* aux)
 {
 	task_tp* res = malloc(sizeof(task_tp));
 
@@ -200,4 +200,4 @@ pelib_copy(task_tp)(task_tp source, task_tp* dest)
 }
 
 #define ARRAY_T task_tp
-#include <array.c>
+#include <pelib/array.c>

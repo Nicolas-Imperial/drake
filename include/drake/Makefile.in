@@ -1,8 +1,8 @@
 ## All files to include in a distribution package
-attach = 
+attach = schedule.h cross_link.h link.h mapping.h platform.h processor.h task.h stream.h node.h
 
 ## Further directories to follow
-subdirs = drake
+subdirs = 
 
 ## Targets to run before any other target runs
 ## Can be a custom target

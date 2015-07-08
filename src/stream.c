@@ -23,7 +23,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#include <snekkja/schedule.h>
+#include <drake/schedule.h>
 
 #if DEBUG
 /* get REG_EIP from ucontext.h */
@@ -31,49 +31,43 @@
 #include <ucontext.h>
 #endif
 
-//#include <RCCE_lib.h>
-
-#include <sync.h>
-//#include <printf.h>
-//#include <pelib_scc.h>
-//#define printf pelib_printf
-#include <integer.h>
+//#include <pelib/sync.h>
+#include <pelib/integer.h>
 
 //enum task_status;
 #define INNER_LINK_BUFFER cfifo_t(int)
 #define INPUT_LINK_BUFFER enum task_status
 #define OUTPUT_LINK_BUFFER enum task_status
-#include <snekkja/task.h>
-#include <snekkja/link.h>
-#include <snekkja/cross_link.h>
-#include <snekkja/processor.h>
-#include <snekkja/mapping.h>
+#include <drake/task.h>
+#include <drake/link.h>
+#include <drake/cross_link.h>
+#include <drake/processor.h>
+#include <drake/mapping.h>
 #undef INNER_LINK_BUFFER
 #undef INPUT_LINK_BUFFER
 #undef OUTPUT_LINK_BUFFER
 #undef MPB_SIZE
-//#include <scc_printf.h>
-#include <snekkja/platform.h>
-#include <snekkja/stream.h>
-#include <monitor.h>
+#include <drake/platform.h>
+#include <drake/stream.h>
+#include <pelib/monitor.h>
 
-#include <sort.h>
-#include <merge.h>
-#include <snekkja/scc.h>
+#include <pelib/sort.h>
+//#include <merge.h>
+//#include <drake/scc.h>
 
 #define PRINTF_TIMEOUT 5
 //time_t timeref;
 #if DEBUG
 //int printf_enabled = 0;
-#define assert_equal(value, expected, abort_on_failure) if(value != expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
-#define assert_different(value, expected, abort_on_failure) if(value == expected) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
-#define assert_geq(value, reference, abort_on_failure) if(value < reference) { snekkja_stderr("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
-#define debug snekkja_stdout("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
-#define debug_task snekkja_stdout("[CORE %d][%s:%s:%d] Task %d state %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
-#define debug_task_output snekkja_stdout("[CORE %d][%s:%s:%d] Task %d to task %d\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
-#define printf_addr(addr) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %X\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
-#define printf_int(integer) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
-#define printf_str(str) snekkja_stdout("[CORE %d][%s:%s:%d] %s = %s\n", snekkja_core(), __FILE__, __FUNCTION__, __LINE__, #str, str);
+#define assert_equal(value, expected, abort_on_failure) if(value != expected) { drake_stderr("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
+#define assert_different(value, expected, abort_on_failure) if(value == expected) { drake_stderr("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
+#define assert_geq(value, reference, abort_on_failure) if(value < reference) { drake_stderr("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
+#define debug drake_stdout("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
+#define debug_task drake_stdout("[CORE %d][%s:%s:%d] Task %d state %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
+#define debug_task_output drake_stdout("[CORE %d][%s:%s:%d] Task %d to task %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
+#define printf_addr(addr) drake_stdout("[CORE %d][%s:%s:%d] %s = %X\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
+#define printf_int(integer) drake_stdout("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
+#define printf_str(str) drake_stdout("[CORE %d][%s:%s:%d] %s = %s\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #str, str);
 #define PRINTF_FEEDBACK 0
 #define PRINTF_PUSH 0
 #define PRINTF_CHECK_IN 0
@@ -133,11 +127,11 @@
 typedef struct {
 	size_t argc;
 	char **argv;
-} snekkja_setup_args_t;
+} pelib_setup_args_t;
 
 typedef struct {
 	char *filename;
-} snekkja_setup_tasks_args_t;
+} pelib_setup_tasks_args_t;
 
 static int
 int_cmp(const void *a, const void *b)
@@ -145,7 +139,7 @@ int_cmp(const void *a, const void *b)
 	return *(int*)a - *(int*)b;
 }
 
-snekkja_time_t zero = NULL;
+drake_time_t zero = NULL;
 
 //////////////// SCC layout \\\\\\\\\\\\\\\\\\
 
@@ -214,7 +208,7 @@ upper_32(unsigned int v)
 static int
 leaf_rank(mapping_t* mapping, task_t* task)
 {
-	//return (task->id - (1 << mapping->processor_count)) + (quadrant_id(snekkja_core()) * (1 << mapping->processor_count)) - 1; // Transformed
+	//return (task->id - (1 << mapping->processor_count)) + (quadrant_id(drake_core()) * (1 << mapping->processor_count)) - 1; // Transformed
 	return (task->id - (1 << mapping->processor_count)) - 1;
 }
 
@@ -285,11 +279,11 @@ find_task(mapping_t* mapping, task_id id)
 	int target_task_rank, target_proc_rank;
 	processor_t *target_proc;
 
-	target_proc_rank = pelib_mapping_find_processor(mapping, id);
+	target_proc_rank = drake_mapping_find_processor(mapping, id);
 	if(target_proc_rank >= 0)
 	{
 		target_proc = mapping->proc[target_proc_rank];
-		target_task_rank = pelib_processor_find_task(target_proc, id);
+		target_task_rank = drake_processor_find_task(target_proc, id);
 
 		if(target_task_rank >= 0)
 		{
@@ -401,10 +395,10 @@ get_task_consumers(mapping_t *mapping, task_t *task)
 	}
 	*/
 	size_t i;
-	consumers = pelib_alloc_collection(array_t(task_tp))(_snekkja_consumers_in_task[task->id - 1]);
-	for(i = 0; i < _snekkja_consumers_in_task[task->id - 1]; i++)
+	consumers = pelib_alloc_collection(array_t(task_tp))(_drake_consumers_in_task[task->id - 1]);
+	for(i = 0; i < _drake_consumers_in_task[task->id - 1]; i++)
 	{
-		pelib_array_append(task_tp)(consumers, pelib_mapping_find_task(mapping, _snekkja_consumers_id[task->id - 1][i]));
+		pelib_array_append(task_tp)(consumers, drake_mapping_find_task(mapping, _drake_consumers_id[task->id - 1][i]));
 	}
 
 	return consumers;	
@@ -421,9 +415,9 @@ get_task_producers(mapping_t *mapping, task_t *task)
 	if(left_producer != NULL && right_producer != NULL)
 	{
 		producers = pelib_alloc_collection(array_t(task_tp))(2);
-		snekkja_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, left_producer->id);
+		drake_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, left_producer->id);
 		pelib_array_append(task_tp)(producers, left_producer);
-		snekkja_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, right_producer->id);
+		drake_stderr("[%s:%s:%d] Adding task %d\n", __FILE__, __FUNCTION__, __LINE__, right_producer->id);
 		pelib_array_append(task_tp)(producers, right_producer);
 	}
 	else
@@ -432,11 +426,11 @@ get_task_producers(mapping_t *mapping, task_t *task)
 	}
 #else
 	size_t i;
-	producers = pelib_alloc_collection(array_t(task_tp))(_snekkja_producers_in_task[task->id - 1]);
-	for(i = 0; i < _snekkja_producers_in_task[task->id - 1]; i++)
+	producers = pelib_alloc_collection(array_t(task_tp))(_drake_producers_in_task[task->id - 1]);
+	for(i = 0; i < _drake_producers_in_task[task->id - 1]; i++)
 	{
-		size_t task_id = _snekkja_producers_id[task->id - 1][i];
-		task_t *prod = pelib_mapping_find_task(mapping, task_id);
+		size_t task_id = _drake_producers_id[task->id - 1][i];
+		task_t *prod = drake_mapping_find_task(mapping, task_id);
 		pelib_array_append(task_tp)(producers, prod);
 	}
 #endif
@@ -589,7 +583,7 @@ task_next_state(task_t* task)
 
 		case TASK_INVALID:
 		default:
-			snekkja_stderr("[CORE %d] Invalid state for task %u (state %u), killing it\n", snekkja_core(), task->id, task->status);
+			drake_stderr("[CORE %d] Invalid state for task %u (state %u), killing it\n", drake_core(), task->id, task->status);
 			return TASK_KILLED;
 		break;
 	}
@@ -643,7 +637,7 @@ if(printf_enabled & 1) {
 		link->total_read += size;
 		//pelib_scc_cache_invalidate(); // Not important ?
 		*link->read = link->total_read;
-		pelib_scc_force_wcb(); // Important
+		drake_arch_commit(link->read); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_FEEDBACK
 if(printf_enabled & 1) {
@@ -685,7 +679,7 @@ if(printf_enabled & 2) {
 #endif
 		link->total_written += size;
 		*link->write = link->total_written;
-		pelib_scc_force_wcb(); // Important
+		drake_arch_commit(link->write); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_PUSH
 if(printf_enabled & 2) {
@@ -720,7 +714,7 @@ void
 check_input_link(task_t *task, cross_link_t *link)
 {
 	enum task_status new_state;
-	pelib_scc_cache_invalidate(); // Important
+	drake_arch_pull(link->write); // Important
 	// Update input fifo length
 	size_t write = *link->write - link->total_written;
 	size_t actual_write = 0;
@@ -730,10 +724,10 @@ check_input_link(task_t *task, cross_link_t *link)
 	int ok = 1;
 	for(i = 0; i < write; i++)
 	{
-		snekkja_stdout("[%s:%s:%d] Checking task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+		drake_stdout("[%s:%s:%d] Checking task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
 		if((int)(link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity]) == (int)CANARI)
 		{
-			snekkja_stdout("[%s:%s:%d] Found a canari for task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
+			drake_stdout("[%s:%s:%d] Found a canari for task %d fifo buffer at index %d / %d: %d (%d)\n", __FILE__, __FUNCTION__, __LINE__, task->id, (link->link->buffer->write + i) % link->link->buffer->capacity, link->link->buffer->capacity, link->link->buffer->buffer[(link->link->buffer->write + i) % link->link->buffer->capacity], CANARI);
 			ok = 0;
 		}
 	}
@@ -796,7 +790,7 @@ void
 check_output_link(task_t *task, cross_link_t *link)
 {
 	enum task_status new_state;
-	pelib_scc_cache_invalidate(); // Important
+	drake_arch_pull(link->read);
 	// Update input fifo length
 	size_t read = *link->read - link->total_read;
 	size_t actual_read = pelib_cfifo_discard(int)(link->link->buffer, read);
@@ -954,17 +948,17 @@ static
 void
 printf_mpb_allocation(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	snekkja_stderr("MPB size: %u\n", mpb_size);
-	snekkja_stderr("Input links: %u\n", nb_in);
-	snekkja_stderr("Output links: %u\n", nb_out);
-	snekkja_stderr("Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
+	drake_stderr("MPB size: %u\n", mpb_size);
+	drake_stderr("Input links: %u\n", nb_in);
+	drake_stderr("Output links: %u\n", nb_out);
+	drake_stderr("Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
 }
 
 static
 void
 error_small_mpb(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 {
-	snekkja_stderr("Too much cross core links at processor %u\n", proc->id);
+	drake_stderr("Too much cross core links at processor %u\n", proc->id);
 	printf_mpb_allocation(mpb_size, nb_in, nb_out);
 	abort();
 }
@@ -991,16 +985,16 @@ check_mpb_size(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 #define stack_malloc_printf_addr(addr)
 #define stack_malloc_printf_int(addr)
 #endif
-static snekkja_stack_t*
+static drake_stack_t*
 stack_malloc(size_t size)
 {
-	snekkja_stack_t *stack = (snekkja_stack_t*)malloc(sizeof(snekkja_stack_t));
+	drake_stack_t *stack = (drake_stack_t*)malloc(sizeof(drake_stack_t));
 	stack_malloc_printf_int(size);
-	stack->base_ptr = (void*)snekkja_local_malloc(size);
+	stack->base_ptr = (void*)drake_local_malloc(size);
 	stack_malloc_printf_addr(stack->base_ptr);
 	stack->size = size;
-	stack->stack_ptr = (size_t*)malloc(sizeof(size_t) * snekkja_core_size());
-	memset(stack->stack_ptr, 0, sizeof(size_t) * snekkja_core_size());
+	stack->stack_ptr = (size_t*)malloc(sizeof(size_t) * drake_core_size());
+	memset(stack->stack_ptr, 0, sizeof(size_t) * drake_core_size());
 	return stack;
 }
 
@@ -1012,7 +1006,7 @@ stack_malloc(size_t size)
 #define stack_grow_printf_int(addr)
 #endif
 static void*
-stack_grow(snekkja_stack_t *stack, size_t size, int id)
+stack_grow(drake_stack_t *stack, size_t size, int id)
 {
 	stack_grow_printf_int(size);
 	stack_grow_printf_int(id);
@@ -1031,10 +1025,10 @@ stack_grow(snekkja_stack_t *stack, size_t size, int id)
 }
 
 static int
-stack_free(snekkja_stack_t* stack)
+stack_free(drake_stack_t* stack)
 {
 	free(stack->stack_ptr);
-	snekkja_local_free(stack->base_ptr);
+	drake_local_free(stack->base_ptr);
 	free(stack);
 
 	return 1;
@@ -1043,7 +1037,7 @@ stack_free(snekkja_stack_t* stack)
 #if 1
 static
 void
-allocate_buffers(snekkja_stream_t* stream)
+allocate_buffers(drake_stream_t* stream)
 {
 	int i, j, k, nb, nb_in, nb_out;
 	task_t* task;
@@ -1053,11 +1047,11 @@ allocate_buffers(snekkja_stream_t* stream)
 	//cfifo_init_t init;
 	mapping_t *mapping = stream->mapping;
 	/*
-	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack);
-	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->base_ptr);
-	snekkja_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->stack_ptr);
-	snekkja_stack_t *stack = stream->stack; /**/
-	snekkja_stack_t *stack = stack_malloc(stream->local_memory_size);
+	drake_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack);
+	drake_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->base_ptr);
+	drake_stderr("[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->stack_ptr);
+	drake_stack_t *stack = stream->stack; /**/
+	drake_stack_t *stack = stack_malloc(stream->local_memory_size);
 	//init.stack = stack;
 
 	for(i = 0; i < mapping->processor_count; i++)
@@ -1102,7 +1096,7 @@ allocate_buffers(snekkja_stream_t* stream)
 							//int core = (int)core_id_in_scc(link->cons->core->id, octant_id(pelib_scc_core_id())); // Transformed
 							int core = link->cons->core->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in_succ, nb_out_succ) / sizeof(int);
-							link->buffer->buffer = (int*)snekkja_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
+							link->buffer->buffer = (int*)drake_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
@@ -1144,7 +1138,7 @@ allocate_buffers(snekkja_stream_t* stream)
 							//int core = (int)core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id())); // Transformed
 							int core = task->core->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in, nb_out) / sizeof(int);
-							link->buffer->buffer = (int*)snekkja_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
+							link->buffer->buffer = (int*)drake_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
 
@@ -1164,8 +1158,8 @@ allocate_buffers(snekkja_stream_t* stream)
 
 				if(cross_link->read == NULL)
 				{
-					//cross_link->read = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
-					cross_link->read = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
+					//cross_link->read = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->read = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
 					*cross_link->read = 0;
 				}
 
@@ -1179,15 +1173,15 @@ allocate_buffers(snekkja_stream_t* stream)
 
 				if(cross_link->prod_state == NULL)
 				{
-					//cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
-					cross_link->prod_state = (task_status_t*)snekkja_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
+					//cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
 					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
 				{
-					//cross_link->write = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
-					cross_link->write = (volatile size_t*)snekkja_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
+					//cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
+					cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
 					*cross_link->write = 0;
 				}
 				// TODO: call a allocate_output_buffer(task, input_buffer) function. It does nothing for SCC
@@ -1364,9 +1358,9 @@ printf_link(cross_link_t *link)
 	printf_int(link->actual_read);
 	printf_int(link->actual_written);
 
-	snekkja_arch_pull(link->read);
+	pelib_arch_pull(link->read);
 	printf_int(*link->read);
-	snekkja_arch_pull(link->write);
+	pelib_arch_pull(link->write);
 	printf_int(*link->write);
 }
 
@@ -1384,7 +1378,7 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 	ucontext_t *uc = (ucontext_t *)secret;
 
 	printf_str("Waiting for other cores to catch signal");
-	snekkja_barrier(NULL);
+	pelib_barrier(NULL);
 	printf_str("Ready to show state");
 
 	if(current != NULL)
@@ -1433,17 +1427,17 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	printf_int(printf_enabled);
 	printf_str("Waiting for other cores to continue");
-	snekkja_barrier(NULL);
+	pelib_barrier(NULL);
 	printf_str("Resuming computation");
 
 	/* Do something useful with siginfo_t */
 	if (sig == SIGSEGV)
 	{
-		snekkja_stdout("Got signal %d, faulty address is %p, from %p\n", sig, info->si_addr, uc->uc_mcontext.gregs[REG_EIP]);
+		drake_stdout("Got signal %d, faulty address is %p, from %p\n", sig, info->si_addr, uc->uc_mcontext.gregs[REG_EIP]);
 	}
 	else
 	{
-		snekkja_stdout("Got signal %d\n", sig);
+		drake_stdout("Got signal %d\n", sig);
 	}
 
 	trace_size = backtrace(trace, 16);
@@ -1452,10 +1446,10 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	messages = backtrace_symbols(trace, trace_size);
 	/* skip first stack frame (points here) */
-	snekkja_stdout("[bt] Execution path:\n");
+	drake_stdout("[bt] Execution path:\n");
 	for (i = 1; i < trace_size; i++)
 	{
-		snekkja_stdout("[bt] %s\n", messages[i]);
+		drake_stdout("[bt] %s\n", messages[i]);
 	}
 
 	if(printf_enabled < 32)
@@ -1478,7 +1472,7 @@ prepare_mapping()
 	processor_t *processor = NULL;
 	task_t task;
 
-	size_t num_cores = _snekkja_p;
+	size_t num_cores = _drake_p;
 	mapping = pelib_alloc_collection(mapping_t)(num_cores);
 
 /*
@@ -1487,30 +1481,30 @@ prepare_mapping()
 		for(j = 0; j < 32; j++)
 		{
 			fprintf(stderr, "[%s,%s,%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
-			fprintf(stderr, "[%s,%s,%d] core %d task %d\n", __FILE__, __FUNCTION__, __LINE__, i + 1, _snekkja_schedule[i * 32 + j].id);
+			fprintf(stderr, "[%s,%s,%d] core %d task %d\n", __FILE__, __FUNCTION__, __LINE__, i + 1, _drake_schedule[i * 32 + j].id);
 			fprintf(stderr, "[%s,%s,%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 */
 
-	for(j = 1; j <= _snekkja_p; j++)
+	for(j = 1; j <= _drake_p; j++)
 	{
-		size_t tasks_in_core = _snekkja_tasks_in_core[j - 1];
+		size_t tasks_in_core = _drake_tasks_in_core[j - 1];
 		processor = pelib_alloc_collection(processor_t)(tasks_in_core);
 		processor->id = j - 1;
-		size_t producers_in_core = _snekkja_producers_in_core[j - 1];
-		size_t consumers_in_core = _snekkja_consumers_in_core[j - 1];
+		size_t producers_in_core = _drake_producers_in_core[j - 1];
+		size_t consumers_in_core = _drake_consumers_in_core[j - 1];
 		processor->source = pelib_alloc_collection(array_t(cross_link_tp))(producers_in_core);
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(consumers_in_core);
-		pelib_mapping_insert_processor(mapping, processor);
+		drake_mapping_insert_processor(mapping, processor);
 
-		for(i = 1; i <= _snekkja_tasks_in_core[j - 1]; i++)
+		for(i = 1; i <= _drake_tasks_in_core[j - 1]; i++)
 		{
-			task.id = _snekkja_schedule[j - 1][i - 1].id;
-			size_t producers_in_task = _snekkja_producers_in_task[task.id - 1];
-			size_t consumers_in_task = _snekkja_consumers_in_task[task.id - 1];
-			size_t remote_producers_in_task = _snekkja_remote_producers_in_task[task.id - 1];
-			size_t remote_consumers_in_task = _snekkja_remote_consumers_in_task[task.id - 1];
+			task.id = _drake_schedule[j - 1][i - 1].id;
+			size_t producers_in_task = _drake_producers_in_task[task.id - 1];
+			size_t consumers_in_task = _drake_consumers_in_task[task.id - 1];
+			size_t remote_producers_in_task = _drake_remote_producers_in_task[task.id - 1];
+			size_t remote_consumers_in_task = _drake_remote_consumers_in_task[task.id - 1];
 			task.pred = pelib_alloc_collection(array_t(link_tp))(producers_in_task);
 			task.succ = pelib_alloc_collection(array_t(link_tp))(consumers_in_task);
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
@@ -1518,41 +1512,41 @@ prepare_mapping()
 
 			task.status = TASK_START;
 
-			pelib_mapping_insert_task(mapping, j - 1, &task);
+			drake_mapping_insert_task(mapping, j - 1, &task);
 		}
 	}
 #else
 	mapping_t *mapping;
 	FILE* file_mapping;
-PELIB_SCC_CRITICAL_BEGIN
+DRAKE_SCC_CRITICAL_BEGIN
 	// Load mappings
 	file_mapping = fopen(mapping_filename, "r");
 	if (file_mapping == NULL)
 	{
-		snekkja_stderr("[CORE %d] Could not open mapping file:%s\n",
+		drake_stderr("[CORE %d] Could not open mapping file:%s\n",
 		    pelib_scc_core_id(), mapping_filename);
 		abort();
 	}
 	assert_different(file_mapping, NULL, 1);
 
 	mapping = NULL;
-	mapping = pelib_mapping_loadfilterfile(mapping, file_mapping, get_left(pelib_scc_core_id()) ? is_left : is_right);
+	mapping = drake_mapping_loadfilterfile(mapping, file_mapping, get_left(pelib_scc_core_id()) ? is_left : is_right);
 	fclose(file_mapping);
-PELIB_SCC_CRITICAL_END
+DRAKE_SCC_CRITICAL_END
 #endif
 	return mapping;
 }
 
-snekkja_stream_t
-snekkja_stream_create(void* aux)
+drake_stream_t
+drake_stream_create(void* aux)
 {
 	int k;
 	char* outputfile;
 	array_t(int) *array = NULL;
-	snekkja_stream_t stream;
+	drake_stream_t stream;
 
-	// Initialize snekkja
-	snekkja_arch_init(aux);
+	// Initialize pelib
+	drake_arch_init(aux);
 
 #if !DEBUG || 1 
 	// Initialize and redirect pelib's standard output
@@ -1584,16 +1578,16 @@ snekkja_stream_create(void* aux)
 	input_size = pelib_array_length(int)(tmp) / 8;
 	pelib_free_struct(array_t(int))(tmp);
 
-	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
+	if(core_id_in_scc(drake_core(), octant_id(drake_core())) == 0)
 	{
-		array = pelib_array_loadfilenamewindowbinary(int)(argv[2], input_size * octant_id(snekkja_core()), input_size);
+		array = pelib_array_loadfilenamewindowbinary(int)(argv[2], input_size * octant_id(drake_core()), input_size);
 	}
 
 #if MEASURE_GLOBAL
 	start = rdtsc();
 #endif
 
-	if(core_id_in_scc(snekkja_core(), octant_id(snekkja_core())) == 0)
+	if(core_id_in_scc(drake_core(), octant_id(drake_core())) == 0)
 	{
 		qsort((char*)array->data, pelib_array_length(int)(array), sizeof(int), greater);
 	}
@@ -1608,13 +1602,13 @@ snekkja_stream_create(void* aux)
 	link_t* link;
 
 	unsigned long long int start, stop, begin, end;
-	snekkja_schedule_init();
+	drake_schedule_init();
 	mapping = prepare_mapping();
 
 	// Build task network based on tasks' id
 	build_tree_network(mapping);
-	//proc = mapping->proc[pelib_mapping_find_processor_index(mapping, core_id_in_octant(snekkja_core()))]; // Transformed
-	proc = mapping->proc[pelib_mapping_find_processor_index(mapping, snekkja_core())];
+	//proc = mapping->proc[drake_mapping_find_processor_index(mapping, core_id_in_octant(drake_core()))]; // Transformed
+	proc = mapping->proc[drake_mapping_find_processor_index(mapping, drake_core())];
 	task = proc->task[0];
 
 	// Initialize task's pointer
@@ -1623,35 +1617,35 @@ snekkja_stream_create(void* aux)
 	{
 		task_t *task = proc->task[i];
 		task->status = TASK_START;
-		task->init = (int (*)(task_t*, void*))snekkja_function(task->id, TASK_INIT);
-		task->start = (int (*)(task_t*))snekkja_function(task->id, TASK_START);
-		task->run = (int (*)(task_t*))snekkja_function(task->id, TASK_RUN);
-		task->destroy = (int (*)(task_t*))snekkja_function(task->id, TASK_KILLED);
-		task->frequency = _snekkja_task_frequency[task->id - 1];
+		task->init = (int (*)(task_t*, void*))drake_function(task->id, TASK_INIT);
+		task->start = (int (*)(task_t*))drake_function(task->id, TASK_START);
+		task->run = (int (*)(task_t*))drake_function(task->id, TASK_RUN);
+		task->destroy = (int (*)(task_t*))drake_function(task->id, TASK_KILLED);
+		task->frequency = _drake_task_frequency[task->id - 1];
 	}
 	/* Init phase: load input data into tasks */
 
 	stream.mapping = mapping;
 	stream.proc = proc;
-	stream.local_memory_size = snekkja_arch_local_size() - 32;
-	stream.stage_start_time = snekkja_time_alloc();
-	stream.stage_stop_time = snekkja_time_alloc();
-	stream.stage_sleep_time = snekkja_time_alloc();
-	stream.stage_time = snekkja_time_alloc();
-	snekkja_time_init(stream.stage_time, _snekkja_stage_time);
+	stream.local_memory_size = drake_arch_local_size() - 32; // TODO: this is scc-specific: transfer this -32 to drake-scc library
+	stream.stage_start_time = drake_time_alloc();
+	stream.stage_stop_time = drake_time_alloc();
+	stream.stage_sleep_time = drake_time_alloc();
+	stream.stage_time = drake_time_alloc();
+	drake_time_init(stream.stage_time, _drake_stage_time);
 	/**/
 
 	if(zero == NULL)
 	{
-		zero = snekkja_time_alloc();
-		snekkja_time_init(zero, 0);
+		zero = drake_time_alloc();
+		drake_time_init(zero, 0);
 	}
 
 	return stream;
 }
 
 int
-snekkja_stream_init(snekkja_stream_t *stream, void *aux)
+drake_stream_init(drake_stream_t *stream, void *aux)
 {
 	int success = 1;
 	size_t i;
@@ -1672,20 +1666,20 @@ snekkja_stream_init(snekkja_stream_t *stream, void *aux)
 }
 
 int
-snekkja_stream_destroy(snekkja_stream_t* stream, void* aux)
+drake_stream_destroy(drake_stream_t* stream, void* aux)
 {
-	snekkja_schedule_destroy();
+	drake_schedule_destroy();
 	free(stream->stage_start_time);
 	free(stream->stage_stop_time);
 	free(stream->stage_sleep_time);
 	free(stream->stage_time);
 	free(zero);
 	zero = NULL;
-	return snekkja_arch_finalize(aux);
+	return drake_arch_finalize(aux);
 }
 
 int
-snekkja_stream_run(snekkja_stream_t* stream)
+drake_stream_run(drake_stream_t* stream)
 {
 	unsigned long long int start, stop;
 	size_t i, j;
@@ -1712,7 +1706,7 @@ snekkja_stream_run(snekkja_stream_t* stream)
 	while(active_tasks > 0)
 	{
 		// Capture the stage starting time
-		snekkja_get_time(stream->stage_start_time);
+		drake_get_time(stream->stage_start_time);
 		
 		for(i = 0; i < proc->handled_nodes; i++)
 		{
@@ -1778,9 +1772,9 @@ snekkja_stream_run(snekkja_stream_t* stream)
 #endif
 					// Work
 					// Switch frequency
-					if(snekkja_arch_get_frequency() != task->frequency)
+					if(drake_arch_get_frequency() != task->frequency)
 					{
-						snekkja_arch_set_frequency(task->frequency);
+						drake_arch_set_frequency(task->frequency);
 					}
 					done = task->run(task);
 #if MEASURE_STEPS
@@ -1821,7 +1815,7 @@ snekkja_stream_run(snekkja_stream_t* stream)
 						{
 							cross_link_t *link = pelib_array_read(cross_link_tp)(task->sink, j);
 							*link->prod_state = task->status;
-							snekkja_arch_commit(link->prod_state);
+							drake_arch_commit(link->prod_state);
 						}
 						//pelib_scc_force_wcb(); // Important
 						//task->status = task_next_state(task);
@@ -1877,18 +1871,18 @@ snekkja_stream_run(snekkja_stream_t* stream)
 		}
 
 		// Pause until the stage time elapses, if any
-		//snekkja_stdout("[%s:%s:%d] End of the round.\n", __FILE__, __FUNCTION__, __LINE__);
-		if(snekkja_time_greater(stream->stage_time, zero))
+		//drake_stdout("[%s:%s:%d] End of the round.\n", __FILE__, __FUNCTION__, __LINE__);
+		if(drake_time_greater(stream->stage_time, zero))
 		{
-			//snekkja_stdout("[%s:%s:%d] Sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
-			snekkja_get_time(stream->stage_stop_time);
-			snekkja_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
-			snekkja_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
-			snekkja_arch_sleep(stream->stage_sleep_time);
+			//drake_stdout("[%s:%s:%d] Sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
+			drake_get_time(stream->stage_stop_time);
+			drake_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
+			drake_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
+			drake_arch_sleep(stream->stage_sleep_time);
 		}
 		else
 		{
-			//snekkja_stdout("[%s:%s:%d] Not sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
+			//drake_stdout("[%s:%s:%d] Not sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 #endif

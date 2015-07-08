@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <snekkja/link.h>
-#include <snekkja/cross_link.h>
-#include <snekkja/platform.h>
+#include <drake/link.h>
+#include <drake/cross_link.h>
+#include <drake/platform.h>
 
 cross_link_tp *
 pelib_alloc_struct(cross_link_tp)()
@@ -80,14 +80,14 @@ pelib_printf_detail(cross_link_tp)(cross_link_tp link, int level)
 size_t
 pelib_fwrite(cross_link_tp)(cross_link_tp link, size_t size, size_t nmemb, FILE* file)
 {
-	snekkja_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
 size_t
 pelib_fread(cross_link_tp)(cross_link_tp* link, size_t size, size_t nmemb, FILE* file)
 {
-	snekkja_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
@@ -121,4 +121,4 @@ pelib_string_detail(cross_link_tp)(cross_link_tp link, int level)
 }
 
 #define ARRAY_T cross_link_tp
-#include <array.c>
+#include <pelib/array.c>

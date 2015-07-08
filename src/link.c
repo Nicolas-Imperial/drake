@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <snekkja/link.h>
-#include <snekkja/platform.h>
+#include <drake/link.h>
+#include <drake/platform.h>
 
 link_tp *
 pelib_alloc_struct(link_tp)()
@@ -63,7 +63,7 @@ pelib_printf(link_tp)(link_tp link)
 {
 	char *str;
 	str = pelib_string(link_tp)(link);
-	snekkja_stdout("%s\n", str);
+	drake_stdout("%s\n", str);
 
 	free(str);
 
@@ -75,7 +75,7 @@ pelib_printf_detail(link_tp)(link_tp link, int level)
 {
 	char *str;
 	str = pelib_string_detail(link_tp)(link, level);
-	snekkja_stdout("%s\n", str);
+	drake_stdout("%s\n", str);
 
 	free(str);
 
@@ -85,14 +85,14 @@ pelib_printf_detail(link_tp)(link_tp link, int level)
 size_t
 pelib_fwrite(link_tp)(link_tp link, size_t size, size_t num, FILE* file)
 {
-	snekkja_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
 size_t
 pelib_fread(link_tp)(link_tp* link, size_t size, size_t num, FILE* file)
 {
-	snekkja_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
@@ -173,4 +173,4 @@ link_str_chk
 }
 
 #define ARRAY_T link_tp
-#include <array.c>
+#include <pelib/array.c>

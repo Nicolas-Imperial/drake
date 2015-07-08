@@ -21,7 +21,7 @@
  * 
  */
 
-#include <snekkja/mapping.h>
+#include <drake/mapping.h>
 
 #ifndef DRAWGRAPH2_H_
 #define DRAWGRAPH2_H_
@@ -29,8 +29,8 @@
 #define PMAX 11   // do not use proc 0
 #define NMAX 1025 // do not use node 0
 
-#define PELIB_MAPPING_MAX_PROCESSOR_COUNT 16
-#define PELIB_MAPPING_MAX_TASK_COUNT    256
+#define DRAKE_MAPPING_MAX_PROCESSOR_COUNT 16
+#define DRAKE_MAPPING_MAX_TASK_COUNT    256
 
 void
 pelib_drawgraph2_draw(FILE*, FILE*, FILE*);

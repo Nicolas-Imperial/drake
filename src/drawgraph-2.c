@@ -5,8 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <snekkja/mapping.h>
-#include <snekkja/platform.h>
+#include <drake/mapping.h>
+#include <drake/platform.h>
 #include "drawgraph-2.h"
 
 FILE *input, *output, *error;
@@ -377,15 +377,15 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 	num_tasks = 0;
 	inputstructure();
 
-	fprintf(stderr, "[%s:%s:%d] mapping = pelib_alloc_collection(mapping_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, PELIB_MAPPING_MAX_PROCESSOR_COUNT);
-	mapping = pelib_alloc_collection(mapping_t)(PELIB_MAPPING_MAX_PROCESSOR_COUNT);
+	fprintf(stderr, "[%s:%s:%d] mapping = pelib_alloc_collection(mapping_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, DRAKE_MAPPING_MAX_PROCESSOR_COUNT);
+	mapping = pelib_alloc_collection(mapping_t)(DRAKE_MAPPING_MAX_PROCESSOR_COUNT);
 	//  mapping->processor_count = p;
 
 	// Fills mapping with processors and processors with tasks
 	for (j = 1; j <= num_procs; j++)
 	{
-		fprintf(stderr, "[%s:%s:%d] processor = pelib_alloc_collection(processor_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, PELIB_MAPPING_MAX_TASK_COUNT);
-		processor = pelib_alloc_collection(processor_t)(PELIB_MAPPING_MAX_TASK_COUNT);
+		fprintf(stderr, "[%s:%s:%d] processor = pelib_alloc_collection(processor_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, DRAKE_MAPPING_MAX_TASK_COUNT);
+		processor = pelib_alloc_collection(processor_t)(DRAKE_MAPPING_MAX_TASK_COUNT);
 		fprintf(stderr, "[%s:%s:%d] processor->id = %d - 1;\n", __FILE__, __FUNCTION__, __LINE__, j);
 		processor->id = j - 1;
 		fprintf(stderr, "[%s:%s:%d] processor->source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
@@ -395,7 +395,7 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
 //		pelib_init(array_t(task_tp))(processor->sink);
 		fprintf(stderr, "[%s:%s:%d] nb_mapping_insert_processor(mapping, processor);\n", __FILE__, __FUNCTION__, __LINE__);
-		pelib_mapping_insert_processor(mapping, processor);
+		drake_mapping_insert_processor(mapping, processor);
 
 		for (i = 1; i < num_tasks; i++)
 		{
@@ -422,8 +422,8 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 					fprintf(stderr, "[%s:%s:%d] task.status = TASK_INIT;\n", __FILE__, __FUNCTION__, __LINE__);
 					task.status = TASK_INIT;
 
-					fprintf(stderr, "[%s:%s:%d] pelib_mapping_insert_task(mapping, %d - 1, &task);\n", __FILE__, __FUNCTION__, __LINE__, j);
-					pelib_mapping_insert_task(mapping, j - 1, &task);
+					fprintf(stderr, "[%s:%s:%d] drake_mapping_insert_task(mapping, %d - 1, &task);\n", __FILE__, __FUNCTION__, __LINE__, j);
+					drake_mapping_insert_task(mapping, j - 1, &task);
 				}
 				continue;
 			}
