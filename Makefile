@@ -15,7 +15,7 @@ tarname = $(package)
 distdir = $(abspath $(tarname)-$(version))
 
 ## Targets asked for running, or default target if none
-TARGETS=$(if $(MAKECMDGOALS),$(MAKECMDGOALS),$(DEFAULT))
+TARGETS = $(if $(MAKECMDGOALS),$(MAKECMDGOALS),$(DEFAULT))
 
 # Check make version
 VERSION = $(shell make --version|head -1|cut -f 1-2 -d ' ')
@@ -55,7 +55,7 @@ version:
 	$(if $(findstring GNU Make,echo $(VERSION)),,@/bin/false)
 
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=.\; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
 
 FORCE:
 .PHONY: FORCE all version clean dist distcheck copy clean-dist clean-tree

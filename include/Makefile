@@ -29,12 +29,18 @@ dist: submake
 	cp Makefile.in $(distdir)
 	$(if $(strip $(attach)),cp $(attach) $(distdir))
 	
-install: submake
-	$(if $(strip $(attach)),install -d $(DESTDIR)$(final_includedir)/$(subdir))
-	$(if $(strip $(attach)),install -m 644 $(attach) $(DESTDIR)$(final_includedir)/$(subdir))
+install: pre-install do-install post-install submake
+
+pre-install:
+
+do-install:
+	$(if $(strip $(attach)),install -d $(DESTDIR)$(prefix)/$(subdir))
+	$(if $(strip $(attach)),install -m 644 $(attach) $(DESTDIR)$(prefix)/$(subdir))
+
+post-install:
 	
 uninstall: submake
-	$(RM) $(foreach var,$(attach), $(DESTDIR)$(final_includedir)/$(subdir)/$(var))
+	$(RM) $(foreach var,$(attach), $(DESTDIR)$(prefix)/$(subdir)/$(var))
 	
 check: submake
 	$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $@ \; done)
@@ -42,6 +48,6 @@ check: submake
 checkdist distcheck: dist
 
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
         
-.PHONY: all dist install check submake
+.PHONY: all dist install pre-install do-install post-install check submake

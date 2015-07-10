@@ -30,33 +30,33 @@
 // Drake includes
 #include <drake/task.h>
 
-#if DRAKE_CONCAT_3(DONE_, TASK_NAME, TASK_ID) == 0
+#if PELIB_CONCAT_3(DONE_, TASK_MODULE, TASK_NAME) == 0
 
 #ifdef _DRAKE_COMPILE
 
-#define drake_init DRAKE_CONCAT_3(TASK_NAME,_init_,TASK_ID)
-#define drake_start DRAKE_CONCAT_3(TASK_NAME,_start_,TASK_ID)
-#define drake_run DRAKE_CONCAT_3(TASK_NAME,_run_,TASK_ID)
-#define drake_destroy DRAKE_##CONCAT_3(TASK_NAME, _destroy_, TASK_ID)
-#define drake_user(name) DRAKE_##CONCAT_5(TASK_NAME, _user_, TASK_ID, _, name)
+#define drake_init PELIB_CONCAT_3(TASK_MODULE,_init_,TASK_NAME)
+#define drake_start PELIB_CONCAT_3(TASK_MODULE,_start_,TASK_NAME)
+#define drake_run PELIB_CONCAT_3(TASK_MODULE,_run_,TASK_NAME)
+#define drake_destroy PELIB_##CONCAT_3(TASK_MODULE, _destroy_, TASK_NAME)
+#define drake_user(name) PELIB_##CONCAT_5(TASK_MODULE, _user_, TASK_NAME, _, name)
 
 int drake_init(task_t *, void *aux);
 int drake_start(task_t *);
 int drake_run(task_t *);
 int drake_destroy(task_t *);
 #else
-#define drake_init(name,id) DRAKE_CONCAT_3(name,_init_,id)
-#define drake_start(name,id) DRAKE_CONCAT_3(name,_start_,id)
-#define drake_run(name,id) DRAKE_CONCAT_3(name,_run_,id)
-#define drake_destroy(name,id) DRAKE_CONCAT_3(name,_destroy_,id)
+#define drake_init(name,id) PELIB_CONCAT_3(name,_init_,id)
+#define drake_start(name,id) PELIB_CONCAT_3(name,_start_,id)
+#define drake_run(name,id) PELIB_CONCAT_3(name,_run_,id)
+#define drake_destroy(name,id) PELIB_CONCAT_3(name,_destroy_,id)
 
-int drake_init(TASK_NAME, TASK_ID)(task_t *, void *aux);
-int drake_start(TASK_NAME, TASK_ID)(task_t *);
-int drake_run(TASK_NAME, TASK_ID)(task_t *);
-int drake_destroy(TASK_NAME, TASK_ID)(task_t *);
+int drake_init(TASK_MODULE, TASK_NAME)(task_t *, void *aux);
+int drake_start(TASK_MODULE, TASK_NAME)(task_t *);
+int drake_run(TASK_MODULE, TASK_NAME)(task_t *);
+int drake_destroy(TASK_MODULE, TASK_NAME)(task_t *);
 
+#undef TASK_MODULE
 #undef TASK_NAME
-#undef TASK_ID
 #endif
 
 #endif

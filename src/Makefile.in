@@ -47,15 +47,15 @@ PKG_TEST =
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
 
 ## C++-compiled programs and their sources
-bincxx_package = #drake
+bincxx_package = drake
 
 bincxx_drake_src = drake.cpp
 bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)
-bin_drake_deps = 
+bin_drake_deps =  
 bin_drake_libs = 
-bin_drake_pkg = cppelib crown
-bin_drake_ldflags = -L.
-bin_drake_static = 1
+bin_drake_pkg = pelib crown
+bin_drake_ldflags = 
+bin_drake_static = 0
 
 ## C-compiled programs and their sources
 bincc_package = 

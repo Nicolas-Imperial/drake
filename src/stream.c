@@ -346,8 +346,8 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 		link->buffer = NULL;
 
 		// Add it as source and sink to both current and target tasks
-		printf_int(cons->id);
-		printf_addr(cons->pred);
+		//printf_int(cons->id);
+		//printf_addr(cons->pred);
 		pelib_array_append(link_tp)(cons->pred, link);
 		pelib_array_append(link_tp)(prod->succ, link);
 
@@ -834,6 +834,7 @@ check_output_link(task_t *task, cross_link_t *link)
 	{
 		if(read > 0)
 		{
+			/*
 			printf_str("Could not receive acknowledgment");
 			printf_int(link->link->prod->id);
 			printf_int(link->link->cons->id);
@@ -842,6 +843,7 @@ check_output_link(task_t *task, cross_link_t *link)
 			printf_int(link->link->buffer->read);
 			printf_int(link->link->buffer->write);
 			printf_int(link->link->buffer->last_op);
+			*/
 		}
 	}
 }
@@ -1642,6 +1644,7 @@ drake_stream_create(void* aux)
 	}
 
 	return stream;
+#endif
 }
 
 int
@@ -1885,7 +1888,6 @@ drake_stream_run(drake_stream_t* stream)
 			//drake_stdout("[%s:%s:%d] Not sleeping.\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
-#endif
 
 	// Phase 3 here?
 #if MEASURE_GLOBAL

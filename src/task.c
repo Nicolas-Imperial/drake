@@ -71,7 +71,7 @@ task_str_det_chk
 }
 
 char*
-drake_task_tp_string_detail(task_tp task, int level)
+pelib_string_detail(task_tp)(task_tp task, int level)
 {
 task_str_det_chk
 	if(level == 0)
@@ -156,13 +156,13 @@ pelib_compare(task_tp)(task_tp a, task_tp b)
 }
 
 task_t*
-drake_task_alloc()
+pelib_alloc(task)()
 {
 	return malloc(sizeof(task_t));
 }
 
 task_tp*
-drake_task_tp_alloc(void* aux)
+pelib_alloc(task_tp)(void* aux)
 {
 	task_tp* res = malloc(sizeof(task_tp));
 

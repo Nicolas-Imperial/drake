@@ -36,7 +36,7 @@ $(TARGETS): $(FIRST)
 ##### Here begin the region you really don't want to mess with #####
 ####################################################################
 
-snekkja_schedule = schedule
+drake_schedule = schedule
 
 ## Gives the longest prefix in the prefix list (all elements must have the same character at the same index, or no character at that index)
 define longest
@@ -55,7 +55,7 @@ endef
 
 ## Get pkg-config output for the operation $2 (cflags|libs) on package list $1, with the corresponding options from variable $3$<package_name>
 define pkg-config
-$(if $(strip $1),$(if $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(error Missing library $3)),)
+$(if $(strip $1),$(if $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(error Missing library)),)
 endef
 
 ## Gives all source files of projects $1 of type $2 (bin|lib|test|shared) with language $3 (cc|cxx)
@@ -78,14 +78,14 @@ define object
 $(foreach proj,$1,$(patsubst %.$(call ext,$3),$2$(if $4,$4,$3)_$(proj)_%.o,$(call src_project_file_var,$(proj),$2,$3)))
 endef
 
-## Same as above, for snekkja projects
-define kkj_object
-$(foreach proj,$1,$(if $(call $2$3_$(proj)_graph),$(foreach task,$(shell snekkja --taskgraph $(call $2$3_$(proj)_graph) --get tasks),$2$3_$(proj)_$(task).o))) $(foreach proj,$1,$(foreach src,$(call kkj_schedule_src,$(proj),$3),$2$3_$(patsubst %.$(call ext,$3),%,$(src)).o))
+## Same as above, for drake projects
+define drake_object
+$(foreach proj,$1,$(if $(call $2$3_$(proj)_graph),$(foreach task,$(shell drake --taskgraph $(call $2$3_$(proj)_graph) --tasks),$2$3_$(proj)_$(task).o))) $(foreach proj,$1,$(foreach src,$(call drake_schedule_src_file,$(proj),$3),$2$3_$(patsubst %.$(call ext,$3),%,$(src)).o))
 endef
 
 ## Gives object files of projects in list $1, of type $2 (bin|lib|test) with language $3 (cc|cxx), prefixed with their project name, project variant and source file variant
 define embed
-$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(if $(patsubst kkj,$2,$2),$(if $(call $2cc_$(proj)_graph),$(call $2cc_$(proj)_graph),$(call $2cxx_$(proj)_graph)) $(call $2_$(proj)_platform))))
+$(foreach proj,$1,$(patsubst %,%.o,$(call $2_$(proj)_embed) $(if $(patsubst drake,$2,$2),$(if $(call $2cc_$(proj)_graph),$(call $2cc_$(proj)_graph),$(call $2cxx_$(proj)_graph)) $(call $2_$(proj)_platform))))
 endef
 
 ## Gives the source files of the embedded object files in $1
@@ -105,22 +105,22 @@ endef
 
 ## Gives the type of project (bin|lib|test) the object file $1 is part of
 define typeof
-$(if $(filter bin%,$1),bin,$(if $(filter lib%,$1),lib,$(if $(filter test%,$1),test,$(if $(filter kkj%,$1),kkj,$(if $(filter shared%,$1),shared,)))))
+$(if $(filter bin%,$1),bin,$(if $(filter lib%,$1),lib,$(if $(filter test%,$1),test,$(if $(filter drake%,$1),drake,$(if $(filter shared%,$1),shared,)))))
 endef
 
-## Gives the project corresponding the the kkj object file $1 in language $2
-define kkj_project
-$(foreach proj,$(kkj_package),$(if $(filter kkj$2_$(proj)_%.o,$1),$(proj)))
+## Gives the project corresponding the the drake object file $1 in language $2
+define drake_project
+$(foreach proj,$(drake_package),$(if $(filter drake$2_$(proj)_%.o,$1),$(proj)))
 endef
 
-## Gives the taskid corresponding the the kkj object file $1 in language $2 of project $3
-define kkj_task
-$(if $(filter kkj$2_$3%.o,$1),$(patsubst kkj$2_$3_%.o,%,$1))
+## Gives the taskid corresponding the the drake object file $1 in language $2 of project $3
+define drake_task
+$(if $(filter drake$2_$3%.o,$1),$(patsubst drake$2_$3_%.o,%,$1))
 endef
 
 ## Gives the source file of object $1 of project $2 of type $3 (bin|lib|test) in language $4 (cc/cxx)
 define source
-$(if $(filter kkj%.o,$1),$(if $(filter %.$(snekkja_schedule).o,$1),$(patsubst $3$4_%.$(snekkja_schedule).o,%.$(snekkja_schedule).$(call ext,$4),$1),$(if $(call $3$4_$(sort $2)_$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call kkj_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call kkj_task,$1,$4,$(sort $2)))),$(shell snekkja --taskgraph $(call $3$4_$(sort $2)_graph) --get task $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4))),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
+$(if $(filter drake%.o,$1),$(if $(filter %.$(drake_schedule).o,$1),$(patsubst $3$4_%.$(drake_schedule).o,%.$(drake_schedule).$(call ext,$4),$1),$(if $(call $3$4_$(sort $2)_$(shell drake --taskgraph $(call $3$4_$(sort $2)_graph) --module $(call drake_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell drake --taskgraph $(call $3$4_$(sort $2)_graph) --module $(call drake_task,$1,$4,$(sort $2)))),$(shell drake --taskgraph $(call $3$4_$(sort $2)_graph) --module $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4))),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
 endef
 
 # Returns the package main language of object $1 of project type $2 (bin|lib|test)
@@ -162,7 +162,7 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter kkj%,$1),$(if $(filter %.$(snekkja_schedule).o,$1),-DAPP_NAME=$(foreach lang,cc cxx,$(if $(filter kkj$(lang)_%.$(snekkja_schedule).o,$1),$(patsubst kkj$(lang)_%.$(snekkja_schedule).o,%,$1))),-D_SNEKKJA_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call kkj_project,$1,$(lang)),$(shell snekkja --taskgraph $(call kkj$(lang)_$(call kkj_project,$1,$(lang))_graph) --get task $(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call kkj_task,$1,$(lang),$(call kkj_project,$1,$(lang)))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter drake%,$1),$(if $(filter %.$(drake_schedule).o,$1),-DAPP_NAME=$(foreach lang,cc cxx,$(if $(filter drake$(lang)_%.$(drake_schedule).o,$1),$(patsubst drake$(lang)_%.$(drake_schedule).o,%,$1))),-D_DRAKE_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake$(lang)_$(call drake_project,$1,$(lang))_graph) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang)))))))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
@@ -182,6 +182,12 @@ endef
 ## Same as above for C++ projects
 define cxxflags_file
 $(call CXXFLAGS_$(call source,$1,$(call projectof,$1,$2,cxx),$2,cxx)) $(call $2cxx_$(call projectof,$1,$2,cxx)_cxxflags_$(call source,$1,$(call projectof,$1,$2,cxx),$2,cxx))
+endef
+
+## Returns the list $1 in reverse order
+## http://stackoverflow.com/questions/52674/simplest-way-to-reverse-the-order-of-strings-in-a-make-variable
+define reverse
+$(if $(wordlist 2,2,$1),$(call reverse,$(wordlist 2,$(words $1),$1)) $(firstword $1),$1)
 endef
 
 ## Gives all library switches brought by the makefile and its options
@@ -208,17 +214,17 @@ define pkg_project
 $(call pkg-config,$(call $2_$1_pkg),libs-only-l $(if $(strip $(call $2_$1_static)),$(if $(filter 0,$(strip $(call $2_$1_static))),,--static),),$2_$1_pkg_)
 endef
 
-## A source filename for snekkja application $1 in language $2
-define kkj_schedule_src
-$(if $(strip $(call kkj$2_$1_graph)),$1.$(snekkja_schedule).$(if $(filter cc,$2),c,$(if $(filter cxx,$2),cxx)))
+## A source filename for drake application $1 in language $2
+define drake_schedule_src_file
+$(if $(strip $(call drake$2_$1_graph)),$1.$(drake_schedule).$(if $(filter cc,$2),c,$(if $(filter cxx,$2),cxx)))
 endef
 
 ## All C and C++ objects, eliminating duplicates
-snekkja_schedule_src = $(foreach proj,$(kkj_package),$(foreach lang,cc cxx,$(call kkj_schedule_src,$(proj),$(lang))))
-cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(bincxx_package),bin,cc,cxx) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call kkj_object,$(kkj_package),kkj,cc) $(call object,$(sharedcc_package),shared,cc) $(call object,$(sharedcxx_package),shared,cc,cxx))
-cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(bincx_package),bin,cxx,cx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc) $(call kkj_object,$(kkj_package),kkj,cc) $(call object,$(sharedcxx_package),shared,cxx) $(call object,$(sharedcc_package),shared,cxx,ccx))
-lib_pkgconfig = $(sort $(foreach var,$(lib_package) $(kkj_package) $(sharedcxx_package) $(sharedcc_package),$(patsubst %,%.pc,$(var))))
-embed_object = $(sort $(call embed,$(bincc_package),bin) $(call embed,$(testcc_package),test) $(call embed,$(bincxx_package),bin) $(call embed,$(testcxx_package),test) $(call embed,$(lib_package),lib) $(call embed,$(kkj_package),kkj) $(call embed,$(sharedcc_package),shared) $(call embed,$(sharedcxx_package),shared))
+drake_schedule_src = $(foreach proj,$(drake_package),$(foreach lang,cc cxx,$(call drake_schedule_src_file,$(proj),$(lang))))
+cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(bincxx_package),bin,cc,cxx) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call drake_object,$(drake_package),drake,cc) $(call object,$(sharedcc_package),shared,cc) $(call object,$(sharedcxx_package),shared,cc,cxx))
+cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(bincx_package),bin,cxx,cx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc) $(call drake_object,$(drake_package),drake,cxx) $(call object,$(sharedcxx_package),shared,cxx) $(call object,$(sharedcc_package),shared,cxx,ccx))
+lib_pkgconfig = $(sort $(foreach var,$(lib_package) $(drake_package) $(sharedcxx_package) $(sharedcc_package),$(patsubst %,%.pc,$(var))))
+embed_object = $(sort $(call embed,$(bincc_package),bin) $(call embed,$(testcc_package),test) $(call embed,$(bincxx_package),bin) $(call embed,$(testcxx_package),test) $(call embed,$(lib_package),lib) $(call embed,$(drake_package),drake) $(call embed,$(sharedcc_package),shared) $(call embed,$(sharedcxx_package),shared))
 
 -include $(foreach file,$(cc_object) $(cxx_object),$(patsubst %.o,%.d,$(file)))
 
@@ -229,7 +235,7 @@ bincc_list = $(foreach var,$(bincc_package),$(call VARIANT_$(var))$(var))
 bincxx_list = $(foreach var,$(bincxx_package),$(call VARIANT_$(var))$(var))
 bin_list = $(bincc_list) $(bincxx_list)
 
-lib_list = $(foreach var,$(lib_package),lib$(call VARIANT_lib$(var).a)$(var).a) $(foreach var,$(kkj_package),lib$(call VARIANT_lib$(var).a)$(var).a)
+lib_list = $(foreach var,$(lib_package),lib$(call VARIANT_lib$(var).a)$(var).a) $(foreach var,$(drake_package),lib$(call VARIANT_lib$(var).a)$(var).a)
 sharedcc_list = $(foreach lgl,cc,$(foreach var,$(call shared$(lgl)_package),lib$(call VARIANT_shared$(var).so)$(var).so.$(version).$(minor).$(release)))
 sharedcxx_list = $(foreach lgl,cxx,$(foreach var,$(call shared$(lgl)_package),lib$(call VARIANT_shared$(var).so)$(var).so.$(version).$(minor).$(release)))
 shared_list = $(sharedcc_list) $(sharedcxx_list)
@@ -251,9 +257,9 @@ all: submake $(bin_list) $(lib_pkgconfig)
 ## Force rebuild upon Makefile update
 $(cc_object) $(cxx_object) $(embed_object) $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig): Makefile Makefile.in
 
-## Generate snekkja schedules
-$(snekkja_schedule_src): $$(call kkj$$(if $$(filter %.c,$$@),cc,$$(if $$(filter %.cpp,$$@),cxx))_$$(patsubst %.$$(snekkja_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_graph) $$(call kkj_$$(patsubst %.$$(snekkja_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_platform)
-	snekkja --get schedule --taskgraph $(call kkj$(if $(filter %.c,$@),cc,$(if $(filter %.cpp,$@),cxx))_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_graph) --platform $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_platform) --scheduler $(call kkj_$(patsubst %.$(snekkja_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_scheduler) > $@
+## Generate drake schedules
+$(drake_schedule_src): $$(call drake$$(if $$(filter %.c,$$@),cc,$$(if $$(filter %.cpp,$$@),cxx))_$$(patsubst %.$$(drake_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_graph) $$(call drake_$$(patsubst %.$$(drake_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_platform)
+	drake --schedule --taskgraph $(call drake$(if $(filter %.c,$@),cc,$(if $(filter %.cpp,$@),cxx))_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_graph) --platform $(call drake_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_platform) --scheduler $(call drake_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_scheduler) > $@
 
 $(embed_object): $$(call embed_src,$$@)
 	$(LD) -r -b binary -o $@ $(patsubst %.o,%,$@)
@@ -286,8 +292,8 @@ $(bincc_list): $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cc) $$
 $(bincxx_list): $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cxx) $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cc,cxx) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincxx_package)),bin)
 	$(CXX) -o $@ $(if $(strip $(call bin_$@_static)),$(if $(filter 0,$(strip $(call bin_$@_static))),,--static),) $(GLOBAL_CXX_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincxx_package),bin,cxx),bin,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cxx) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cc,cxx) $(call embed,$(call suffixin,$@,$(bincxx_package)),bin) $(call libs_project,$@,bin,cxx) $(call pkg_project,$@,bin,cxx) $(GLOBAL_CXX_PKG) $(GLOBAL_CXX_LIBS) $(LIBS)
 
-$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call kkj_object,$$(patsubst lib%.a,%,$$@),kkj,$$(lang)) $$(foreach type,lib kkj,$$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package)))))) $$(foreach type,lib kkj,$$(call embed,$$(patsubst lib%.a,%,$$@),$$(type),$$(lang)))
-	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call kkj_object,$(patsubst lib%.a,%,$@),kkj,$(lang))) $(call embed,$(patsubst lib%.a,%,$@),lib,) $(call embed,$(patsubst lib%.a,%,$@),kkj,)
+$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call drake_object,$$(patsubst lib%.a,%,$$@),drake,$$(lang)) $$(foreach type,lib drake,$$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package)))))) $$(foreach type,lib drake,$$(call embed,$$(patsubst lib%.a,%,$$@),$$(type),$$(lang)))
+	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call drake_object,$(patsubst lib%.a,%,$@),drake,$(lang))) $(call embed,$(patsubst lib%.a,%,$@),lib,) $(call embed,$(patsubst lib%.a,%,$@),drake,)
 
 $(testcc_list): $$(call object,$$(patsubst test_%,%,$$@),test,cc) $$(call object,$$(patsubst test_%,%,$$@),test,cxx,cc) $$(call $$(patsubst %,test_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcc_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcc_package)),test)
 	$(CC) -o $@ $(if $(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static)),$(if $(filter 0,$(strip $(call testcc_$(call suffixin,$@,$(testcc_package))static))),,--static),) $(GLOBAL_CC_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcc_package),test,cc),test,cc) $(GLOBAL_CC_TEST_LDFLAGS) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcc_package)),test,cc) $(call object,$(call suffixin,$@,$(testcc_package)),test,cxx,cc) $(call embed,$(call suffixin,$@,$(testcc_package)),test) $(call libs_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(call pkg_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(GLOBAL_CC_TEST_PKG) $(GLOBAL_CC_TEST_LIBS) $(LIBS)
@@ -319,8 +325,8 @@ $(lib_pkgconfig): $$(patsubst %,lib%.a,$$(filter $$(patsubst %.pc,%,$$@),$(lib_p
 	echo URL: $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_url))) >> $@
 	echo Libs: -L'$$'\{libdir\} -l$(patsubst %.pc,%,$@) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libs))) >> $@
 	echo Libs.private: $(GLOBAL_LDFLAGS) $(call $2_$1_ldflags) $(GLOBAL_LIBS) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_libs))) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libs_private))) >> $@
-	echo Requires: $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_require))) >> $@
-	echo Requires.private: $(foreach var,$(PKG),"$(var) $(call PKG_$(var)_version)") $(foreach var,$(call $(var)_$(patsubst %.pc,%,$@)_pkg),"$(var) $(sort $(foreach var2,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(var)_version)))") $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_require_private))) >> $@
+	echo Requires: $(shell echo "$(patsubst %$(comma),%,$(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_requires),)))" | rev | cut -f 1 -d ',' --complement | rev) >> $@
+	echo Requires.private: $(shell echo "$(foreach var,$(sort $(foreach var,lib shared,$(foreach var2,$(call $(var)_$(patsubst %.pc,%,$@)_pkg),$(var2) ))),\"$(strip $(var)) $(strip $(call reverse,$(sort $(foreach var2,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(var)_version)))))\",)" | rev | cut -f 1 -d ',' --complement | rev) >> $@
 	echo Conflicts: $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_conflicts))) >> $@
 	echo Cflags: $(GLOBAL_CFLAGS_EXPORT) $() -I'$$'\{includedir\} $(foreach var,cc cxx,$(call cflags_project_export,$(patsubst %.pc,%,$@),lib,$(var))) $(CPPFLAGS) $(foreach var,cc cxx,$(sort $(foreach var,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(call prefix_cflags,$(var))flags)))) >> $@
 
@@ -328,6 +334,7 @@ dist: submake
 	mkdir -p $(distdir)
 	cp Makefile $(distdir)
 	cp Makefile.in $(distdir)
+	$(if $(strip $(extra)),cp $(extra) $(distdir))
 	$(if $(strip $(bincc_package:%=bin_%_export)),cp $(sort $(foreach var,$(bincc_package:%=bin_%_export),$(call $(var)))) $(distdir),)
 	$(if $(strip $(bincxx_package:%=bin_%_export)),cp $(sort $(foreach var,$(bincxx_package:%=bin_%_export),$(call $(var)))) $(distdir),)
 	$(if $(strip $(lib_package:%=lib_%_export)),cp $(sort $(foreach var,$(lib_package:%=lib_%_export),$(call $(var)))) $(distdir),)
@@ -340,7 +347,7 @@ clean: submake
 	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
 	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d)) $(foreach var,$(cxx_object),$(var:%.o=%.e))
 	$(RM) $(lib_pkgconfig)
-	$(RM) $(snekkja_schedule_src)
+	$(RM) $(drake_schedule_src)
 	$(RM) $(embed_object)
 	$(RM) $(test_target)
 	$(RM) $(bin_list)
@@ -353,8 +360,12 @@ check: submake $(test_list)
 	@$(shell echo for i in "$(foreach var,$(testcxx_list),$(var))"\; do eval echo Running \$$i...\; eval ./\$$i\; done)
 
 checkdist distcheck: dist
-        
-install: submake $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig)
+
+install: submake pre-install do-install post-install
+   
+pre-install:
+     
+do-install: submake $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig)
 	$(if $(strip $(lib_list)),install -d $(DESTDIR)$(final_libdir))
 	$(if $(strip $(lib_list)),install -m 644 $(lib_list) $(DESTDIR)$(final_libdir))
 	$(if $(strip $(shared_list)),install -d $(DESTDIR)$(final_libdir))
@@ -367,6 +378,8 @@ install: submake $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(s
 	$(if $(strip $(shared_list)),install -d $(DESTDIR)$(final_libdir)/pkgconfig)
 	$(if $(strip $(lib_pkgconfig)),install -m 644 $(lib_pkgconfig) $(DESTDIR)$(final_libdir)/pkgconfig)
 
+post-install:
+
 uninstall: submake
 	$(RM) $(foreach var,$(bin_list), $(DESTDIR)$(final_bindir)/$(var))
 	$(RM) $(foreach var,$(lib_list), $(DESTDIR)$(final_libdir)/$(var))
@@ -376,7 +389,7 @@ uninstall: submake
 	$(RM) $(foreach var,$(lib_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(var))
 	
 submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\; done)
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
 
 FORCE:
-.PHONY: all clean check install uninstall dist FORCE submake
+.PHONY: all clean check install pre-install do-install post-install uninstall dist FORCE submake
