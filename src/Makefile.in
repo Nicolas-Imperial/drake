@@ -90,7 +90,7 @@ bin__embed =
 # bin_foo_pkg_foolib_version = >= 3.15.2
 ## Manual arbitrary addictional libs required to build package foo
 # bin_foo_libs = -lm -lmanual_lib_foo
-## Linkkj options to build package foo
+## Lindrake options to build package foo
 # bin_foo_ldflags = -L$(MANUAL_LIB_FOO_SRC)/src
 ## cflag options to build objects of package foo
 # bin_foo_cflags = -I$(INCLUDE_DIR)
@@ -139,7 +139,7 @@ lib_drake_cflags = -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE)
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src)
 lib_drake_pkg = pelib
 
-kkj_package =  
+drake_package =  
 
 ## C test packages and their sources
 testcc_package = 
