@@ -37,6 +37,9 @@ $(TARGETS): $(FIRST)
 ####################################################################
 
 drake_schedule = schedule
+drake_schedule_extension = xml
+drake_taskgraph = taskgraph
+drake_taskgraph_extension = graphml
 
 ## Gives the longest prefix in the prefix list (all elements must have the same character at the same index, or no character at that index)
 define longest
@@ -162,7 +165,7 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter drake%,$1),$(if $(filter %.$(drake_schedule).o,$1),-DAPP_NAME=$(foreach lang,cc cxx,$(if $(filter drake$(lang)_%.$(drake_schedule).o,$1),$(patsubst drake$(lang)_%.$(drake_schedule).o,%,$1))),-D_DRAKE_COMPILE -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake$(lang)_$(call drake_project,$1,$(lang))_graph) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))))) -DTASK_ID=$(strip $(foreach lang,cc cxx,$(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang)))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter drake%,$1),$(if $(filter %.$(drake_schedule).o,$1),-DAPP_NAME=$(foreach lang,cc cxx,$(if $(filter drake$(lang)_%.$(drake_schedule).o,$1),$(patsubst drake$(lang)_%.$(drake_schedule).o,%,$1))),-D_DRAKE_COMPILE -DTASK_MODULE=$(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake$(lang)_$(call drake_project,$1,$(lang))_graph) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))))) -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang)))))))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
@@ -221,6 +224,8 @@ endef
 
 ## All C and C++ objects, eliminating duplicates
 drake_schedule_src = $(foreach proj,$(drake_package),$(foreach lang,cc cxx,$(call drake_schedule_src_file,$(proj),$(lang))))
+drake_taskgraph_text = $(foreach proj,$(drake_package),$(proj).$(drake_taskgraph).$(drake_taskgraph_extension))
+drake_schedule_text = $(foreach proj,$(drake_package),$(proj).$(drake_schedule).$(drake_schedule_extension))
 cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(bincxx_package),bin,cc,cxx) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call drake_object,$(drake_package),drake,cc) $(call object,$(sharedcc_package),shared,cc) $(call object,$(sharedcxx_package),shared,cc,cxx))
 cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(bincx_package),bin,cxx,cx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc) $(call drake_object,$(drake_package),drake,cxx) $(call object,$(sharedcxx_package),shared,cxx) $(call object,$(sharedcc_package),shared,cxx,ccx))
 lib_pkgconfig = $(sort $(foreach var,$(lib_package) $(drake_package) $(sharedcxx_package) $(sharedcc_package),$(patsubst %,%.pc,$(var))))
@@ -255,11 +260,15 @@ test_list = $(testcc_list) $(testcxx_list)
 all: submake $(bin_list) $(lib_pkgconfig)
 
 ## Force rebuild upon Makefile update
-$(cc_object) $(cxx_object) $(embed_object) $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig): Makefile Makefile.in
+$(cc_object) $(cxx_object) $(embed_object) $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig) $(drake_schedule_src) $(drake_schedule_text) $(drake_taskgraph_text)): Makefile Makefile.in
+
+$(drake_taskgraph_text): $$(call drake_$$(patsubst %.$(drake_taskgraph).$(drake_taskgraph_extension),%,$$@)_platform) $$(sort $$(foreach ext,cc cxx,$$(call drake$$(ext)_$$(patsubst %.$(drake_taskgraph).$(drake_taskgraph_extension),%,$$@)_graph))) $$(call drake_$$(patsubst %.$(drake_taskgraph).$(drake_taskgraph_extension),%,$$@)_platform)
+$(drake_schedule_text): $$(call drake_$$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$$@)_platform) $$(sort $$(foreach ext,cc cxx,$$(call drake$$(ext)_$$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$$@)_graph))) $$(call drake_$$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$$@)_platform)
+	drake --schedule --taskgraph $(sort $(foreach ext,cc cxx,$(call drake$(ext)_$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$@)_graph))) --platform $(call drake_$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$@)_platform) --scheduler $(call drake_$(patsubst %.$(drake_schedule).$(drake_schedule_extension),%,$@)_scheduler) --output --schedule $@ --taskgraph $(patsubst %.$(drake_schedule).$(drake_schedule_extension),%.$(drake_taskgraph).$(drake_taskgraph_extension),$@)
 
 ## Generate drake schedules
-$(drake_schedule_src): $$(call drake$$(if $$(filter %.c,$$@),cc,$$(if $$(filter %.cpp,$$@),cxx))_$$(patsubst %.$$(drake_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_graph) $$(call drake_$$(patsubst %.$$(drake_schedule).$$(if $$(filter %.c,$$@),c)$$(if $$(filter %.cpp,$$@),cpp),%,$$@)_platform)
-	drake --schedule --taskgraph $(call drake$(if $(filter %.c,$@),cc,$(if $(filter %.cpp,$@),cxx))_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_graph) --platform $(call drake_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_platform) --scheduler $(call drake_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c)$(if $(filter %.cpp,$@),cpp),%,$@)_scheduler) > $@
+$(drake_schedule_src): $$(call drake_$$(patsubst %.$(drake_schedule).$$(if $$(filter %.c,$$@),c,$$(if $$(filter %.cpp,$$@),cxx)),%,$$@)_platform) $$(patsubst %.$(drake_schedule).$$(if $$(filter %.c,$$@),c,$$(if $$(filter %.cpp,$$@),cxx)),%,$$@).$(drake_schedule).$(drake_schedule_extension) $$(patsubst %.$(drake_schedule).$$(if $$(filter %.c,$$@),c,$$(if $$(filter %.cpp,$$@),cxx)),%,$$@).$(drake_taskgraph).$(drake_taskgraph_extension)
+	pelib-convert --input --format platform-ampl_input --file $(call drake_$(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c,$(if $(filter %.cpp,$@),cxx)),%,$@)_platform) --input --format taskgraph-graphml --file $(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c,$(if $(filter %.cpp,$@),cxx)),%,$@).$(drake_taskgraph).$(drake_taskgraph_extension) --input --format schedule-xml --file $(patsubst %.$(drake_schedule).$(if $(filter %.c,$@),c,$(if $(filter %.cpp,$@),cxx)),%,$@).$(drake_schedule).$(drake_schedule_extension) --output --format schedule-drake --file $@
 
 $(embed_object): $$(call embed_src,$$@)
 	$(LD) -r -b binary -o $@ $(patsubst %.o,%,$@)
@@ -313,7 +322,7 @@ $(shared_linkername): $$@.$(version)
 $(shared_soname): $$@.$(minor).$(release)
 	ln -sf $(patsubst %,%.$(minor).$(release),$@) $@
 
-$(lib_pkgconfig): $$(patsubst %,lib%.a,$$(filter $$(patsubst %.pc,%,$$@),$(lib_package))) $$(if $$(strip $$(if $(sharedcxx_package),$$(filter $$(patsubst %.pc,%,$$@),$(sharedcxx_package))) $$(if $(sharedcc_package),$$(filter $$(patsubst %.pc,%,$$@)),$(sharedcc_package))),$$(patsubst %.pc,lib%.so,$$@))
+$(lib_pkgconfig): $$(patsubst %,lib%.a,$$(filter $$(patsubst %.pc,%,$$@),$(lib_package))) $$(patsubst %,lib%.a,$$(filter $$(patsubst %.pc,%,$$@),$(drake_package))) $$(if $$(strip $$(if $(sharedcxx_package),$$(filter $$(patsubst %.pc,%,$$@),$(sharedcxx_package))) $$(if $(sharedcc_package),$$(filter $$(patsubst %.pc,%,$$@)),$(sharedcc_package))),$$(patsubst %.pc,lib%.so,$$@))
 	echo prefix=$(final_prefix) > $@
 	echo exec_prefix=$(if $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_exec_prefix)),$(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_exec_prefix))),'$$'\{prefix\}/bin) >> $@
 	echo libdir=$(if $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libdir))),$(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libdir))),'$$'\{prefix\}/lib) >> $@
@@ -326,7 +335,7 @@ $(lib_pkgconfig): $$(patsubst %,lib%.a,$$(filter $$(patsubst %.pc,%,$$@),$(lib_p
 	echo Libs: -L'$$'\{libdir\} -l$(patsubst %.pc,%,$@) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libs))) >> $@
 	echo Libs.private: $(GLOBAL_LDFLAGS) $(call $2_$1_ldflags) $(GLOBAL_LIBS) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_libs))) $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libs_private))) >> $@
 	echo Requires: $(shell echo "$(patsubst %$(comma),%,$(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_requires),)))" | rev | cut -f 1 -d ',' --complement | rev) >> $@
-	echo Requires.private: $(shell echo "$(foreach var,$(sort $(foreach var,lib shared,$(foreach var2,$(call $(var)_$(patsubst %.pc,%,$@)_pkg),$(var2) ))),\"$(strip $(var)) $(strip $(call reverse,$(sort $(foreach var2,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(var)_version)))))\",)" | rev | cut -f 1 -d ',' --complement | rev) >> $@
+	echo Requires.private: $(sort $(CC_PKG) $(CXX_PKG)) $(shell echo "$(foreach var,$(sort $(foreach var,lib shared,$(foreach var2,$(call $(var)_$(patsubst %.pc,%,$@)_pkg),$(var2) ))),\"$(strip $(var)) $(strip $(call reverse,$(sort $(foreach var2,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(var)_version)))))\",)" | rev | cut -f 1 -d ',' --complement | rev) >> $@
 	echo Conflicts: $(sort $(foreach var,lib shared,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_conflicts))) >> $@
 	echo Cflags: $(GLOBAL_CFLAGS_EXPORT) $() -I'$$'\{includedir\} $(foreach var,cc cxx,$(call cflags_project_export,$(patsubst %.pc,%,$@),lib,$(var))) $(CPPFLAGS) $(foreach var,cc cxx,$(sort $(foreach var,lib shared,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(call prefix_cflags,$(var))flags)))) >> $@
 
@@ -347,7 +356,7 @@ clean: submake
 	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
 	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d)) $(foreach var,$(cxx_object),$(var:%.o=%.e))
 	$(RM) $(lib_pkgconfig)
-	$(RM) $(drake_schedule_src)
+	$(RM) $(drake_schedule_src) $(drake_taskgraph_text) $(drake_schedule_text)
 	$(RM) $(embed_object)
 	$(RM) $(test_target)
 	$(RM) $(bin_list)
