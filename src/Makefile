@@ -58,7 +58,7 @@ endef
 
 ## Get pkg-config output for the operation $2 (cflags|libs) on package list $1, with the corresponding options from variable $3$<package_name>
 define pkg-config
-$(if $(strip $1),$(if $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(error Missing library)),)
+$(if $(strip $1),$(if $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$1,"$(pkg) $(call $3$(pkg)_version)")),$(if $(strip $(filter-out $(drake_package) $(lib_package) $(sharedcc_package) $(sharedcxx_package),$1)),$(if $(shell PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" pkg-config --$2 $(foreach pkg,$(filter-out $(drake_package) $(lib_package) $(sharedcc_package) $(sharedcxx_package),$1),"$(pkg) $(call $3$(pkg)_version)")),$(shell echo This is OK, the missing package will be built during the process. >&2),$(error Missing library)))))
 endef
 
 ## Gives all source files of projects $1 of type $2 (bin|lib|test|shared) with language $3 (cc|cxx)

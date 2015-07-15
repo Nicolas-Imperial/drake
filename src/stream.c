@@ -62,12 +62,14 @@
 #define assert_equal(value, expected, abort_on_failure) if(value != expected) { drake_stderr("[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
 #define assert_different(value, expected, abort_on_failure) if(value == expected) { drake_stderr("[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
 #define assert_geq(value, reference, abort_on_failure) if(value < reference) { drake_stderr("[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
+/*
 #define debug drake_stdout("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
 #define debug_task drake_stdout("[CORE %d][%s:%s:%d] Task %d state %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
 #define debug_task_output drake_stdout("[CORE %d][%s:%s:%d] Task %d to task %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
 #define printf_addr(addr) drake_stdout("[CORE %d][%s:%s:%d] %s = %X\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
 #define printf_int(integer) drake_stdout("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
 #define printf_str(str) drake_stdout("[CORE %d][%s:%s:%d] %s = %s\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #str, str);
+*/
 #define PRINTF_FEEDBACK 0
 #define PRINTF_PUSH 0
 #define PRINTF_CHECK_IN 0
@@ -78,6 +80,7 @@
 #define assert_equal(value, expected, abort_on_failure)
 #define assert_different(value, expected, abort_on_failure)
 #define assert_geq(value, reference, abort_on_failure)
+/*
 #define debug
 #define predebug
 #define debug_task
@@ -85,6 +88,7 @@
 #define printf_addr(addr)
 #define printf_int(integer)
 #define printf_str(str)
+*/
 #endif
 
 //////////////// printf \\\\\\\\\\\\\\\\\\
@@ -123,6 +127,18 @@
 #endif
 
 //static unsigned int memory_consistency_errors = 0;
+
+#if 1
+#define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:CORE %d] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#else
+#define debug(var)
+#define debug_addr(var)
+#define debug_int(var)
+#define debug_size_t(var)
+#endif
 
 typedef struct {
 	size_t argc;
@@ -935,7 +951,7 @@ static
 size_t
 buffer_size(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	return (mpb_size // total allocable MPB size
+	size_t ret = (mpb_size // total allocable MPB size
 		- nb_in // As many input buffer as
 			* (sizeof(size_t)  // Size of a write
 				+ sizeof(enum task_status) // State of a task
@@ -944,6 +960,8 @@ buffer_size(size_t mpb_size, size_t nb_in, size_t nb_out)
 			* sizeof(size_t) // Size of a read
 		)
 	 / nb_in; // Remaining space to be divided by number of input links
+
+	return ret;
 }
 
 static
@@ -991,9 +1009,7 @@ static drake_stack_t*
 stack_malloc(size_t size)
 {
 	drake_stack_t *stack = (drake_stack_t*)malloc(sizeof(drake_stack_t));
-	stack_malloc_printf_int(size);
 	stack->base_ptr = (void*)drake_local_malloc(size);
-	stack_malloc_printf_addr(stack->base_ptr);
 	stack->size = size;
 	stack->stack_ptr = (size_t*)malloc(sizeof(size_t) * drake_core_size());
 	memset(stack->stack_ptr, 0, sizeof(size_t) * drake_core_size());
@@ -1001,8 +1017,8 @@ stack_malloc(size_t size)
 }
 
 #if 0
-#define stack_grow_printf_addr(addr) fprintf(stderr, "[%s:%s:%d] @%s: %08X\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr);
-#define stack_grow_printf_int(addr) fprintf(stderr, "[%s:%s:%d] %s: %d (signed) = %u (unsigned)\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr, addr);
+#define stack_grow_printf_addr(addr) fprintf(stdout, "[%s:%s:%d] @%s: %08X\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr);
+#define stack_grow_printf_int(addr) fprintf(stdout, "[%s:%s:%d] %s: %d (signed) = %u (unsigned)\n", __FILE__, __FUNCTION__, __LINE__, #addr, addr, addr);
 #else
 #define stack_grow_printf_addr(addr)
 #define stack_grow_printf_int(addr)
@@ -1010,10 +1026,9 @@ stack_malloc(size_t size)
 static void*
 stack_grow(drake_stack_t *stack, size_t size, int id)
 {
-	stack_grow_printf_int(size);
-	stack_grow_printf_int(id);
-	stack_grow_printf_addr(stack->base_ptr);
-	stack_grow_printf_int(stack->stack_ptr[id]);
+#if 0
+	debug_addr(stack->base_ptr);
+#endif
 	if((size_t)(stack->stack_ptr[id]) + size <= stack->size)
 	{
 		size_t ptr = stack->stack_ptr[id];
@@ -1021,7 +1036,7 @@ stack_grow(drake_stack_t *stack, size_t size, int id)
 		
 		return (void*)((size_t)stack->base_ptr + ptr);
 	}
-	fprintf(stderr, "[%s:%s:%d] Not enough local memory\n", __FILE__, __FUNCTION__, __LINE__);
+	fprintf(stdout, "[%s:%s:%d] Not enough local memory\n", __FILE__, __FUNCTION__, __LINE__);
 	abort();
 	return NULL;
 }
@@ -1175,16 +1190,22 @@ allocate_buffers(drake_stream_t* stream)
 
 				if(cross_link->prod_state == NULL)
 				{
-					//cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 					cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
+/*
+	debug_addr(cross_link->write);
+*/
 					*cross_link->prod_state = TASK_START;
+					//cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 				}
 
 				if(cross_link->write == NULL)
 				{
-					//cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 					cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
+/*
+	debug_addr(cross_link->write);
+*/
 					*cross_link->write = 0;
+					//cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))), core_id_in_scc(task->core->id, octant_id(pelib_scc_core_id()))); // Transformed
 				}
 				// TODO: call a allocate_output_buffer(task, input_buffer) function. It does nothing for SCC
 			}
@@ -1503,6 +1524,7 @@ prepare_mapping()
 		for(i = 1; i <= _drake_tasks_in_core[j - 1]; i++)
 		{
 			task.id = _drake_schedule[j - 1][i - 1].id;
+			task.frequency = _drake_schedule[j - 1][i - 1].frequency;
 			size_t producers_in_task = _drake_producers_in_task[task.id - 1];
 			size_t consumers_in_task = _drake_consumers_in_task[task.id - 1];
 			size_t remote_producers_in_task = _drake_remote_producers_in_task[task.id - 1];
@@ -1540,12 +1562,15 @@ DRAKE_SCC_CRITICAL_END
 }
 
 drake_stream_t
-drake_stream_create(void* aux)
+drake_stream_create_explicit(void *aux, void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status))
 {
 	int k;
 	char* outputfile;
 	array_t(int) *array = NULL;
 	drake_stream_t stream;
+
+	// Initialize functions
+	stream.schedule_destroy = schedule_destroy;
 
 	// Initialize pelib
 	drake_arch_init(aux);
@@ -1604,7 +1629,7 @@ drake_stream_create(void* aux)
 	link_t* link;
 
 	unsigned long long int start, stop, begin, end;
-	drake_schedule_init();
+	schedule_init();
 	mapping = prepare_mapping();
 
 	// Build task network based on tasks' id
@@ -1619,17 +1644,17 @@ drake_stream_create(void* aux)
 	{
 		task_t *task = proc->task[i];
 		task->status = TASK_START;
-		task->init = (int (*)(task_t*, void*))drake_function(task->id, TASK_INIT);
-		task->start = (int (*)(task_t*))drake_function(task->id, TASK_START);
-		task->run = (int (*)(task_t*))drake_function(task->id, TASK_RUN);
-		task->destroy = (int (*)(task_t*))drake_function(task->id, TASK_KILLED);
-		task->frequency = _drake_task_frequency[task->id - 1];
+		task->init = (int (*)(task_t*, void*))task_function(task->id, TASK_INIT);
+		task->start = (int (*)(task_t*))task_function(task->id, TASK_START);
+		task->run = (int (*)(task_t*))task_function(task->id, TASK_RUN);
+		task->destroy = (int (*)(task_t*))task_function(task->id, TASK_KILLED);
+		//task->frequency = _drake_task_frequency[task->id - 1];
 	}
 	/* Init phase: load input data into tasks */
 
 	stream.mapping = mapping;
 	stream.proc = proc;
-	stream.local_memory_size = drake_arch_local_size() - 32; // TODO: this is scc-specific: transfer this -32 to drake-scc library
+	stream.local_memory_size = drake_arch_local_size(); // - 32; // TODO: this is scc-specific: transfer this -32 to drake-scc library
 	stream.stage_start_time = drake_time_alloc();
 	stream.stage_stop_time = drake_time_alloc();
 	stream.stage_sleep_time = drake_time_alloc();
@@ -1671,7 +1696,7 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 int
 drake_stream_destroy(drake_stream_t* stream, void* aux)
 {
-	drake_schedule_destroy();
+	stream->schedule_destroy();
 	free(stream->stage_start_time);
 	free(stream->stage_stop_time);
 	free(stream->stage_sleep_time);
@@ -1689,8 +1714,6 @@ drake_stream_run(drake_stream_t* stream)
 	task_t *task;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
-	//allocate_buffers(mapping);
-	allocate_buffers(stream);
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
