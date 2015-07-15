@@ -1092,7 +1092,7 @@ allocate_buffers(drake_stream_t* stream)
 						if(link->buffer == NULL)
 						{
 							//init.core = -1;
-							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+							size_t capacity = drake_arch_store_size() / proc->inner_links / sizeof(int);
 
 							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
@@ -1135,7 +1135,7 @@ allocate_buffers(drake_stream_t* stream)
 						if(link->buffer == NULL)
 						{
 							//init.core = -1;
-							size_t capacity = INNER_BUFFER_SIZE / proc->inner_links / sizeof(int);
+							size_t capacity = drake_arch_store_size() / proc->inner_links / sizeof(int);
 
 							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);

@@ -59,7 +59,6 @@ bin_drake_static = 0
 
 ## C-compiled programs and their sources
 bincc_package = 
-INNER_BUFFER_SIZE = 65536
 
 bincc__src = 
 bincxx__src = 
@@ -135,7 +134,7 @@ lib__embed =
 
 libcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
 libcxx_drake_src = 
-lib_drake_cflags = -DINNER_BUFFER_SIZE=$(INNER_BUFFER_SIZE) 
+lib_drake_cflags = 
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src)
 lib_drake_pkg = pelib
 

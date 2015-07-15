@@ -6,6 +6,7 @@
 typedef struct drake_time *drake_time_t;
 
 size_t drake_arch_local_size();
+size_t drake_arch_store_size();
 int drake_arch_init(void*);
 int drake_arch_finalize(void*);
 volatile void* drake_arch_alloc(size_t, int);
