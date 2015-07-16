@@ -67,11 +67,10 @@ bincc_package = $(if $(APPLICATION),$(if $(BACKEND),drake-eval))
 
 bincc_drake-eval_src = eval.c
 bin_drake-eval_export = $(bincc_drake-eval_src) $(bincxx_drake-eval_src)
-bin_drake-eval_pkg = drake $(APPLICATION) $(BACKEND)
+bin_drake-eval_pkg = $(APPLICATION) drake $(BACKEND)
 bin_drake-eval_static = 1
 bin_drake-eval_embed = 
 bin_drake-eval_ldflags = 
-bin_drake-eval_libs = 
 bin_drake-eval_deps = 
 bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES)
 bin_drake-eval_cxxflags_private = 

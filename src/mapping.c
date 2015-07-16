@@ -264,7 +264,7 @@ mapping_loadstr(mapping_t * mapping, char * str, int(filter)(task_t*))
   FILE * stream_str;
 
   //printf("[%s] %s\n", __func__, str);
-  stream_str = fmemopen((void*)str, strlen(str), "r");
+  stream_str = (FILE*)fmemopen((void*)str, strlen(str), "r");
  // printf("file descriptor: %i\n", *stream_str);
 
   mapping = drake_mapping_loadfilterfile(mapping, stream_str, filter);
@@ -325,7 +325,7 @@ drake_mapping_drawstr(mapping_t * mapping, char * str)
   FILE *stream;
 
   // Opens a stream that points to str
-  stream = open_memstream(&str, &length);
+  stream = (FILE*)open_memstream(&str, &length);
   assert(stream != NULL);
 
   // Warm-up
@@ -395,7 +395,7 @@ drake_mapping_draw(mapping_t * mapping, FILE * file)
   FILE *stream;
 
   str = drake_mapping_drawstr(mapping, str);
-  stream = fmemopen(str, strlen(str) + 1, "r");
+  stream = (FILE*)fmemopen(str, strlen(str) + 1, "r");
 
   mapping_draw(stream, file, stderr);
   fclose(stream);

@@ -33,6 +33,7 @@ int drake_arch_get_frequency(); /* in KHz */
 float drake_arch_get_voltage(); /* in volts */
 int drake_get_time(drake_time_t);
 int drake_time_substract(drake_time_t res, drake_time_t t1, drake_time_t t2);
+int drake_time_add(drake_time_t res, drake_time_t t1, drake_time_t t2);
 int drake_time_greater(drake_time_t t1, drake_time_t t2);
 int drake_time_equals(drake_time_t t1, drake_time_t t2);
 int drake_time_init(drake_time_t t, double ms);

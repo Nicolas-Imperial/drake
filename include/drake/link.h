@@ -5,9 +5,8 @@
 #define LINK_H
 
 // Forward declarations for links
-struct task;
-typedef struct task task_t;
-typedef task_t* task_tp;
+//typedef struct task task_t;
+typedef struct task* task_tp;
 
 #define STRUCT_T task_tp
 #include <pelib/structure.h>
@@ -23,7 +22,7 @@ typedef task_t* task_tp;
 
 struct link
 {
-	task_t *prod, *cons;
+	struct task *prod, *cons;
 	cfifo_t(int)* buffer;
 };
 typedef struct link link_t;

@@ -45,9 +45,6 @@ typedef cross_link_t* cross_link_tp;
 struct processor;
 typedef struct processor processor_t;
 
-struct task;
-typedef struct task task_t;
-
 struct task
 {
 	/// Identification of the task. All tasks (say n tasks) should be numbered continuously from 1 to n to be friendly with files generated to ILP solver and task graph graphic generator.
@@ -58,14 +55,15 @@ struct task
 	array_t(cross_link_tp) *source;
 	int frequency;
 	task_status_t status;
-	int (*init)(task_t*, void*);
-	int (*start)(task_t*);
-	int (*run)(task_t*);
-	int (*destroy)(task_t*);
+	int (*init)(struct task*, void*);
+	int (*start)(struct task*);
+	int (*run)(struct task*);
+	int (*destroy)(struct task*);
 	unsigned long long int start_time, stop_time, start_presort, stop_presort, check_time, push_time, work_time, check_errors, check_recv, check_putback, check_feedback, put_reset, put_pop, put_send, check_wait, push_wait, work_wait, work_read, work_write;
 	unsigned long long int step_init, step_start, step_check, step_work, step_push, step_killed, step_zombie, step_transition;
 };
-typedef task_t* task_tp;
+typedef struct task* task_tp;
+typedef struct task task_t;
 
 #define STRUCT_T task_t
 #include <pelib/structure.h>

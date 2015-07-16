@@ -128,7 +128,7 @@
 
 //static unsigned int memory_consistency_errors = 0;
 
-#if 1
+#if 0
 #define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
@@ -1574,25 +1574,6 @@ drake_stream_create_explicit(void *aux, void (*schedule_init)(), void (*schedule
 
 	// Initialize pelib
 	drake_arch_init(aux);
-
-#if !DEBUG || 1 
-	// Initialize and redirect pelib's standard output
-	//pelib_scc_init_redirect();
-	//pelib_scc_set_redirect();
-#else
-	/* Install our signal handler */
-	struct sigaction sa;
-
-	sa.sa_sigaction = bt_sighandler;
-	sigemptyset (&sa.sa_mask);
-	sa.sa_flags = SA_RESTART | SA_SIGINFO;
-
-	sigaction(SIGSEGV, &sa, NULL);
-	sigaction(SIGUSR1, &sa, NULL);
-	sigaction(SIGINT, &sa, NULL);
-	sigaction(SIGFPE, &sa, NULL);
-	sigaction(SIGTERM, &sa, NULL);
-#endif
 
 #if SORT_SEQUENTIAL
 	array_t(int) *tmp;
