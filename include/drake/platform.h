@@ -36,7 +36,21 @@ int drake_time_substract(drake_time_t res, drake_time_t t1, drake_time_t t2);
 int drake_time_greater(drake_time_t t1, drake_time_t t2);
 int drake_time_equals(drake_time_t t1, drake_time_t t2);
 int drake_time_init(drake_time_t t, double ms);
+void drake_time_display(FILE* stream, drake_time_t);
+void drake_time_destroy(drake_time_t time);
 drake_time_t drake_time_alloc();
 int drake_arch_sleep(drake_time_t period);
+
+#define DRAKE_POWER_CORE 1
+#define DRAKE_POWER_MEMORY_CONTROLLER 2
+
+typedef struct drake_power *drake_power_t;
+
+drake_power_t drake_platform_power_init(size_t samples, int measurement);
+void drake_platform_power_begin(drake_power_t);
+size_t drake_platform_power_end(drake_power_t);
+void drake_platform_power_display(FILE* stream, drake_power_t, char* separator);
+void drake_platform_power_display_line(FILE* stream, drake_power_t, size_t line, char* separator);
+void drake_platform_power_destroy(drake_power_t);
 
 #endif // DRAKE_PLATFORM_H

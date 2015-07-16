@@ -1,28 +1,33 @@
 ## It's OK to define global libs and ldflags here as they are defined as private in the libsries pkg-config file
 ## Restrain yourself to define dependency packages here as they are generated in the public field of pkg-config
 
+## Package options
+SAMPLES = 500
+
 ## Package configuration
-CONFIG = release
+CONFIG = RELEASE
 
 ## C global parameters
 CFLAGS_BASE = 
-CFLAGS_PRIVATE = -I../include 
+CFLAGS_PRIVATE = -isystem ../include 
 CFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
+CC_LDFLAGS_PRIVATE = -L.
 CC_LDFLAGS = 
 CC_DEPS =
 CC_PKG = 
-CC_LIBS = -lrt
+CC_LIBS =
 CC_TEST_PKG = $(CC_PKG) unit
 CC_TEST_LIBS = $(CC_LIBS)
-CC_TEST_DEPS = $(CC_DEPS) 
+CC_TEST_DEPS = $(CC_DEPS)
 CC_TEST_LDFLAGS = -L.
 
 ## C++ global parameters
 CXXFLAGS_BASE = 
-CXXFLAGS_PRIVATE = -I../include
+CXXFLAGS_PRIVATE = -isystem ../include
 CXXFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CXXFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
+CXX_LDFLAGS_PRIVATE = -L.
 CXX_LDFLAGS = 
 CXX_DEPS = 
 CXX_PKG = 
@@ -58,7 +63,18 @@ bin_drake_ldflags =
 bin_drake_static = 0
 
 ## C-compiled programs and their sources
-bincc_package = 
+bincc_package = $(if $(APPLICATION),$(if $(BACKEND),drake-eval))
+
+bincc_drake-eval_src = eval.c
+bin_drake-eval_export = $(bincc_drake-eval_src) $(bincxx_drake-eval_src)
+bin_drake-eval_pkg = drake $(APPLICATION) $(BACKEND)
+bin_drake-eval_static = 1
+bin_drake-eval_embed = 
+bin_drake-eval_ldflags = 
+bin_drake-eval_libs = 
+bin_drake-eval_deps = 
+bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES)
+bin_drake-eval_cxxflags_private = 
 
 bincc__src = 
 bincxx__src = 
@@ -92,11 +108,11 @@ bin__embed =
 ## Lindrake options to build package foo
 # bin_foo_ldflags = -L$(MANUAL_LIB_FOO_SRC)/src
 ## cflag options to build objects of package foo
-# bin_foo_cflags = -I$(INCLUDE_DIR)
+# bin_foo_cflags = -isystem $(INCLUDE_DIR)
 ## cflag options to build objects of package foo, that does not appear in the generated pkg-config file
 # bin_foo_cflags_private = 
 ## cflag options to build objects of package foo
-# bin_foo_cxxflags = -I$(INCLUDE_DIR)
+# bin_foo_cxxflags = -isystem $(INCLUDE_DIR)
 ## cflag options to build objects of package foo, that does not appear in the generated pkg-config file
 # bin_foo_cxxflags_private = 
 ## Embed these files into the final excutable
@@ -111,6 +127,12 @@ bin__embed =
 
 ## Static C library packages and their sources
 lib_package = drake
+
+libcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
+libcxx_drake_src = 
+lib_drake_cflags = 
+lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src)
+lib_drake_pkg = pelib
 
 libcc__src = 
 libcxx__src = 
@@ -132,13 +154,21 @@ lib__deps =
 ## Embed these files into the final archive
 lib__embed = 
 
-libcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
-libcxx_drake_src = 
-lib_drake_cflags = 
-lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src)
-lib_drake_pkg = pelib
+drake_package = 
 
-drake_package =  
+drakecc__graph =  
+drakecxx__graph = 
+drake__scheduler = 
+drake__platform = 
+drake__embed = 
+drakecc__src = 
+drake__cflags =  
+drake__cflags_private = 
+drake__export = 
+drake__libs =
+drake__ldflags = -lm
+drake__pkg = 
+drake__pkg_description = 
 
 ## C test packages and their sources
 testcc_package = 
