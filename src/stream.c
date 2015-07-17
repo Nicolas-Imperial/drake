@@ -1562,7 +1562,7 @@ DRAKE_SCC_CRITICAL_END
 }
 
 drake_stream_t
-drake_stream_create_explicit(void *aux, void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status))
+drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status))
 {
 	int k;
 	char* outputfile;
@@ -1571,9 +1571,6 @@ drake_stream_create_explicit(void *aux, void (*schedule_init)(), void (*schedule
 
 	// Initialize functions
 	stream.schedule_destroy = schedule_destroy;
-
-	// Initialize pelib
-	drake_arch_init(aux);
 
 #if SORT_SEQUENTIAL
 	array_t(int) *tmp;
@@ -1674,8 +1671,8 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 	return success;
 }
 
-int
-drake_stream_destroy(drake_stream_t* stream, void* aux)
+void
+drake_stream_destroy(drake_stream_t* stream)
 {
 	stream->schedule_destroy();
 	free(stream->stage_start_time);
@@ -1684,7 +1681,6 @@ drake_stream_destroy(drake_stream_t* stream, void* aux)
 	free(stream->stage_time);
 	free(zero);
 	zero = NULL;
-	return drake_arch_finalize(aux);
 }
 
 int

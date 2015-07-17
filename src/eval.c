@@ -38,7 +38,8 @@ main(size_t argc, char **argv)
 	args_t args1;
 	args1.argc = &argc;
 	args1.argv = &argv;
-	drake_stream_t stream = drake_stream_create(APPLICATION, (void*)&args1);
+	drake_arch_init(&args1);
+	drake_stream_t stream = drake_stream_create(APPLICATION);
 
 	// Allocate monitoring buffers
 	size_t i;
@@ -131,7 +132,8 @@ main(size_t argc, char **argv)
 			task->step_transition
 #endif
 
-	drake_stream_destroy(&stream, NULL);
+	drake_stream_destroy(&stream);
+	drake_arch_finalize(NULL);
 
 	return EXIT_SUCCESS;
 }

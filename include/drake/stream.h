@@ -7,7 +7,7 @@
 #ifndef DRAKE_STREAM_H
 #define DRAKE_STREAM_H
 
-#define drake_stream_create(application, aux) drake_stream_create_explicit(aux, PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
+#define drake_stream_create(application) drake_stream_create_explicit(PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
 
 typedef struct {
 	void* base_ptr;
@@ -25,9 +25,9 @@ typedef struct {
 	drake_schedule_t schedule;
 } drake_stream_t;
 
-drake_stream_t drake_stream_create_explicit(void* aux, void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status));
+drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status));
 int drake_stream_init(drake_stream_t*, void*);
 int drake_stream_run(drake_stream_t*);
-int drake_stream_destroy(drake_stream_t*, void*);
+void drake_stream_destroy(drake_stream_t*);
 
 #endif
