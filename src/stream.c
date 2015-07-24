@@ -1625,7 +1625,8 @@ drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)()
 		task->init = (int (*)(task_t*, void*))task_function(task->id, TASK_INIT);
 		task->start = (int (*)(task_t*))task_function(task->id, TASK_START);
 		task->run = (int (*)(task_t*))task_function(task->id, TASK_RUN);
-		task->destroy = (int (*)(task_t*))task_function(task->id, TASK_KILLED);
+		task->destroy = (int (*)(task_t*))task_function(task->id, TASK_DESTROY);
+		task->kill = (int (*)(task_t*))task_function(task->id, TASK_KILLED);
 		//task->frequency = _drake_task_frequency[task->id - 1];
 	}
 	/* Init phase: load input data into tasks */
@@ -1674,6 +1675,19 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 void
 drake_stream_destroy(drake_stream_t* stream)
 {
+	// Run the destroy method for each task
+	task_t *task;
+	int i;
+	mapping_t *mapping = stream->mapping;
+	processor_t *proc = stream->proc;
+	for(i = 0; i < proc->handled_nodes; i++)
+	{
+		task = proc->task[i];
+		task->status = TASK_DESTROY;
+		task->destroy(task);
+	}
+
+	// Free the stream data structures
 	stream->schedule_destroy();
 	free(stream->stage_start_time);
 	free(stream->stage_stop_time);
@@ -1812,7 +1826,7 @@ drake_stream_run(drake_stream_t* stream)
 #if MEASURE_STEPS
 						begin = rdtsc();
 #endif
-						//task->destroy(task);
+						task->kill(task);
 						// Send successor tasks the task killed information
 						for(j = 0; j < pelib_array_length(cross_link_tp)(task->sink); j++)
 						{

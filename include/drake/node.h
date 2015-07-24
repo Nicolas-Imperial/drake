@@ -37,22 +37,26 @@
 #define drake_init PELIB_CONCAT_3(TASK_MODULE,_init_,TASK_NAME)
 #define drake_start PELIB_CONCAT_3(TASK_MODULE,_start_,TASK_NAME)
 #define drake_run PELIB_CONCAT_3(TASK_MODULE,_run_,TASK_NAME)
+#define drake_kill PELIB_##CONCAT_3(TASK_MODULE, _kill_, TASK_NAME)
 #define drake_destroy PELIB_##CONCAT_3(TASK_MODULE, _destroy_, TASK_NAME)
 #define drake_user(name) PELIB_##CONCAT_5(TASK_MODULE, _user_, TASK_NAME, _, name)
 
 int drake_init(task_t *, void *aux);
 int drake_start(task_t *);
 int drake_run(task_t *);
+int drake_kill(task_t *);
 int drake_destroy(task_t *);
 #else
 #define drake_init(name,id) PELIB_CONCAT_3(name,_init_,id)
 #define drake_start(name,id) PELIB_CONCAT_3(name,_start_,id)
 #define drake_run(name,id) PELIB_CONCAT_3(name,_run_,id)
+#define drake_kill(name,id) PELIB_CONCAT_3(name,_kill_,id)
 #define drake_destroy(name,id) PELIB_CONCAT_3(name,_destroy_,id)
 
 int drake_init(TASK_MODULE, TASK_NAME)(task_t *, void *aux);
 int drake_start(TASK_MODULE, TASK_NAME)(task_t *);
 int drake_run(TASK_MODULE, TASK_NAME)(task_t *);
+int drake_kill(TASK_MODULE, TASK_NAME)(task_t *);
 int drake_destroy(TASK_MODULE, TASK_NAME)(task_t *);
 
 #undef TASK_MODULE

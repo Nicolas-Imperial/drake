@@ -9,9 +9,9 @@
 #include <drake/eval.h>
 #include <pelib/integer.h>
 
-#define APPLICATION merge
-#include <drake/schedule.h>
-#define DONE_merge 1
+//#define APPLICATION merge
+#include <drake.h>
+//#define DONE_merge 1
 
 #if 1
 #define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, 00, #var, var); fflush(NULL)
@@ -47,12 +47,14 @@ main(size_t argc, char **argv)
 	start = malloc(sizeof(drake_time_t) * drake_task_number());
 	work = malloc(sizeof(drake_time_t) * drake_task_number());
 	killed = malloc(sizeof(drake_time_t) * drake_task_number());
+	run = malloc(sizeof(int) * drake_task_number());
 	for(i = 0; i < drake_task_number(); i++)
 	{
 		init[i] = drake_time_alloc();
 		start[i] = drake_time_alloc();
 		work[i] = drake_time_alloc();
 		killed[i] = drake_time_alloc();
+		run[i] = 0;
 	}
 
 	// Initialize stream (The scc requires this phase to not be run in parallel because of extensive IOs when loading input)
@@ -96,17 +98,28 @@ main(size_t argc, char **argv)
 		drake_stderr("[ERROR] Insufficient number of samples (%d) to store all power data (%d).\n", SAMPLES, collected);
 	}
 
-	drake_stdout("\"core\", \"task_id\", \"task_init\", \"task_start\", \"task_work\", \"task_killed\", \"time_global\", \"power_time\", \"power_core\", \"power_memory_controller\"\n");
+	drake_stdout("\"core\", \"task_name\", \"task_init\", \"task_start\", \"task_work\", \"task_killed\", \"time_global\", \"power_time\", \"power_core\", \"power_memory_controller\"\n");
 	for(i = 0; i < drake_task_number(); i++)
 	{
-		size_t j;
-		//for(j = 0; j < (collected < SAMPLES ? collected : SAMPLES); j++)
+		if(run[i] != 0)
 		{
-			drake_stdout("%d, %d, %f, %f, %f, %f, ", drake_core(), i + 1, init[i], start[i], work[i], killed[i]);
-			drake_time_display(stdout, global);
-			drake_stdout(", ");
-			drake_platform_power_display_line(stdout, power, i, ", ");
-			drake_stdout("\n");
+			size_t j;
+			for(j = 0; j < (collected < SAMPLES ? collected : SAMPLES); j++)
+			{
+				drake_stdout("%d, \"%s\", ", drake_core(), drake_task_name(i));
+				drake_time_display(stdout, init[i]);
+				drake_stdout(", ");
+				drake_time_display(stdout, start[i]);
+				drake_stdout(", ");
+				drake_time_display(stdout, work[i]);
+				drake_stdout(", ");
+				drake_time_display(stdout, killed[i]);
+				drake_stdout(", ");
+				drake_time_display(stdout, global);
+				drake_stdout(", ");
+				drake_platform_power_display_line(stdout, power, j, ", ");
+				drake_stdout("\n");
+			}
 		}
 	}
 	drake_exclusive_end();

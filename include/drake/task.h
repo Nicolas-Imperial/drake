@@ -3,7 +3,7 @@
 #ifndef TASK_H
 #define TASK_H
 
-enum task_status {TASK_INVALID, TASK_INIT, TASK_START, TASK_RUN, TASK_KILLED, TASK_ZOMBIE};
+enum task_status {TASK_INVALID, TASK_INIT, TASK_START, TASK_RUN, TASK_KILLED, TASK_ZOMBIE, TASK_DESTROY};
 typedef enum task_status task_status_t;
 
 typedef unsigned int task_id;
@@ -58,6 +58,7 @@ struct task
 	int (*init)(struct task*, void*);
 	int (*start)(struct task*);
 	int (*run)(struct task*);
+	int (*kill)(struct task*);
 	int (*destroy)(struct task*);
 	unsigned long long int start_time, stop_time, start_presort, stop_presort, check_time, push_time, work_time, check_errors, check_recv, check_putback, check_feedback, put_reset, put_pop, put_send, check_wait, push_wait, work_wait, work_read, work_write;
 	unsigned long long int step_init, step_start, step_check, step_work, step_push, step_killed, step_zombie, step_transition;
