@@ -7,6 +7,14 @@ SAMPLES = 500
 ## Package configuration
 CONFIG = RELEASE
 
+## Don't forget the double quotes for string
+## Don't forget to escape them
+## Power output file prefix
+POWER_OUTPUT=\"/tmp/power-\"
+
+## Time output file prefix
+TIME_OUTPUT=\"/tmp/time-\"
+
 ## C global parameters
 CFLAGS_BASE = 
 CFLAGS_PRIVATE = -isystem ../include 
@@ -71,8 +79,8 @@ bin_drake-eval_pkg = $(if $(DRAKE_PKG),$(DRAKE_PKG),$(APPLICATION)) drake $(BACK
 bin_drake-eval_static = 1
 bin_drake-eval_embed = 
 bin_drake-eval_ldflags = 
-bin_drake-eval_deps = 
-bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES) -DAPPLICATION=$(APPLICATION)
+bin_drake-eval_deps = drake.pc
+bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES) -DAPPLICATION=$(APPLICATION) -DTIME_OUTPUT=$(TIME_OUTPUT) -DPOWER_OUTPUT=$(POWER_OUTPUT)
 bin_drake-eval_cxxflags_private = 
 
 bincc__src = 

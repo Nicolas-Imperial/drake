@@ -95,15 +95,15 @@ pelib_string(processor_t)(processor_t proc)
 }
 
 // Processor human interface
-int
-pelib_printf(processor_t)(processor_t proc)
+FILE*
+pelib_printf(processor_t)(FILE* stream, processor_t proc)
 {
   char *str = pelib_string(processor_t)(proc);
 
-  drake_stdout("%s\n", str);
+  printf("%s", str);
   free(str);
 
-  return 1;
+  return stream;
 }
 
 int

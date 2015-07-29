@@ -59,35 +59,35 @@ pelib_compare(cross_link_tp)(cross_link_tp l1, cross_link_tp l2)
 	return 0;
 }
 
-int
-pelib_printf(cross_link_tp)(cross_link_tp link)
+FILE*
+pelib_printf(cross_link_tp)(FILE* stream, cross_link_tp link)
 {
-	return pelib_printf_detail(cross_link_tp)(link, 0);
+	return pelib_printf_detail(cross_link_tp)(stream, link, 0);
 }
 
-int
-pelib_printf_detail(cross_link_tp)(cross_link_tp link, int level)
+FILE*
+pelib_printf_detail(cross_link_tp)(FILE* stream, cross_link_tp link, int level)
 {
 	char* str;
 
 	str = pelib_string_detail(cross_link_tp)(link, level);
-	printf("%s\n", str);
+	printf("%s", str);
 	free(str);
 
-	return 1;
+	return stream;
 }
 
 size_t
 pelib_fwrite(cross_link_tp)(cross_link_tp link, size_t size, size_t nmemb, FILE* file)
 {
-	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	fprintf(stderr, "[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
 size_t
 pelib_fread(cross_link_tp)(cross_link_tp* link, size_t size, size_t nmemb, FILE* file)
 {
-	drake_stderr("[%s:%d] Not implemented\n", __FILE__, __LINE__);
+	fprintf(stderr, "[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 

@@ -214,16 +214,17 @@ drake_mapping_violations(mapping_t* mapping)
 }
 
 // Mapping human interface
-int
-pelib_printf(mapping_t)(mapping_t mapping)
+FILE*
+pelib_printf(mapping_t)(FILE* stream, mapping_t mapping)
 {
   char *str = pelib_string(mapping_t)(mapping);
-  drake_stdout("%s\n", str);
+  fprintf(stream, "%s\n", str);
 
   free(str);
 
-  return 0;
+  return stream;
 }
+
 char*
 pelib_string(mapping_t)(mapping_t mapping)
 {

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <pthread.h>
+#include <string.h>
 
 #include <drake/stream.h>
 #include <stddef.h>
@@ -9,15 +9,18 @@
 #include <drake/eval.h>
 #include <pelib/integer.h>
 
+// APPLICATION is aleady defined by a compile switch
 //#define APPLICATION merge
 #include <drake.h>
+// Cannot define this marker through the APPLICATION symbol
+// This means that drake.h should not be included a second time
 //#define DONE_merge 1
 
-#if 1
-#define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, 00, #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, 00, #var, var); fflush(NULL)
-#define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, 00, #var, var); fflush(NULL)
-#define debug_size_t(var) printf("[%s:%s:%d:CORE %d] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, 00, #var, var); fflush(NULL)
+#if 0 
+#define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:CORE %d] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #else
 #define debug(var)
 #define debug_addr(var)
@@ -25,24 +28,114 @@
 #define debug_size_t(var)
 #endif
 
-#if 1
-typedef struct args
+typedef struct
 {
-	size_t *argc;
-	char ***argv;
-} args_t;
+	args_t platform, application;
+	char *time_output_file, *power_output_file;
+} arguments_t;
+
+static arguments_t
+parse_arguments(int argc, char** argv)
+{
+	arguments_t args;
+
+	// default values
+	args.time_output_file = NULL;
+	args.power_output_file = NULL;
+
+	for(argv++; argv[0] != NULL; argv++)
+	{
+		if(strcmp(argv[0], "--platform-args") == 0)
+		{
+			// Proceed to next argument
+			argv++;
+			args.platform.argc = 0;
+			args.platform.argv = malloc(sizeof(char*) * 1);
+			args.platform.argv[0] = NULL;
+
+			while(argv[0] != NULL && strcmp(argv[0], "--") != 0)
+			{
+				// Backup the current argument stack and allocate one more argument slot
+				char** tmp = args.platform.argv;
+				args.platform.argv = malloc(sizeof(char*) * (args.platform.argc + 2));
+
+				// Copy argument pointers as they are so far and free backup
+				memcpy(args.platform.argv, tmp, sizeof(char*) * args.platform.argc);
+				free(tmp);
+
+				// Add the new argument and switch to next
+				args.platform.argv[args.platform.argc] = *argv;
+				argv++;
+
+				// Increment platform argument counter and add the last NULL argument
+				args.platform.argc++;
+				args.platform.argv[args.platform.argc] = NULL;
+			}
+
+			continue;
+		}
+		
+		if(strcmp(argv[0], "--application-args") == 0)
+		{
+			// Proceed to next argument
+			argv++;
+			args.application.argc = 0;
+			args.application.argv = malloc(sizeof(char*) * 1);
+			args.application.argv[0] = NULL;
+
+
+			while(argv[0] != NULL && strcmp(argv[0], "--") != 0)
+			{
+				// Backup the current argument stack and allocate one more argument slot
+				char** tmp = args.application.argv;
+				args.application.argv = malloc(sizeof(char*) * (args.application.argc + 2));
+
+				// Copy argument pointers as they are so far and free backup
+				memcpy(args.application.argv, tmp, sizeof(char*) * args.application.argc);
+				free(tmp);
+
+				// Add the new argument and switch to next
+				args.application.argv[args.application.argc] = *argv;
+				argv++;
+
+				// Increment application argument counter and add the last NULL argument
+				args.application.argc++;
+				args.application.argv[args.application.argc] = NULL;
+			}
+
+			continue;
+		}
+
+		if(strcmp(argv[0], "--time-output") == 0)
+		{
+			// Proceed to next argument
+			argv++;
+			args.time_output_file = argv[0];
+			continue;
+		}
+
+		if(strcmp(argv[0], "--power-output") == 0)
+		{
+			// Proceed to next argument
+			argv++;
+			args.power_output_file = argv[0];
+			continue;
+		}
+	}
+
+	return args;
+}
 
 int
 main(size_t argc, char **argv)
 {
-	args_t args1;
-	args1.argc = &argc;
-	args1.argv = &argv;
-	drake_arch_init(&args1);
+	size_t i;
+	arguments_t args = parse_arguments(argc, argv);
+
+	drake_arch_init(&args.platform);
 	drake_stream_t stream = drake_stream_create(APPLICATION);
 
 	// Allocate monitoring buffers
-	size_t i;
 	init = malloc(sizeof(drake_time_t) * drake_task_number());
 	start = malloc(sizeof(drake_time_t) * drake_task_number());
 	work = malloc(sizeof(drake_time_t) * drake_task_number());
@@ -58,15 +151,13 @@ main(size_t argc, char **argv)
 	}
 
 	// Initialize stream (The scc requires this phase to not be run in parallel because of extensive IOs when loading input)
-	drake_exclusive_begin();
-	drake_stream_init(&stream, argv[1]);
-	drake_exclusive_end();
+	//drake_exclusive_begin();
+	drake_stream_init(&stream, &args.application);
+	//drake_exclusive_end();
 
 	// Measure global time
 	drake_time_t global_begin = drake_time_alloc();
 	drake_time_t global_end = drake_time_alloc();
-/*
-*/
 
 	// Measure power consumption
 	drake_power_t power = drake_platform_power_init(SAMPLES, DRAKE_POWER_CORE | DRAKE_POWER_MEMORY_CONTROLLER);
@@ -92,37 +183,82 @@ main(size_t argc, char **argv)
 	drake_time_t global = drake_time_alloc();
 	drake_time_substract(global, global_end, global_begin);
 	
-	drake_exclusive_begin();
+	//drake_exclusive_begin();
 	if(collected > SAMPLES)
 	{
-		drake_stderr("[ERROR] Insufficient number of samples (%d) to store all power data (%d).\n", SAMPLES, collected);
+		fprintf(stderr, "[ERROR] Insufficient sample memory (%d) to store all power data (%d).\n", SAMPLES, collected);
 	}
 
-	drake_stdout("\"core\", \"task_name\", \"task_init\", \"task_start\", \"task_work\", \"task_killed\", \"time_global\", \"power_time\", \"power_core\", \"power_memory_controller\"\n");
+	// Output time data
+	FILE* out;
+	if(args.time_output_file != NULL)
+	{
+		out = fopen(args.time_output_file, "w");
+	}
+	else
+	{
+		out = stdout;
+	}
 	for(i = 0; i < drake_task_number(); i++)
 	{
 		if(run[i] != 0)
 		{
-			size_t j;
-			for(j = 0; j < (collected < SAMPLES ? collected : SAMPLES); j++)
-			{
-				drake_stdout("%d, \"%s\", ", drake_core(), drake_task_name(i));
-				drake_time_display(stdout, init[i]);
-				drake_stdout(", ");
-				drake_time_display(stdout, start[i]);
-				drake_stdout(", ");
-				drake_time_display(stdout, work[i]);
-				drake_stdout(", ");
-				drake_time_display(stdout, killed[i]);
-				drake_stdout(", ");
-				drake_time_display(stdout, global);
-				drake_stdout(", ");
-				drake_platform_power_display_line(stdout, power, j, ", ");
-				drake_stdout("\n");
-			}
+			fprintf(out, "%d \"%s\" ", drake_core(), drake_task_name(i));
+			drake_time_printf(out, init[i]);
+			fprintf(out, " ");
+			drake_time_printf(out, start[i]);
+			fprintf(out, " ");
+			drake_time_printf(out, work[i]);
+			fprintf(out, " ");
+			drake_time_printf(out, killed[i]);
+			fprintf(out, " ");
+			drake_time_printf(out, global);
+			fprintf(out, "\n");
 		}
 	}
-	drake_exclusive_end();
+	fclose(out);
+
+	// Output power data
+	if(args.power_output_file != NULL)
+	{
+		out = fopen(args.power_output_file, "w");
+	}
+	else
+	{
+		out = stdout;
+	}
+
+	// Chip and memory controller combined
+	fprintf(out, "time__power [*,*]\n:\t0\t1\t:=\n");
+	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+	{
+		fprintf(out, "%d\t", i);
+		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
+		fprintf(out, "\n");
+	}
+	fprintf(out, ";\n");
+
+	// Chip only
+	fprintf(out, "time__chippower [*,*]\n:\t0\t1\t:=\n");
+	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+	{
+		fprintf(out, "%d\t", i);
+		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP), "\t");
+		fprintf(out, "\n");
+	}
+	fprintf(out, ";\n");
+
+	// Memory controller only
+	fprintf(out, "time__mmcpower [*,*]\n:\t0\t1\t:=\n");
+	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+	{
+		fprintf(out, "%d\t", i);
+		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
+		fprintf(out, "\n");
+	}
+	fprintf(out, ";\n");
+	fclose(out);
+	//drake_exclusive_end();
 
 	// cleanup
 	drake_platform_power_destroy(power);
@@ -130,157 +266,9 @@ main(size_t argc, char **argv)
 	drake_time_destroy(global_begin);
 	drake_time_destroy(global_end);
 
-#if 0
-			task->start_presort,
-			task->stop_presort,
-			task->start_time,
-			task->stop_time,
-			task->step_init,
-			task->step_start,
-			task->step_check,
-			task->step_work,
-			task->step_push,
-			task->step_killed,
-			task->step_zombie,
-			task->step_transition
-#endif
-
 	drake_stream_destroy(&stream);
 	drake_arch_finalize(NULL);
 
 	return EXIT_SUCCESS;
 }
-#else
-void* dummy(void *args)
-{
-	for(;;)
-	{
-	}
-	pthread_exit(NULL);
-}
 
-/*
-void*
-measure_power(void* arg)
-{
-	for(;;);
-	return NULL;
-	drake_power_t args = (drake_power_t)arg;
-	const struct timespec period = {0, 100 * 1e6}; // 100 ms
-
-	// Wait for kickstarter
-	args->running = 0;
-	int a = sem_wait(&args->run);
-	debug_int(a);
-
-#ifdef COPPERRIDGE
-	InitAPI(0);  
-	writeFpgaGrb(DVFS_CONFIG, DVFS_CONFIG_SETTING);
-#endif
-
-	double current_c, current_mc, voltage_c, voltage_mc;
-	const struct timespec short_sleeptime = {0, 5 * 1e6}; // 5 ms
-	double time_ms;
-
-	struct timespec time;
-	clock_gettime(CLOCK_MONOTONIC,&time);
-	double start_ms = time.tv_sec * 1e3 + time.tv_nsec * 1e-6;
-
-	args->running = 1;
-	while(sem_trywait(&args->run) != 0)
-	{
-		if(args->collected < args->max_samples)
-		{
-			if(args->measurement & DRAKE_POWER_CORE != (int)0)
-			{
-#ifdef COPPERRIDGE
-				voltage_c = readStatus(DVFS_STATUS_U3V3SCC);
-				current_c = readStatus(DVFS_STATUS_I3V3SCC);
-				args->power_core[args->collected] = voltage_c * current_c;
-#else
-				args->power_core[args->collected] = 0;
-#endif
-			}
-			else
-			{
-				args->power_core[args->collected] = 0;
-			}
-
-			if(args->measurement & DRAKE_POWER_MEMORY_CONTROLLER != (int)0)
-			{
-#ifdef COPPERRIDGE
-				voltage_mc = readStatus(DVFS_STATUS_U1V5);
-				current_mc = readStatus(DVFS_STATUS_I1V5);
-				args->power_mc[args->collected] = voltage_mc * current_mc;
-#else
-				args->power_mc[args->collected] = 0;
-#endif
-			}
-			else
-			{
-				args->power_mc[args->collected] = 0;
-			}
-      
-			// There are some unreasonably high spikes every 500-700 ms or so. We ignore these and wait for the value to settle.
-			if(current_c * voltage_c > REASONABLE_C || current_mc * voltage_mc > REASONABLE_MC)
-			{
-				nanosleep(&short_sleeptime, NULL);
-				continue;
-			}
-
-			clock_gettime(CLOCK_MONOTONIC,&time);
-			time_ms = time.tv_sec * 1e3 +time.tv_nsec * 1e-6 - start_ms;
-			args->time[args->collected] = time_ms;
-		}
-
-		// Sleep until next measurement
-		nanosleep(&period, NULL);
-
-		// Count the number of iterations
-		args->collected++;
-	}
-
-	args->running = 0;
-#ifdef COPPERRIDGE
-	writeFpgaGrb(DVFS_CONFIG, DVFS_CONFIG_RESET); // Go back to no measurement
-#endif
-
-	return NULL;
-}
-*/
-
-//drake_power_t
-//drake_platform_power_init(size_t samples, int measurement)
-int
-main(int argc, char** argv)
-{
-	//drake_power_t tracker = malloc(sizeof(struct drake_power));
-	/*
-	tracker->power_core = malloc(sizeof(double) * samples);
-	tracker->power_mc = malloc(sizeof(double) * samples);
-	tracker->time = malloc(sizeof(double) * samples);
-	tracker->max_samples = samples;
-	tracker->collected = 0;
-	tracker->measurement = measurement;
-	sem_init(&tracker->run, 0, 0);
-	*/
-
-	pthread_t t;
-
-	//int retval = pthread_create(&tracker->thread, &attr, dummy, NULL);
-	int retval = pthread_create(&t, NULL, dummy, NULL);
-  	pthread_join(t, NULL);
-	/*
-	if(retval != 0)
-	{
-		free(tracker->power_core);
-		free(tracker->power_mc);
-		free(tracker->time);
-		free(tracker);
-		tracker = NULL;
-	}
-
-	*/
-	return NULL;
-}
-#endif

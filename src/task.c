@@ -5,27 +5,27 @@
 #include <drake/task.h>
 #include <drake/platform.h>
 
-int
-pelib_printf(task_tp)(task_tp task)
+FILE*
+pelib_printf(task_tp)(FILE* stream, task_tp task)
 {
   char * str = NULL;
   str = pelib_string(task_tp)(task);
-  drake_stdout("%s\n", str);
+  fprintf(stream, "%s", str);
 
   free(str);
 
-  return 1;
+  return stream;
 }
 
-int
-pelib_printf_detail(task_tp)(task_tp task, int level)
+FILE*
+pelib_printf_detail(task_tp)(FILE* stream, task_tp task, int level)
 {
 	char *str;
 	str = pelib_string_detail(task_tp)(task, level);
-	printf("%s\n", str);
+	fprintf(stream, "%s", str);
 	free(str);
 
-	return 0;
+	return stream;
 }
 
 //#define task_str_det_chk printf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);

@@ -23,6 +23,7 @@ typedef struct {
 	drake_time_t stage_time, stage_start_time, stage_stop_time, stage_sleep_time;
 	void (*schedule_destroy)();
 	drake_schedule_t schedule;
+	void* (*func)(size_t id, task_status_t status);
 } drake_stream_t;
 
 drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status));

@@ -4,6 +4,7 @@
 #define DRAKE_PLATFORM_H
 
 typedef struct drake_time *drake_time_t;
+typedef struct drake_power *drake_power_t;
 
 size_t drake_arch_local_size();
 size_t drake_arch_store_size();
@@ -15,8 +16,6 @@ int drake_arch_pull(volatile void*);
 int drake_arch_commit(volatile void*);
 size_t drake_core();
 size_t drake_core_size();
-void drake_stderr(const char* format, ...);
-void drake_stdout(const char* format, ...);
 void drake_barrier(void*);
 void drake_exclusive_begin();
 void drake_exclusive_end();
@@ -37,21 +36,21 @@ int drake_time_add(drake_time_t res, drake_time_t t1, drake_time_t t2);
 int drake_time_greater(drake_time_t t1, drake_time_t t2);
 int drake_time_equals(drake_time_t t1, drake_time_t t2);
 int drake_time_init(drake_time_t t, double ms);
-void drake_time_display(FILE* stream, drake_time_t);
+FILE* drake_time_printf(FILE* stream, drake_time_t);
 void drake_time_destroy(drake_time_t time);
 drake_time_t drake_time_alloc();
 int drake_arch_sleep(drake_time_t period);
 
-#define DRAKE_POWER_CORE 1
-#define DRAKE_POWER_MEMORY_CONTROLLER 2
+enum drake_power_monitor {DRAKE_POWER_CHIP, DRAKE_POWER_MEMORY_CONTROLLER, DRAKE_POWER_CORE};
 
-typedef struct drake_power *drake_power_t;
 
 drake_power_t drake_platform_power_init(size_t samples, int measurement);
 void drake_platform_power_begin(drake_power_t);
 size_t drake_platform_power_end(drake_power_t);
-void drake_platform_power_display(FILE* stream, drake_power_t, char* separator);
-void drake_platform_power_display_line(FILE* stream, drake_power_t, size_t line, char* separator);
+FILE* drake_platform_power_printf(FILE* stream, drake_power_t, char* separator);
+FILE* drake_platform_power_printf_line(FILE* stream, drake_power_t, size_t line, char* separator);
+FILE* drake_platform_power_printf_cumulate(FILE* stream, drake_power_t, int metrics, char *separator);
+FILE* drake_platform_power_printf_line_cumulate(FILE* stream, drake_power_t, size_t line, int metrics, char *separator);
 void drake_platform_power_destroy(drake_power_t);
 
 #endif // DRAKE_PLATFORM_H
