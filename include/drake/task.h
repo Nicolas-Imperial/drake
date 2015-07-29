@@ -55,6 +55,7 @@ struct task
 	array_t(cross_link_tp) *source;
 	int frequency;
 	task_status_t status;
+	char *name;
 	int (*init)(struct task*, void*);
 	int (*start)(struct task*);
 	int (*run)(struct task*);

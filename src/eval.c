@@ -16,7 +16,7 @@
 // This means that drake.h should not be included a second time
 //#define DONE_merge 1
 
-#if 0 
+#if 1 
 #define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
@@ -43,15 +43,20 @@ parse_arguments(int argc, char** argv)
 	args.time_output_file = NULL;
 	args.power_output_file = NULL;
 
+	args.application.argc = 0;
+	args.application.argv = malloc(sizeof(char*) * 1);
+	args.application.argv[0] = NULL;
+
+	args.platform.argc = 0;
+	args.platform.argv = malloc(sizeof(char*) * 1);
+	args.platform.argv[0] = NULL;
+
 	for(argv++; argv[0] != NULL; argv++)
 	{
 		if(strcmp(argv[0], "--platform-args") == 0)
 		{
 			// Proceed to next argument
 			argv++;
-			args.platform.argc = 0;
-			args.platform.argv = malloc(sizeof(char*) * 1);
-			args.platform.argv[0] = NULL;
 
 			while(argv[0] != NULL && strcmp(argv[0], "--") != 0)
 			{
@@ -79,10 +84,6 @@ parse_arguments(int argc, char** argv)
 		{
 			// Proceed to next argument
 			argv++;
-			args.application.argc = 0;
-			args.application.argv = malloc(sizeof(char*) * 1);
-			args.application.argv[0] = NULL;
-
 
 			while(argv[0] != NULL && strcmp(argv[0], "--") != 0)
 			{
@@ -203,7 +204,7 @@ main(size_t argc, char **argv)
 	{
 		if(run[i] != 0)
 		{
-			fprintf(out, "%d \"%s\" ", drake_core(), drake_task_name(i));
+			fprintf(out, "%d \"%s\" ", drake_core(), drake_task_name(i + 1));
 			drake_time_printf(out, init[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, start[i]);
@@ -216,7 +217,10 @@ main(size_t argc, char **argv)
 			fprintf(out, "\n");
 		}
 	}
-	fclose(out);
+	if(args.time_output_file != NULL)
+	{
+		fclose(out);
+	}
 
 	// Output power data
 	if(args.power_output_file != NULL)
@@ -229,35 +233,41 @@ main(size_t argc, char **argv)
 	}
 
 	// Chip and memory controller combined
-	fprintf(out, "time__power [*,*]\n:\t0\t1\t:=\n");
-	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+	if((collected < SAMPLES ? collected : SAMPLES) > 0)
 	{
-		fprintf(out, "%d\t", i);
-		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
-		fprintf(out, "\n");
-	}
-	fprintf(out, ";\n");
+		fprintf(out, "time__power [*,*]\n:\t0\t1\t:=\n");
+		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+		{
+			fprintf(out, "%d\t", i);
+			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
+			fprintf(out, "\n");
+		}
+		fprintf(out, ";\n");
 
-	// Chip only
-	fprintf(out, "time__chippower [*,*]\n:\t0\t1\t:=\n");
-	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
-	{
-		fprintf(out, "%d\t", i);
-		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP), "\t");
-		fprintf(out, "\n");
-	}
-	fprintf(out, ";\n");
+		// Chip only
+		fprintf(out, "time__chippower [*,*]\n:\t0\t1\t:=\n");
+		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+		{
+			fprintf(out, "%d\t", i);
+			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP), "\t");
+			fprintf(out, "\n");
+		}
+		fprintf(out, ";\n");
 
-	// Memory controller only
-	fprintf(out, "time__mmcpower [*,*]\n:\t0\t1\t:=\n");
-	for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
-	{
-		fprintf(out, "%d\t", i);
-		drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
-		fprintf(out, "\n");
+		// Memory controller only
+		fprintf(out, "time__mmcpower [*,*]\n:\t0\t1\t:=\n");
+		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
+		{
+			fprintf(out, "%d\t", i);
+			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
+			fprintf(out, "\n");
+		}
+		fprintf(out, ";\n");
 	}
-	fprintf(out, ";\n");
-	fclose(out);
+	if(args.power_output_file != NULL)
+	{
+		fclose(out);
+	}
 	//drake_exclusive_end();
 
 	// cleanup

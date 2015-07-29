@@ -47,6 +47,7 @@ typedef struct {
 
 extern size_t _drake_p;
 extern size_t _drake_n;
+extern char **_drake_task_name;
 extern double _drake_stage_time;
 extern size_t *_drake_tasks_in_core;
 extern size_t *_drake_consumers_in_core;

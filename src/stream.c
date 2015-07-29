@@ -1521,6 +1521,7 @@ prepare_mapping()
 		for(i = 1; i <= _drake_tasks_in_core[j - 1]; i++)
 		{
 			task.id = _drake_schedule[j - 1][i - 1].id;
+			task.name = _drake_task_name[task.id - 1];
 			task.frequency = _drake_schedule[j - 1][i - 1].frequency;
 			size_t producers_in_task = _drake_producers_in_task[task.id - 1];
 			size_t consumers_in_task = _drake_consumers_in_task[task.id - 1];
