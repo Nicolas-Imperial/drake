@@ -161,7 +161,7 @@ main(size_t argc, char **argv)
 	drake_time_t global_end = drake_time_alloc();
 
 	// Measure power consumption
-	drake_power_t power = drake_platform_power_init(SAMPLES, DRAKE_POWER_CORE | DRAKE_POWER_MEMORY_CONTROLLER);
+	drake_power_t power = drake_platform_power_init(SAMPLES, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER));
 
 	// Begin power measurement
 	drake_platform_power_begin(power);
