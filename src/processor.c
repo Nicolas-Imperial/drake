@@ -10,13 +10,16 @@ pelib_alloc_collection(processor_t)(size_t size)
   int i, res;
   processor_t *proc;
 
-  proc = malloc(sizeof(processor_t) + sizeof(task_t*) * size);
+  proc = malloc(sizeof(processor_t));
   res = 1;
 
   if (proc != NULL)
     {
       proc->handled_nodes = 0;
       proc->node_capacity = size;
+      proc->task = malloc(sizeof(task_t*) * size);
+      if(proc->task != NULL)
+      {
 
       for (i = 0; i < proc->node_capacity; i++)
         {
@@ -28,9 +31,16 @@ pelib_alloc_collection(processor_t)(size_t size)
         {
           return proc;
         }
+      }
+
+      // If something went wrong, free all tasks and task array
+      for (i = 0; i < proc->node_capacity; i++)
+      {
+        free(proc->task[i]);
+      }
+      free(proc->task);
     }
 
-  // TODO: also deallocate all allocated tasks to proc
   free(proc);
   return NULL;
 }
@@ -44,6 +54,7 @@ pelib_free(processor_t)(processor_t * proc)
     {
       free(proc->task[i]);
     }
+  free(proc->task);
   free(proc);
 
   return 1;

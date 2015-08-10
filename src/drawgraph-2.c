@@ -120,7 +120,12 @@ inputstructure(void)
 
 	while (!feof(input))
 	{
-		fgets(instr, STRL, input);
+		char *res = fgets(instr, STRL, input);
+		if(res == NULL)
+		{
+			fprintf(stderr, "[%s:%s:%d][ERROR] Cannot read character from input.\n", __FILE__, __FUNCTION__, __LINE__);
+			abort();
+		}
 
 		//            fprintf(output, "XX%sXX\n",instr);
 
@@ -144,7 +149,13 @@ inputstructure(void)
 	flag = 0;
 	while (!feof(input))
 	{
-		fgets(instr, STRL, input);
+		char *res = fgets(instr, STRL, input);
+		if(res == NULL)
+		{
+			fprintf(stderr, "[%s:%s:%d][ERROR] Cannot read character from input.\n", __FILE__, __FUNCTION__, __LINE__);
+			abort();
+		}
+
 		if (!strncmp(instr, "x [", 3))
 		{
 			flag = 1;
@@ -157,7 +168,13 @@ inputstructure(void)
 		return 0;
 	}
 
-	fgets(instr, STRL, input);
+	char *res = fgets(instr, STRL, input);
+	if(res == NULL)
+	{
+		fprintf(stderr, "[%s:%s:%d][ERROR] Cannot read character from input.\n", __FILE__, __FUNCTION__, __LINE__);
+		abort();
+	}
+
 
 	str[1] = '\0';
 	i = 1;
@@ -180,7 +197,13 @@ inputstructure(void)
 		 */
 
 		j = 1;
-		fscanf(input, "%c", &str[0]);
+		int n = fscanf(input, "%c", &str[0]);
+		if(n < 1 || n == EOF)
+		{
+			fprintf(stderr, "[%s:%s:%d][ERROR] Could not read input file.\n", __FILE__, __FUNCTION__, __LINE__);
+			abort();
+		}
+
 		while (str[0] != '\n')
 		{
 			tmp = strtol(str, &end, 2);
@@ -190,7 +213,12 @@ inputstructure(void)
 				num_procs = j;
 				j++;
 			}
-			fscanf(input, "%c", str);
+			n = fscanf(input, "%c", str);
+			if(n < 1 || n == EOF)
+			{
+				fprintf(stderr, "[%s:%s:%d][ERROR] Could not read input file.\n", __FILE__, __FUNCTION__, __LINE__);
+				abort();
+			}
 		}
 
 		if (flag == 0 || flag == EOF || endstr != instr + strlen(instr))

@@ -21,6 +21,9 @@ pelib_alloc_collection(mapping_t)(size_t size)
 
   if (mapping != NULL)
     {
+      mapping->proc = malloc(sizeof(processor_t*) * size);
+      if(mapping->proc != NULL)
+      {
       mapping->processor_count = 0;
       mapping->max_processor_count = size;
       mapping->task_count = 0;
@@ -30,6 +33,8 @@ pelib_alloc_collection(mapping_t)(size_t size)
         {
           return mapping;
         }
+      }
+      free(mapping->proc);
       free(mapping);
     }
 
@@ -45,7 +50,7 @@ pelib_free(mapping_t)(mapping_t * solution)
     {
       pelib_free(processor_t)(solution->proc[i]);
     }
-
+  free(solution->proc);
   free(solution);
 
   return 1;
@@ -322,7 +327,7 @@ char*
 drake_mapping_drawstr(mapping_t * mapping, char * str)
 {
   unsigned int i, k, proc_index, task_index;
-  unsigned int length;
+  size_t length;
   FILE *stream;
 
   // Opens a stream that points to str

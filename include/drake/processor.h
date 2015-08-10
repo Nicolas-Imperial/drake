@@ -30,7 +30,7 @@ struct processor
 	// make sure to pad to 32 bytes from last member
 //		output_ctrl_t *output_ctrl;
 	// make sure to pad to 32 bytes from last member
-	task_t * task[];
+	task_t ** task;
 };
 typedef struct processor processor_t;
 

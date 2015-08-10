@@ -968,10 +968,10 @@ static
 void
 printf_mpb_allocation(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
-	fprintf(stderr, "MPB size: %u\n", mpb_size);
-	fprintf(stderr, "Input links: %u\n", nb_in);
-	fprintf(stderr, "Output links: %u\n", nb_out);
-	fprintf(stderr, "Total allocable memory per input link: %u\n", buffer_size(mpb_size, nb_in, nb_out < 1));
+	fprintf(stderr, "MPB size: %zu\n", mpb_size);
+	fprintf(stderr, "Input links: %zu\n", nb_in);
+	fprintf(stderr, "Output links: %zu\n", nb_out);
+	fprintf(stderr, "Total allocable memory per input link: %zu\n", buffer_size(mpb_size, nb_in, nb_out < 1));
 }
 
 static

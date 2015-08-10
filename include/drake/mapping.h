@@ -18,7 +18,7 @@ struct mapping
 	/// Number of tasks mapped in this mapping. Never modify this value manually
 	unsigned int task_count;
 	/// List of processors involved in the mapping
-	struct processor * proc[];
+	struct processor ** proc;
 };
 typedef struct mapping mapping_t;
 
