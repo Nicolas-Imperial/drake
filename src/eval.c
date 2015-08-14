@@ -187,7 +187,7 @@ main(size_t argc, char **argv)
 	//drake_exclusive_begin();
 	if(collected > SAMPLES)
 	{
-		fprintf(stderr, "[ERROR] Insufficient sample memory (%d) to store all power data (%d).\n", SAMPLES, collected);
+		fprintf(stderr, "[ERROR] Insufficient sample memory (%zu) to store all power data (%zu).\n", (size_t)SAMPLES, collected);
 	}
 
 	// Output time data
@@ -204,7 +204,7 @@ main(size_t argc, char **argv)
 	{
 		if(run[i] != 0)
 		{
-			fprintf(out, "%d \"%s\" ", drake_core(), drake_task_name(i + 1));
+			fprintf(out, "%zu \"%s\" ", drake_core(), drake_task_name(i + 1));
 			drake_time_printf(out, init[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, start[i]);
@@ -238,7 +238,7 @@ main(size_t argc, char **argv)
 		fprintf(out, "time__power [*,*]\n:\t0\t1\t:=\n");
 		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
 		{
-			fprintf(out, "%d\t", i);
+			fprintf(out, "%zu\t", i);
 			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
 			fprintf(out, "\n");
 		}
@@ -248,7 +248,7 @@ main(size_t argc, char **argv)
 		fprintf(out, "time__chippower [*,*]\n:\t0\t1\t:=\n");
 		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
 		{
-			fprintf(out, "%d\t", i);
+			fprintf(out, "%zu\t", i);
 			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_CHIP), "\t");
 			fprintf(out, "\n");
 		}
@@ -258,7 +258,7 @@ main(size_t argc, char **argv)
 		fprintf(out, "time__mmcpower [*,*]\n:\t0\t1\t:=\n");
 		for(i = 0; i < (collected < SAMPLES ? collected : SAMPLES); i++)
 		{
-			fprintf(out, "%d\t", i);
+			fprintf(out, "%zu\t", i);
 			drake_platform_power_printf_line_cumulate(out, power, i, (1 << DRAKE_POWER_MEMORY_CONTROLLER), "\t");
 			fprintf(out, "\n");
 		}

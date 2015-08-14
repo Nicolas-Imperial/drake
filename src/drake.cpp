@@ -213,7 +213,8 @@ int main(int argc, char **argv)
 		{	
 			stringstream ss;
 			// Run a mimer scheduler, discard the output taskgraph and statistics and redirect taskgraph and schedule outputs to respective output files (default: /dev/null for taskgraph and /dev/stdout for schedule)
-			ss << "bash -c '" << scheduler << " " << input_file << " " << platform_filename << " >(cat >" << (output_taskgraph == NULL ? "/dev/null" : output_taskgraph) << ") >(cat >" << (output_schedule == NULL ? "/dev/stdout" : output_schedule) << ") >/dev/null'";
+			ss << "bash -c '" << scheduler << " --taskgraph " << input_file << " --platform " << platform_filename << " --taskgraph-output >(cat >" << (output_taskgraph == NULL ? "/dev/null" : output_taskgraph) << ") --schedule-output >(cat >" << (output_schedule == NULL ? "/dev/stdout" : output_schedule) << ") >/dev/null'";
+			cerr << "Running \"" << ss.str() << "\"" << endl;
 			int res = system(ss.str().c_str());
 
 			if(res != 0)
