@@ -128,11 +128,11 @@
 
 //static unsigned int memory_consistency_errors = 0;
 
-#if 0
-#define debug(var) printf("[%s:%s:%d:CORE %d] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:CORE %d] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_int(var) printf("[%s:%s:%d:CORE %d] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_size_t(var) printf("[%s:%s:%d:CORE %d] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#if 1
+#define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #else
 #define debug(var)
 #define debug_addr(var)
@@ -1500,9 +1500,7 @@ prepare_mapping()
 	{
 		for(j = 0; j < 32; j++)
 		{
-			fprintf(stderr, "[%s,%s,%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 			fprintf(stderr, "[%s,%s,%d] core %d task %d\n", __FILE__, __FUNCTION__, __LINE__, i + 1, _drake_schedule[i * 32 + j].id);
-			fprintf(stderr, "[%s,%s,%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
 		}
 	}
 */

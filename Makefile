@@ -12,7 +12,7 @@ export
 include Makefile.in
 
 tarname = $(package)
-distdir = $(abspath $(tarname)-$(version))
+distdir = $(abspath $(tarname)-$(version).$(minor).$(release))
 
 ## Targets asked for running, or default target if none
 TARGETS = $(if $(MAKECMDGOALS),$(MAKECMDGOALS),$(DEFAULT))
@@ -29,6 +29,7 @@ $(abspath $(distdir)).tar.gz: $(abspath $(distdir))
 	tar -ch -C $(abspath $(distdir)) -O .| gzip -9 -c > $(abspath $(distdir)).tar.gz
 	
 $(abspath $(distdir)): submake
+	mkdir -p $(abspath $(distdir))
 	cp Makefile $(abspath $(distdir))
 	cp Makefile.in $(abspath $(distdir))
 	

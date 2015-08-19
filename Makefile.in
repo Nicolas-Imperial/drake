@@ -1,5 +1,5 @@
-package = snekkja
-version = 1.0
+package = drake
+version = 1
 minor = 0
 release = 0
 
@@ -12,6 +12,12 @@ includedir = $(prefix)/include
 CONFIG = RELEASE
 
 subdirs = src include
+
+install: post-install
+
+post-install: dist
+	mkdir -p $(DESTDIR)$(prefix)/$(subdir)/share/drake/
+	install -m 644 $(package)-$(version).$(minor).$(release).tar.gz $(DESTDIR)$(prefix)/$(subdir)/share/drake/
 
 ## Targets to run before any other target runs
 ## Can be a custom target
