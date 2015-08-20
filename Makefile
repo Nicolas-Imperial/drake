@@ -1,4 +1,6 @@
 # http://www.freesoftwaremagazine.com/articles/gnu_coding_standards_applied_to_autotools
+## Enable GNU make secondary expansion feature
+.SECONDEXPANSION:
 
 ## Default target
 DEFAULT=all
@@ -8,7 +10,7 @@ $(DEFAULT):
 
 ## Export all variables to sub-makefiles
 export
-
+	
 include Makefile.in
 
 tarname = $(package)
@@ -23,17 +25,21 @@ VERSION = $(shell make --version|head -1|cut -f 1-2 -d ' ')
 ## Make all targets called dependant on some action to be run beforehand
 $(TARGETS): $(FIRST)
 
-all check install uninstall: version submake
+all check install uninstall: version
+all: submake-all
+check: submake-check
+install: submake-install
+uninstall: submake-uninstall
 
 $(abspath $(distdir)).tar.gz: $(abspath $(distdir))
 	tar -ch -C $(abspath $(distdir)) -O .| gzip -9 -c > $(abspath $(distdir)).tar.gz
-	
-$(abspath $(distdir)): submake
+
+$(abspath $(distdir)): submake-dist
 	mkdir -p $(abspath $(distdir))
 	cp Makefile $(abspath $(distdir))
 	cp Makefile.in $(abspath $(distdir))
 	
-clean: submake clean-tree clean-dist
+clean: submake-clean clean-tree clean-dist
 
 clean-tree:
 	
@@ -55,9 +61,9 @@ version:
 	$(if $(findstring GNU Make,echo $(VERSION)),,@echo This Makefile requires GNU make)
 	$(if $(findstring GNU Make,echo $(VERSION)),,@/bin/false)
 
-submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
+submake-all submake-dist submake-check submake-install submake-uninstall submake-clean:
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(patsubst submake-%,%,$@) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
 
 FORCE:
 .PHONY: FORCE all version clean dist distcheck copy clean-dist clean-tree
-.PHONY: install uninstall submake
+.PHONY: install uninstall submake-all submake-dist submake-check submake-install submake-uninstall submake-clean

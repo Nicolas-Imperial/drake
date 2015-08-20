@@ -16,6 +16,7 @@ int drake_arch_pull(volatile void*);
 int drake_arch_commit(volatile void*);
 size_t drake_core();
 size_t drake_core_size();
+size_t drake_core_max();
 void drake_barrier(void*);
 void drake_exclusive_begin();
 void drake_exclusive_end();

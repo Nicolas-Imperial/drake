@@ -269,7 +269,7 @@ test_list = $(testcc_list) $(testcxx_list)
 ## Disable implicit rules
 .SUFFIXES:
 
-all: submake $(bin_list) $(lib_pkgconfig)
+all: submake-all $(bin_list) $(lib_pkgconfig)
 
 ## Force rebuild upon Makefile update
 (cc_object) $(cxx_object) $(embed_object) $(bin_list) $(lib_list) $(shared_list) $(shared_linkername) $(shared_soname) $(lib_pkgconfig) $(drake_schedule_src) $(drake_schedule_text) $(drake_taskgraph_text)): Makefile Makefile.in
@@ -353,7 +353,7 @@ $(lib_pkgconfig): $$(if $$(filter $$(patsubst %.pc,%,$$@),$(lib_package)),$$(pat
 	echo Conflicts: $(sort $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_conflicts))) >> $@
 	echo Cflags: $(GLOBAL_CFLAGS_EXPORT) $() -I'$$'\{includedir\} $(foreach var,cc cxx,$(call cflags_project_export,$(patsubst %.pc,%,$@),lib,$(var))) $(CPPFLAGS) $(foreach var,cc cxx,$(sort $(foreach var,lib shared drake,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(call prefix_cflags,$(var))flags)))) >> $@
 
-dist: submake
+dist: submake-dist
 	mkdir -p $(distdir)
 	cp Makefile $(distdir)
 	cp Makefile.in $(distdir)
@@ -367,7 +367,7 @@ dist: submake
 	$(if $(strip $(sharedcxx_package:%=shared_%_export)),cp $(sort $(foreach var,$(sharedcxx_package:%=shared_%_export),$(call $(var)))) $(distdir),)
 	$(foreach proj,$(drake_package),cp $(sort $(foreach lang,cc cxx,$(if $(call drake$(lang)_$(proj)_graph),$(call drake$(lang)_$(proj)_graph) $(foreach task,$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --tasks),$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --module $(task)).$(call ext,$(lang)))))) $(call drake_$(proj)_platform) $(distdir))
         
-clean: submake
+clean: submake-clean
 	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
 	$(RM) $(cxx_object) $(foreach var,$(cxx_object),$(var:%.o=%.d)) $(foreach var,$(cxx_object),$(var:%.o=%.e))
 	$(RM) $(lib_pkgconfig)
@@ -379,17 +379,17 @@ clean: submake
 	$(RM) $(shared_list) $(shared_linkername) $(shared_soname)
 	$(RM) $(clean)
 
-check: submake $(test_list)
+check: submake-check $(test_list)
 	@$(shell echo for i in "$(foreach var,$(testcc_list),$(var))"\; do eval echo Running \$$i...\; eval LD_LIBRARY_PATH=.:$(LD_LIBRARY_PATH) ./\$$i \|\| exit 1\; done)
 	@$(shell echo for i in "$(foreach var,$(testcxx_list),$(var))"\; do eval echo Running \$$i...\; eval LD_LIBRARY_PATH=.:$(LD_LIBRARY_PATH) ./\$$i \|\| exit 1\; done)
 
 checkdist distcheck: dist
 
-install: submake pre-install do-install post-install
+install: submake-install pre-install do-install post-install
    
 pre-install:
      
-do-install: submake $(lib_pkgconfig) $(lib_list) $(bin_list) $(shared_list) $(shared_linkername) $(shared_soname)
+do-install: $(lib_pkgconfig) $(lib_list) $(bin_list) $(shared_list) $(shared_linkername) $(shared_soname)
 	$(if $(strip $(lib_list)),install -d $(DESTDIR)$(final_libdir))
 	$(if $(strip $(lib_list)),install -m 644 $(lib_list) $(DESTDIR)$(final_libdir))
 	$(if $(strip $(shared_list)),install -d $(DESTDIR)$(final_libdir))
@@ -404,7 +404,7 @@ do-install: submake $(lib_pkgconfig) $(lib_list) $(bin_list) $(shared_list) $(sh
 
 post-install:
 
-uninstall: submake
+uninstall: submake-uninstall
 	$(RM) $(foreach var,$(bin_list), $(DESTDIR)$(final_bindir)/$(call VARIANT_$(var))$(var))
 	$(RM) $(foreach var,$(lib_list), $(DESTDIR)$(final_libdir)/lib$(call VARIANT_lib$(patsubst lib%.a,%,$(var)).a)$(patsubst lib%.a,%,$(var)).a)
 	$(RM) $(foreach var,$(shared_list), $(DESTDIR)$(final_libdir)/$(var))
@@ -412,8 +412,8 @@ uninstall: submake
 	$(RM) $(foreach var,$(shared_soname), $(DESTDIR)$(final_libdir)/$(var))
 	$(RM) $(foreach var,$(lib_pkgconfig), $(DESTDIR)$(final_libdir)/pkgconfig/$(call VARIANT_lib$(patsubst %.pc,%,$(var)).pc)$(var))
 	
-submake:
-	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(MAKECMDGOALS) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
+submake-all submake-dist submake-check submake-clean submake-install submake-uninstall:
+	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(patsubst submake-%,%,$@) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
 
 FORCE:
-.PHONY: all clean check install pre-install do-install post-install uninstall dist FORCE submake
+.PHONY: all clean check install pre-install do-install post-install uninstall dist FORCE submake-all submake-dist submake-check submake-clean submake-install submake-uninstall

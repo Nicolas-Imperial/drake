@@ -16,7 +16,7 @@
 // This means that drake.h should not be included a second time
 //#define DONE_merge 1
 
-#if 1 
+#if 0 
 #define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
@@ -31,17 +31,24 @@
 typedef struct
 {
 	args_t platform, application;
-	char *time_output_file, *power_output_file;
+	char **time_output_file, **power_output_file;
+	size_t *core_ids;
 } arguments_t;
 
 static arguments_t
 parse_arguments(int argc, char** argv)
 {
 	arguments_t args;
+	size_t i;
 
 	// default values
-	args.time_output_file = NULL;
-	args.power_output_file = NULL;
+	args.time_output_file = malloc(sizeof(char*) * drake_core_max());
+	args.power_output_file = malloc(sizeof(char*) * drake_core_max());
+	for(i = 0; i < drake_core_max(); i++)
+	{
+		args.time_output_file[i] = NULL;
+		args.power_output_file[i] = NULL;
+	}
 
 	args.application.argc = 0;
 	args.application.argv = malloc(sizeof(char*) * 1);
@@ -107,19 +114,25 @@ parse_arguments(int argc, char** argv)
 			continue;
 		}
 
-		if(strcmp(argv[0], "--time-output") == 0)
+		if(strcmp(argv[0], "--core-output") == 0)
 		{
 			// Proceed to next argument
 			argv++;
-			args.time_output_file = argv[0];
-			continue;
-		}
+			size_t core;
+			core = atoi(argv[0]);
 
-		if(strcmp(argv[0], "--power-output") == 0)
-		{
-			// Proceed to next argument
-			argv++;
-			args.power_output_file = argv[0];
+			if(strcmp((argv + 1)[0], "--time") == 0)
+			{
+				argv += 2;
+				args.time_output_file[core] = argv[0];
+			}
+
+			if(strcmp((argv + 1)[0], "--power") == 0)
+			{
+				argv += 2;
+				args.power_output_file[core] = argv[0];
+			}
+
 			continue;
 		}
 	}
@@ -192,9 +205,9 @@ main(size_t argc, char **argv)
 
 	// Output time data
 	FILE* out;
-	if(args.time_output_file != NULL)
+	if(args.time_output_file[drake_core()] != NULL)
 	{
-		out = fopen(args.time_output_file, "w");
+		out = fopen(args.time_output_file[drake_core()], "w");
 	}
 	else
 	{
@@ -217,15 +230,15 @@ main(size_t argc, char **argv)
 			fprintf(out, "\n");
 		}
 	}
-	if(args.time_output_file != NULL)
+	if(args.time_output_file[drake_core()] != NULL)
 	{
 		fclose(out);
 	}
 
 	// Output power data
-	if(args.power_output_file != NULL)
+	if(args.power_output_file[drake_core()] != NULL)
 	{
-		out = fopen(args.power_output_file, "w");
+		out = fopen(args.power_output_file[drake_core()], "w");
 	}
 	else
 	{
@@ -264,7 +277,7 @@ main(size_t argc, char **argv)
 		}
 		fprintf(out, ";\n");
 	}
-	if(args.power_output_file != NULL)
+	if(args.power_output_file[drake_core()] != NULL)
 	{
 		fclose(out);
 	}

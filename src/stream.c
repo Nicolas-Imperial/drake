@@ -57,8 +57,8 @@
 
 #define PRINTF_TIMEOUT 5
 //time_t timeref;
-#if DEBUG
-//int printf_enabled = 0;
+#if 0
+int printf_enabled = -1;
 #define assert_equal(value, expected, abort_on_failure) if(value != expected) { fprintf(stderr, "[CORE %d][%s:%s:%d] Expected %s == %d, got %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #expected, expected, #value, value); if (abort_on_failure) { abort(); } }
 #define assert_different(value, expected, abort_on_failure) if(value == expected) { fprintf(stderr, "[CORE %d][%s:%s:%d] Got %s == %d, expected different than %s == %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #expected, expected); if (abort_on_failure) { abort(); } }
 #define assert_geq(value, reference, abort_on_failure) if(value < reference) { fprintf(stderr, "[CORE %d][%s:%s:%d] Got %s == %d, strictly lower than than %s == %d, but expected greater or equal (>=\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #value, value, #reference, reference); if (abort_on_failure) { abort(); } }
@@ -66,15 +66,16 @@
 #define debug printf("[CORE %d][%s:%s:%d] %d out of %d tasks left\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, active_tasks, proc->handled_nodes);
 #define debug_task printf("[CORE %d][%s:%s:%d] Task %d state %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, task->status);
 #define debug_task_output printf("[CORE %d][%s:%s:%d] Task %d to task %d\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, task->id, link->link->task->id);
+*/
 #define printf_addr(addr) printf("[CORE %d][%s:%s:%d] %s = %X\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #addr, addr)
 #define printf_int(integer) printf("[CORE %d][%s:%s:%d] %s = %d (signed), %u (unsigned)\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
+#define printf_size_t(integer) printf("[CORE %d][%s:%s:%d] %s = %zu (signed), %u (unsigned)\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #integer, integer, integer)
 #define printf_str(str) printf("[CORE %d][%s:%s:%d] %s = %s\n", drake_core(), __FILE__, __FUNCTION__, __LINE__, #str, str);
-*/
-#define PRINTF_FEEDBACK 0
-#define PRINTF_PUSH 0
-#define PRINTF_CHECK_IN 0
-#define PRINTF_CHECK_OUT 0
-#define CHECK_CORRECT              1
+#define PRINTF_FEEDBACK 1
+#define PRINTF_PUSH 1
+#define PRINTF_CHECK_IN 1
+#define PRINTF_CHECK_OUT 1
+#define CHECK_CORRECT              0
 #else
 //int printf_enabled = 0;
 #define assert_equal(value, expected, abort_on_failure)
@@ -100,7 +101,7 @@
 #define INTERLACE_PRESORT          1
 #define WARM_CACHE                 0
 
-#define CHECK_CORRECT              1
+//#define CHECK_CORRECT              1
 
 #define SORT_SEQUENTIAL            0
 #define EXPORT_REFERENCE           0
@@ -608,6 +609,13 @@ task_next_state(task_t* task)
 }
 #endif
 
+static int
+monitor(task_t *task, cross_link_t *link)
+{
+	//return (task->id == 16) || (task->id == 17) || (task->id == 8);
+	return 0;
+}
+
 static
 void
 feedback_link(task_t *task, cross_link_t *link)
@@ -622,7 +630,7 @@ feedback_link(task_t *task, cross_link_t *link)
 	{
 		//RC_cache_invalidate(); // Not important?
 #if PRINTF_FEEDBACK
-if(printf_enabled & 1) {
+if((printf_enabled & 1) && monitor(task, link)) {
 		printf_str(".............................................................");
 		printf_str("Feedback");
 		printf_str(".............................................................");
@@ -656,7 +664,7 @@ if(printf_enabled & 1) {
 		drake_arch_commit(link->read); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_FEEDBACK
-if(printf_enabled & 1) {
+if((printf_enabled & 1) && monitor(task, link)) {
 		printf_int(link->total_read);
 		printf_int(link->link->buffer->read);
 		printf_int(link->link->buffer->write);
@@ -675,12 +683,20 @@ push_link(task_t *task, cross_link_t* link)
 	//RC_cache_invalidate(); // Not important?
 	size_t length = pelib_cfifo_length(int)(*link->link->buffer);
 	size_t size = length - link->available;
+	/*
+	printf("[%s:%s:%d][Task %d %s] Number of elements ready to push: %zu\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, length);
+	printf("[%s:%s:%d][Task %d %s] Number of elements to be pushed: %zu\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, size);
+	printf("[%s:%s:%d][Task %d %s] Available elements in memory: %zu\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, link->available);
+	printf("[%s:%s:%d][Task %d %s] Will push %zu elements\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, size);
+	printf("[%s:%s:%d][Task %d %s] Writing write counter at address %p\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, link->write);
+	printf("[%s:%s:%d][Task %d %s] Writing elements at address %p\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, link->link->buffer->buffer);
+	*/
 
 	if(size > 0)
 	{
 		//RC_cache_invalidate(); // Not important?
 #if PRINTF_PUSH
-if(printf_enabled & 2) {
+if((printf_enabled & 1) && monitor(task, link)) {
 		printf_str("***********************************************");
 		printf_str("Push");
 		printf_str("***********************************************");
@@ -698,7 +714,7 @@ if(printf_enabled & 2) {
 		drake_arch_commit(link->write); // Important
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 #if PRINTF_PUSH
-if(printf_enabled & 2) {
+if((printf_enabled & 2) && monitor(task, link)) {
 		printf_int(link->total_written);
 		printf_int(link->link->buffer->read);
 		printf_int(link->link->buffer->write);
@@ -732,6 +748,11 @@ check_input_link(task_t *task, cross_link_t *link)
 	enum task_status new_state;
 	drake_arch_pull(link->write); // Important
 	// Update input fifo length
+	/*
+	printf("[%s:%s:%d][Task %d %s] Checking write counter at address %p\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, link->write);
+	printf("[%s:%s:%d][Task %d %s] %zu elements written\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, *link->write);
+	printf("[%s:%s:%d][Task %d %s] Reading elements at address %p\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, link->link->buffer->buffer);
+	*/
 	size_t write = *link->write - link->total_written;
 	size_t actual_write = 0;
 
@@ -758,7 +779,7 @@ check_input_link(task_t *task, cross_link_t *link)
 	{
 		//RC_cache_invalidate(); // Not important?
 #if PRINTF_CHECK_IN
-if(printf_enabled & 4) {
+if((printf_enabled & 4) && monitor(task, link)) {
 		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
 		printf_str("Check");
 		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
@@ -774,7 +795,7 @@ if(printf_enabled & 4) {
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 		link->total_written += write;
 #if PRINTF_CHECK_IN
-if(printf_enabled & 4) {
+if((printf_enabled & 4) && monitor(task, link)) {
 		printf_int(write);
 		printf_int(link->link->prod->status);
 		printf_int(link->total_written);
@@ -792,7 +813,7 @@ if(printf_enabled & 4) {
 	{
 		link->link->prod->status = new_state;
 #if PRINTF_CHECK_IN
-		if(printf_enabled & 16) {
+		if((printf_enabled & 1) && monitor(task, link)) {
 			printf_int(link->link->prod->id);
 			printf_int(link->link->cons->id);
 			printf_int(link->link->prod->status);
@@ -816,7 +837,7 @@ check_output_link(task_t *task, cross_link_t *link)
 	{
 		//RC_cache_invalidate(); // Not important?
 #if PRINTF_CHECK_OUT
-		if(printf_enabled & 8) {
+		if((printf_enabled & 8) && monitor(task, link)) {
 			printf_str("##############################################################");
 			printf_str("Check output_link");
 			printf_str("##############################################################");
@@ -834,7 +855,7 @@ check_output_link(task_t *task, cross_link_t *link)
 		link->available = pelib_cfifo_length(int)(*link->link->buffer);
 		link->total_read += read;
 #if PRINTF_CHECK_OUT
-		if(printf_enabled & 8) {
+		if((printf_enabled & 8) && monitor(task, link)) {
 			printf_int(read);
 			printf_int(new_state);
 			printf_int(link->total_read);
@@ -1659,10 +1680,10 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 		//args.mapping = mapping;
 		task_t *task = stream->proc->task[i];
 		int run = task->init(task, aux);
-		success = success && run;
-		
+		success = success && run;		
 	}
 	allocate_buffers(stream);
+	drake_barrier(NULL);
 
 	return success;
 }
@@ -1703,9 +1724,7 @@ drake_stream_run(drake_stream_t* stream)
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
-
 	// Make sure everyone starts at the same time
-
 	time_t timeref = time(NULL);
 
 #if MEASURE_GLOBAL
@@ -1742,7 +1761,9 @@ drake_stream_run(drake_stream_t* stream)
 #endif
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
+					//printf("[%s:%s:%d][Task %d %s] Starting...\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name);
 					done = task->start(task);
+					//printf("[%s:%s:%d][Task %d %s] Started.\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name);
 					task_check(task);
 					if(task->status == TASK_START && done)
 					{
