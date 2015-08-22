@@ -1674,15 +1674,13 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 	size_t i;
 	size_t max_nodes = stream->proc->handled_nodes;
 	
+	allocate_buffers(stream);
 	for(i = 0; i < max_nodes; i++)
 	{
-		//task_init(proc->task[i], argv[2], mapping);
-		//args.mapping = mapping;
 		task_t *task = stream->proc->task[i];
 		int run = task->init(task, aux);
 		success = success && run;		
 	}
-	allocate_buffers(stream);
 	drake_barrier(NULL);
 
 	return success;

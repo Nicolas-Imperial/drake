@@ -1,3 +1,5 @@
+#include <drake/platform.h>
+
 #ifndef DRAKE_EVAL
 #define DRAKE_EVAL
 
