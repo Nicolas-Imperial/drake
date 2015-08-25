@@ -76,7 +76,7 @@ bincc_package = $(if $(APPLICATION),$(if $(BACKEND),drake-eval))
 bincc_drake-eval_src = eval.c
 bin_drake-eval_export = $(bincc_drake-eval_src) $(bincxx_drake-eval_src)
 bin_drake-eval_pkg = $(if $(DRAKE_PKG),$(DRAKE_PKG),$(APPLICATION)) drake $(BACKEND)
-bin_drake-eval_static = 1
+bin_drake-eval_static = 0
 bin_drake-eval_embed = 
 bin_drake-eval_ldflags = 
 bin_drake-eval_deps = drake.pc
@@ -140,6 +140,14 @@ libcxx_drake_src =
 lib_drake_cflags = 
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) drawgraph-2.h eval.c
 lib_drake_pkg = pelib
+
+sharedcc_package = drake
+
+sharedcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
+sharedcxx_drake_src = 
+shared_drake_cflags = -fPIC
+shared_drake_export = $(sharedcc_drake_src) $(sharedcxx_drake_src) drawgraph-2.h eval.c
+shared_drake_pkg = pelib
 
 libcc__src = 
 libcxx__src = 

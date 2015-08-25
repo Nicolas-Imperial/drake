@@ -66,7 +66,7 @@ define src
 $(foreach type,cc cxx,$(foreach var,$1,$(call $2$(type)_$(var)_src)))
 endef
 
-## Gives source files of projects $1 of type $2 (bin|lib|test|shared) with language $3 (cc|cxx), prefixed with their file variant
+## Gives source files of projects $1 of type $2 (bin|lib|test|shared|drake) with language $3 (cc|cxx), prefixed with their file variant
 define src_file_var
 $(foreach var,$1,$(foreach src,$(call $2$3_$(var)_src),$(call VARIANT_$(src))$(src)))
 endef
@@ -76,7 +76,7 @@ define src_project_file_var
 $(foreach var,$(call src_file_var,$1,$2,$3),$(call VARIANT_$1_$(call source,$(patsubst %.$(call typeof,$1),%.o,$(var)),$1,$2,$3))$(var))
 endef
 
-## Gives object files of projects in list $1, of type $2 (bin|lib|test|shared) with language $3 (cc|cxx), prefixed with their project name, project type, language $4 (if any, otherwise $3) and source file variant
+## Gives object files of projects in list $1, of type $2 (bin|lib|test|shared|drake) with language $3 (cc|cxx), prefixed with their project name, project type, language $4 (if any, otherwise $3) and source file variant
 define object
 $(foreach proj,$1,$(patsubst %.$(call ext,$3),$2$(if $4,$4,$3)_$(proj)_%.o,$(call src_project_file_var,$(proj),$2,$3)))
 endef
@@ -133,7 +133,7 @@ endef
 
 ## Gives the source file of object $1 of project $2 of type $3 (bin|lib|test) in language $4 (cc/cxx)
 define source
-$(if $(filter drake%.o,$1),$(if $(filter %.$(drake_schedule).o,$1),$(patsubst $3$4_%.$(drake_schedule).o,%.$(drake_schedule).$(call ext,$4),$1),$(if $(call $3$4_$(sort $2)_$(shell drake --taskgraph $(call drake_graph,$(sort $2),$4) --module $(call drake_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell drake --taskgraph $(call drake_graph,$(sort $2),$4) --module $(call drake_task,$1,$4,$(sort $2)))),$(shell drake --taskgraph $(call drake_graph,$(sort $2),$4) --module $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4))),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
+$(if $(filter drake%.o,$1),$(if $(filter %.$(drake_schedule).o,$1),$(patsubst $3$4_%.$(drake_schedule).o,%.$(drake_schedule).$(call ext,$4),$1),$(if $(shell drake --taskgraph  $(call drake_graph,$(sort $2),$4) --module $(call drake_task,$1,$4,$(sort $2)) 2>/dev/null),$(if $(call $3$4_$(sort $2)_$(shell drake --taskgraph  $(call drake_graph,$(sort $2),$4) --module $(call drake_task,$1,$4,$(sort $2)))),$(call $3$4_$(sort $2)_$(shell drake --taskgraph $(call drake_graph,$(sort $2),$4) --module $(call drake_task,$1,$4,$(sort $2)))),$(shell drake --taskgraph $(call drake_graph,$(sort $2),$4) --module $(call $3_task,$1,$4,$(sort $2))).$(call ext,$4)),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))),$(call suffixin,$(patsubst %.o,%.$(call ext,$4),$1),$(call src,$(sort $2),$3,$4)))
 endef
 
 # Returns the package main language of object $1 of project type $2 (bin|lib|test)
@@ -178,13 +178,12 @@ endef
 
 ## Gives the private cflags of the project corresponding to object file $1
 define cflags_private_object
-$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter drake%,$1),$(if $(filter %.$(drake_schedule).o,$1),-DAPPLICATION=$(foreach lang,cc cxx,$(if $(filter drake$(lang)_%.$(drake_schedule).o,$1),$(patsubst drake$(lang)_%.$(drake_schedule).o,%,$1))),-D_DRAKE_COMPILE -DAPPLICATION=$(strip $(sort $(foreach lang,cc cxx,$(call drake_project,$1,$(lang))))) -DTASK_MODULE=$(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake_graph,$(call drake_project,$1,$(lang)),$(lang)) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))))) -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang)))))))
+$(foreach lang,cc cxx,$(if $(call projectof,$1,$(call typeof,$1),$(lang)),$(call $(call typeof,$1)_$(call projectof,$1,$(call typeof,$1),$(lang))_$(call prefix_flags,$(lang))flags_private),))$(if $(filter drake%,$1),$(if $(filter %.$(drake_schedule).o,$1),-DAPPLICATION=$(foreach lang,cc cxx,$(if $(filter drake$(lang)_%.$(drake_schedule).o,$1),$(patsubst drake$(lang)_%.$(drake_schedule).o,%,$1))),$(if $(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake_graph,$(call drake_project,$1,$(lang)),$(lang)) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))) 2>/dev/null)))),-D_DRAKE_COMPILE -DAPPLICATION=$(strip $(sort $(foreach lang,cc cxx,$(call drake_project,$1,$(lang))))) -DTASK_MODULE=$(strip $(foreach lang,cc cxx,$(if $(call drake_project,$1,$(lang)),$(shell drake --taskgraph $(call drake_graph,$(call drake_project,$1,$(lang)),$(lang)) --module $(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))))) -DTASK_NAME=$(strip $(foreach lang,cc cxx,$(call drake_task,$1,$(lang),$(call drake_project,$1,$(lang))))),)))
 endef
 
 GLOBAL_CC_LDFLAGS=$(CC_LDFLAGS_PRIVATE) $(CC_LDFLAGS) $(call pkg-config,$(CC_PKG),libs-only-L,CC_PKG_)
 GLOBAL_CXX_LDFLAGS=$(CXX_LDFLAGS_PRIVATE) $(CXX_LDFLAGS) $(call pkg-config,$(CXX_PKG),libs-only-L,CXX_PKG_)
 
-#$(call pkg-config,$(call $2_$1_pkg),libs-only-L $(if $(strip $(call $2_$1_static)),$(if $(filter 0,$(strip $(call $2_$1_static))),,--static),),$2_$1_pkg_)
 define ldflags_project
 $(call $2_$1_ldflags)
 endef
@@ -238,8 +237,8 @@ endef
 drake_schedule_src = $(foreach proj,$(drake_package),$(foreach lang,cc cxx,$(call drake_schedule_src_file,$(proj),$(lang))))
 drake_taskgraph_text = $(foreach proj,$(drake_package),$(proj).$(drake_taskgraph).$(drake_taskgraph_extension))
 drake_schedule_text = $(foreach proj,$(drake_package),$(proj).$(drake_schedule).$(drake_schedule_extension))
-cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(bincxx_package),bin,cc,cxx) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call drake_object,$(drake_package),drake,cc) $(call object,$(sharedcc_package),shared,cc) $(call object,$(sharedcxx_package),shared,cc,cxx))
-cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(bincx_package),bin,cxx,cx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc) $(call drake_object,$(drake_package),drake,cxx) $(call object,$(sharedcxx_package),shared,cxx) $(call object,$(sharedcc_package),shared,cxx,ccx))
+cc_object = $(sort $(call object,$(bincc_package),bin,cc) $(call object,$(bincxx_package),bin,cc,cxx) $(call object,$(lib_package),lib,cc) $(call object,$(testcc_package),test,cc) $(call object,$(testcc_package),test,cc,cxx) $(call object,$(drake_package),drake,cc) $(call drake_object,$(drake_package),drake,cc) $(call object,$(sharedcc_package),shared,cc) $(call object,$(sharedcxx_package),shared,cc,cxx))
+cxx_object = $(sort $(call object,$(bincxx_package),bin,cxx) $(call object,$(bincx_package),bin,cxx,cx) $(call object,$(lib_package),lib,cxx) $(call object,$(testcxx_package),test,cxx) $(call object,$(testcc_package),test,cxx,cc) $(call object,$(drake_package),drake,cxx) $(call drake_object,$(drake_package),drake,cxx) $(call object,$(sharedcxx_package),shared,cxx) $(call object,$(sharedcc_package),shared,cxx,ccx))
 lib_pkgconfig = $(sort $(foreach var,$(lib_package) $(drake_package),$(patsubst %,%.pc,$(call VARIANT_lib$(var).a)$(var))) $(foreach var,$(sharedcxx_package) $(sharedcc_package),$(patsubst %,%.pc,$(var))))
 embed_object = $(sort $(call embed,$(bincc_package),bin) $(call embed,$(testcc_package),test) $(call embed,$(bincxx_package),bin) $(call embed,$(testcxx_package),test) $(call embed,$(lib_package),lib) $(call embed,$(drake_package),drake) $(call embed,$(sharedcc_package),shared) $(call embed,$(sharedcxx_package),shared))
 
@@ -313,9 +312,8 @@ $(bincc_list): $$(call object,$$(call suffixin,$$@,$$(bincc_package)),bin,cc) $$
 $(bincxx_list): $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cxx) $$(call object,$$(call suffixin,$$@,$$(bincxx_package)),bin,cc,cxx) $$(call $$(patsubst %,bin_%_deps,$$(call suffixin,$$@,$$(bincxx_package)))) $$(call embed,$$(call suffixin,$$@,$$(bincxx_package)),bin)
 	$(CXX) -o $@ $(if $(strip $(call bin_$(call projectof_no-obj,$@,bin,cxx)_static)),$(if $(filter 0,$(strip $(call bin_$(call projectof_no-obj,$@,bin,cxx)_static))),,--static),) $(GLOBAL_CXX_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(bincxx_package),bin,cxx),bin,cxx) $(LDFLAGS) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cxx) $(call object,$(call suffixin,$@,$(bincxx_package)),bin,cc,cxx) $(call embed,$(call suffixin,$@,$(bincxx_package)),bin) $(call libs_project,$@,bin,cxx) $(call pkg_project,$(call projectof_no-obj,$@,bin,cxx),bin,cxx) $(GLOBAL_CXX_PKG) $(GLOBAL_CXX_LIBS) $(LIBS)
 
-$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call drake_object,$$(patsubst lib%.a,%,$$@),drake,$$(lang)) $$(foreach type,lib drake,$$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package)))))) $$(foreach type,lib drake,$$(call embed,$$(call longest,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(call $$(type)_package))),$$(type),$$(lang)))
-	@echo $^
-	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call drake_object,$(patsubst lib%.a,%,$@),drake,$(lang))) $(foreach type,lib drake,$(call embed,$(call longest,$(call suffixin,$(patsubst lib%.a,%,$@),$(call $(type)_package))),$(type),))
+$(lib_list): $$(foreach lang,cc cxx,$$(call object,$$(patsubst lib%.a,%,$$@),lib,$$(lang)) $$(call object,$$(patsubst lib%.a,%,$$@),drake,$$(lang)) $$(call drake_object,$$(patsubst lib%.a,%,$$@),drake,$$(lang)) $$(foreach type,lib drake,$$(call $$(patsubst %,$$(type)$$(lang)_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$($$(type)$_package)))))) $$(foreach type,lib drake,$$(call embed,$$(call longest,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(call $$(type)_package))),$$(type),$$(lang)))
+	ar rs $@ $(foreach lang,cc cxx,$(call object,$(patsubst lib%.a,%,$@),lib,$(lang)) $(call object,$(patsubst lib%.a,%,$@),drake,$(lang)) $(call drake_object,$(patsubst lib%.a,%,$@),drake,$(lang))) $(foreach type,lib drake,$(call embed,$(call longest,$(call suffixin,$(patsubst lib%.a,%,$@),$(call $(type)_package))),$(type),))
 
 $(testcc_list): $$(call object,$$(patsubst test_%,%,$$@),test,cc) $$(call object,$$(patsubst test_%,%,$$@),test,cxx,cc) $$(call $$(patsubst %,test_%_deps,$$(call suffixin,$$(patsubst lib%.a,%,$$@),$$(testcc_package)))) $$(call embed,$$(call suffixin,$$@,$$(testcc_package)),test)
 	$(CC) -o $@ $(if $(strip $(call testcc_$(call suffixin,$(call projectof_no-obj,$@,test,cc),$(testcc_package))_static)),$(if $(filter 0,$(strip $(call testcc_$(call suffixin,$(call projectof_no-obj,$@,test,cc),$(testcc_package))_static))),,--static),) $(GLOBAL_CC_TEST_LDFLAGS) $(call ldflags_project,$(call suffixin,$@,$(testcc_package),test,cc),test,cc) $(GLOBAL_CC_TEST_LDFLAGS) $(LDFLAGS) $(call object,$(call suffixin,$@,$(testcc_package)),test,cc) $(call object,$(call suffixin,$@,$(testcc_package)),test,cxx,cc) $(call embed,$(call suffixin,$@,$(testcc_package)),test) $(call libs_project,$(call suffixin,$@,$(testcc_package)),test,cc) $(call pkg_project,$(call suffixin,$(call projectof_no-obj,$@,test,cc),$(testcc_package)),test,cc) $(GLOBAL_CC_TEST_PKG) $(GLOBAL_CC_TEST_LIBS) $(LIBS)
@@ -335,7 +333,7 @@ $(shared_linkername): $$@.$(version)
 $(shared_soname): $$@.$(minor).$(release)
 	ln -sf $(patsubst %,%.$(minor).$(release),$@) $@
 
-$(lib_pkgconfig): $$(if $$(filter $$(patsubst %.pc,%,$$@),$(lib_package)),$$(patsubst %,lib%.a,$$(patsubst %.pc,%,$$@))) $$(if $$(strip $$(if $(sharedcxx_package),$$(filter $$(patsubst %.pc,%,$$@),$(sharedcxx_package))) $$(if $(sharedcc_package),$$(filter $$(patsubst %.pc,%,$$@)),$(sharedcc_package))),$$(patsubst %.pc,lib%.so,$$@)) $$(if $$(filter $$(patsubst %.pc,%,$$@),$(drake_package)),$$(patsubst %,lib%.a,$$(patsubst %.pc,%,$$@)))
+$(lib_pkgconfig): $$(if $$(filter $$(patsubst %.pc,%,$$@),$(lib_package)),$$(patsubst %,lib%.a,$$(patsubst %.pc,%,$$@))) $$(if $$(strip $$(if $(sharedcxx_package),$$(filter $$(patsubst %.pc,%,$$@),$(sharedcxx_package))) $$(if $(sharedcc_package),$$(filter $$(patsubst %.pc,%,$$@),$(sharedcc_package)))),$$(patsubst %.pc,lib%.so,$$@)) $$(if $$(filter $$(patsubst %.pc,%,$$@),$(drake_package)),$$(patsubst %,lib%.a,$$(patsubst %.pc,%,$$@)))
 	echo prefix=$(final_prefix) > $@
 	echo exec_prefix=$(if $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_exec_prefix)),$(sort $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_exec_prefix))),'$$'\{prefix\}/bin) >> $@
 	echo libdir=$(if $(sort $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libdir))),$(sort $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_libdir))),'$$'\{prefix\}/lib) >> $@
@@ -353,7 +351,9 @@ $(lib_pkgconfig): $$(if $$(filter $$(patsubst %.pc,%,$$@),$(lib_package)),$$(pat
 	echo Conflicts: $(sort $(foreach var,lib shared drake,$(call $(var)_$(patsubst %.pc,%,$@)_pkg_conflicts))) >> $@
 	echo Cflags: $(GLOBAL_CFLAGS_EXPORT) $() -I'$$'\{includedir\} $(foreach var,cc cxx,$(call cflags_project_export,$(patsubst %.pc,%,$@),lib,$(var))) $(CPPFLAGS) $(foreach var,cc cxx,$(sort $(foreach var,lib shared drake,$(call $(var2)_$(patsubst %.pc,%,$@)_pkg_$(call prefix_cflags,$(var))flags)))) >> $@
 
-dist: submake-dist
+dist: pre-dist submake-dist do-dist post-dist
+
+do-dist:
 	mkdir -p $(distdir)
 	cp Makefile $(distdir)
 	cp Makefile.in $(distdir)
@@ -365,7 +365,7 @@ dist: submake-dist
 	$(if $(strip $(testcxx_package:%=test_%_export)),cp $(sort $(foreach var,$(testcxx_package:%=test_%_export),$(call $(var)))) $(distdir),)
 	$(if $(strip $(sharedcc_package:%=shared_%_export)),cp $(sort $(foreach var,$(sharedcc_package:%=shared_%_export),$(call $(var)))) $(distdir),)
 	$(if $(strip $(sharedcxx_package:%=shared_%_export)),cp $(sort $(foreach var,$(sharedcxx_package:%=shared_%_export),$(call $(var)))) $(distdir),)
-	$(foreach proj,$(drake_package),cp $(sort $(foreach lang,cc cxx,$(if $(call drake$(lang)_$(proj)_graph),$(call drake$(lang)_$(proj)_graph) $(foreach task,$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --tasks),$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --module $(task)).$(call ext,$(lang)))))) $(call drake_$(proj)_platform) $(distdir))
+	$(foreach proj,$(drake_package),cp $(sort $(foreach var,$(drake_package:%=drake_%_export),$(call $(var)))) $(sort $(foreach lang,cc cxx,$(if $(call drake$(lang)_$(proj)_graph),$(call drake$(lang)_$(proj)_graph) $(foreach task,$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --tasks),$(shell drake --taskgraph $(call drake$(lang)_$(proj)_graph) --module $(task)).$(call ext,$(lang)))))) $(call drake_$(proj)_platform) $(distdir))
         
 clean: submake-clean
 	$(RM) $(cc_object) $(foreach var,$(cc_object),$(var:%.o=%.d)) $(foreach var,$(cc_object),$(var:%.o=%.e))
@@ -385,7 +385,7 @@ check: submake-check $(test_list)
 
 checkdist distcheck: dist
 
-install: submake-install pre-install do-install post-install
+install: pre-install submake-install do-install post-install
    
 pre-install:
      
@@ -416,4 +416,4 @@ submake-all submake-dist submake-check submake-clean submake-install submake-uni
 	@$(shell echo for i in "$(foreach var,$(subdirs),$(var))"\; do $(MAKE) -C \$$i $(patsubst submake-%,%,$@) distdir=$(distdir)/\$$i subdir=$(subdir)/\$$i\|\|exit 1\; done)
 
 FORCE:
-.PHONY: all clean check install pre-install do-install post-install uninstall dist FORCE submake-all submake-dist submake-check submake-clean submake-install submake-uninstall
+.PHONY: all clean check install pre-install do-install post-install uninstall dist FORCE submake-all submake-dist submake-check submake-clean submake-install submake-uninstall pre-dist do-dist post-dist
