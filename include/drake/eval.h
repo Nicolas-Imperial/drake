@@ -9,9 +9,7 @@ typedef struct args
 	char **argv;
 } args_t;
 
-// pthread in icc 8.1/gcc 3.4.0 *hate* when a pointer is named "kill"
-// Forbidden: kill
-drake_time_t *init, *start, *work, *killed;
-int *run;
+drake_time_t *init, *start, *run, *kill, *destroy;
+int *execute;
 
 #endif

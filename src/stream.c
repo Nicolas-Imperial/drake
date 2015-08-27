@@ -131,7 +131,7 @@ int printf_enabled = -1;
 
 #if 1
 #define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
 #else
@@ -1805,7 +1805,7 @@ drake_stream_run(drake_stream_t* stream)
 					// Switch frequency
 					if(drake_arch_get_frequency() != task->frequency)
 					{
-						drake_arch_set_frequency(task->frequency);
+						drake_arch_set_voltage_frequency(task->frequency);
 					}
 					done = task->run(task);
 #if MEASURE_STEPS

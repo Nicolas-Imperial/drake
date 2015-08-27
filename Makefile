@@ -28,13 +28,18 @@ $(TARGETS): $(FIRST)
 all check install uninstall: version
 all: submake-all
 check: submake-check
-install: submake-install
+install: pre-install submake-install do-install post-install
 uninstall: submake-uninstall
 
 $(abspath $(distdir)).tar.gz: $(abspath $(distdir))
 	tar -ch -C $(abspath $(distdir)) -O .| gzip -9 -c > $(abspath $(distdir)).tar.gz
 
-$(abspath $(distdir)): submake-dist
+$(abspath $(distdir))-reset:
+ifneq ($(wildcard $(abspath $(distdir))/.),)
+	$(RM) -r $(abspath $(distdir))
+endif
+
+$(abspath $(distdir)): $(abspath $(distdir))-reset submake-dist
 	mkdir -p $(abspath $(distdir))
 	cp Makefile $(abspath $(distdir))
 	cp Makefile.in $(abspath $(distdir))
@@ -47,7 +52,10 @@ clean-dist:
 	$(RM) -r $(abspath $(distdir))
 	$(RM) $(abspath $(distdir)).tar.gz
 
-dist: $(abspath $(distdir)).tar.gz
+do-install:
+
+dist: pre-dist do-dist post-dist
+do-dist: $(abspath $(distdir)).tar.gz
 
 distcheck: checkdist clean-dist
 
@@ -66,4 +74,4 @@ submake-all submake-dist submake-check submake-install submake-uninstall submake
 
 FORCE:
 .PHONY: FORCE all version clean dist distcheck copy clean-dist clean-tree
-.PHONY: install uninstall submake-all submake-dist submake-check submake-install submake-uninstall submake-clean
+.PHONY: install uninstall submake-all submake-dist submake-check submake-install submake-uninstall submake-clean $(abspath $(distdir)) $(abspath $(distdir))-reset pre-install do-install install post-install pre-dist do-dist post-dist 

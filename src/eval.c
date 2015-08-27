@@ -152,22 +152,22 @@ main(size_t argc, char **argv)
 	// Allocate monitoring buffers
 	init = malloc(sizeof(drake_time_t) * drake_task_number());
 	start = malloc(sizeof(drake_time_t) * drake_task_number());
-	work = malloc(sizeof(drake_time_t) * drake_task_number());
-	killed = malloc(sizeof(drake_time_t) * drake_task_number());
-	run = malloc(sizeof(int) * drake_task_number());
+	run = malloc(sizeof(drake_time_t) * drake_task_number());
+	kill = malloc(sizeof(drake_time_t) * drake_task_number());
+	destroy = malloc(sizeof(drake_time_t) * drake_task_number());
+	execute = malloc(sizeof(int) * drake_task_number());
 	for(i = 0; i < drake_task_number(); i++)
 	{
 		init[i] = drake_time_alloc();
 		start[i] = drake_time_alloc();
-		work[i] = drake_time_alloc();
-		killed[i] = drake_time_alloc();
-		run[i] = 0;
+		run[i] = drake_time_alloc();
+		kill[i] = drake_time_alloc();
+		destroy[i] = drake_time_alloc();
+		execute[i] = 0;
 	}
 
 	// Initialize stream (The scc requires this phase to not be run in parallel because of extensive IOs when loading input)
-	//drake_exclusive_begin();
 	drake_stream_init(&stream, &args.application);
-	//drake_exclusive_end();
 
 	// Measure global time
 	drake_time_t global_begin = drake_time_alloc();
@@ -213,23 +213,27 @@ main(size_t argc, char **argv)
 	{
 		out = stdout;
 	}
+	fprintf(out, "core__task__init__start__run__kill__destroy__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t:=\n");
 	for(i = 0; i < drake_task_number(); i++)
 	{
-		if(run[i] != 0)
+		if(execute[i] != 0)
 		{
-			fprintf(out, "%zu \"%s\" ", drake_core(), drake_task_name(i + 1));
+			fprintf(out, "%zu %zu %s ", i + 1, drake_core(), drake_task_name(i + 1));
 			drake_time_printf(out, init[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, start[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, work[i]);
+			drake_time_printf(out, run[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, killed[i]);
+			drake_time_printf(out, kill[i]);
+			fprintf(out, " ");
+			drake_time_printf(out, destroy[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, global);
 			fprintf(out, "\n");
 		}
 	}
+	fprintf(out, ";\n");
 	if(args.time_output_file[drake_core()] != NULL)
 	{
 		fclose(out);
