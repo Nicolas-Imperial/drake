@@ -153,7 +153,7 @@ main(size_t argc, char **argv)
 	init = malloc(sizeof(drake_time_t) * drake_task_number());
 	start = malloc(sizeof(drake_time_t) * drake_task_number());
 	run = malloc(sizeof(drake_time_t) * drake_task_number());
-	kill = malloc(sizeof(drake_time_t) * drake_task_number());
+	killed = malloc(sizeof(drake_time_t) * drake_task_number());
 	destroy = malloc(sizeof(drake_time_t) * drake_task_number());
 	execute = malloc(sizeof(int) * drake_task_number());
 	for(i = 0; i < drake_task_number(); i++)
@@ -161,7 +161,7 @@ main(size_t argc, char **argv)
 		init[i] = drake_time_alloc();
 		start[i] = drake_time_alloc();
 		run[i] = drake_time_alloc();
-		kill[i] = drake_time_alloc();
+		killed[i] = drake_time_alloc();
 		destroy[i] = drake_time_alloc();
 		execute[i] = 0;
 	}
@@ -225,7 +225,7 @@ main(size_t argc, char **argv)
 			fprintf(out, " ");
 			drake_time_printf(out, run[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, kill[i]);
+			drake_time_printf(out, killed[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, destroy[i]);
 			fprintf(out, " ");

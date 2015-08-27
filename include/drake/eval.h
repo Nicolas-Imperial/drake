@@ -9,7 +9,9 @@ typedef struct args
 	char **argv;
 } args_t;
 
-drake_time_t *init, *start, *run, *kill, *destroy;
+// pthread *hates* when a pointer is named "kill".
+drake_time_t *init, *start, *run, *killed, *destroy;
+
 int *execute;
 
 #endif
