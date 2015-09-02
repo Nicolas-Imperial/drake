@@ -1,3 +1,5 @@
+# Copyright 2015 Nicolas Melot
+#
 # This file is part of QDM.
 #
 # QDM is free software: you can redistribute it and/or modify

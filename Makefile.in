@@ -1,3 +1,5 @@
+# Copyright 2015 Nicolas Melot
+#
 # This file is part of Drake.
 #
 # Drake is free software: you can redistribute it and/or modify
@@ -40,3 +42,4 @@ post-install: dist
 ## Can be a custom target
 ## To target by default
 FIRST=
+attach = COPYING.txt

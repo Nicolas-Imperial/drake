@@ -1,3 +1,5 @@
+# Copyright 2015 Nicolas Melot
+#
 # This file is part of QDM.
 #
 # QDM is free software: you can redistribute it and/or modify
@@ -60,6 +62,7 @@ $(abspath $(distdir)): $(abspath $(distdir))-reset submake-dist
 	mkdir -p $(abspath $(distdir))
 	cp Makefile $(abspath $(distdir))
 	cp Makefile.in $(abspath $(distdir))
+	cp $(attach) $(abspath $(distdir))
 	
 clean: submake-clean clean-tree clean-dist
 
