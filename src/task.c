@@ -23,6 +23,7 @@
 #include <string.h>
 #include <math.h>
 
+#include <drake/link.h>
 #include <drake/task.h>
 #include <drake/platform.h>
 
@@ -49,44 +50,30 @@ pelib_printf_detail(task_tp)(FILE* stream, task_tp task, int level)
 	return stream;
 }
 
-//#define task_str_det_chk printf("[%s:%s:%d] Hello world!\n", __FILE__, __FUNCTION__, __LINE__);
-#define task_str_det_chk
 char *
 pelib_string(task_tp)(task_tp task)
 {
 	size_t size;
 	char *str;
-task_str_det_chk
 
 	if(task == NULL)
 	{
-task_str_det_chk
 		str = malloc(sizeof(char) * 2);
-task_str_det_chk
 		sprintf(str, ".");
   		return str;
-task_str_det_chk
 	}
 
-task_str_det_chk
 	if(task->id > 0)
 	{
-task_str_det_chk
 		size = (size_t)log10(task->id);
-task_str_det_chk
 	}
 	else
 	{
-task_str_det_chk
 		size = 1;
-task_str_det_chk
 	}
 	
-task_str_det_chk
   str = malloc((size + 1) * sizeof(char));
-task_str_det_chk
   sprintf(str, "%u", task->id);
-task_str_det_chk
 
   return str;
 }
@@ -94,39 +81,28 @@ task_str_det_chk
 char*
 pelib_string_detail(task_tp)(task_tp task, int level)
 {
-task_str_det_chk
 	if(level == 0)
 	{
-task_str_det_chk
 		return pelib_string(task_tp)(task);
 	}
 	else
 	{
 		char *simple_str, *complete_str, *pred_str, *succ_str, *src_str, *sink_str;
 
-task_str_det_chk
 		simple_str = pelib_string(task_tp)(task);
-task_str_det_chk
 		if(task->pred != NULL)
 		{
-task_str_det_chk
 			pred_str = pelib_string_detail(array_t(link_tp))(*task->pred, level - 1);
-task_str_det_chk
 		}
 		else
 		{
-task_str_det_chk
 			pred_str = malloc(sizeof(char));
-task_str_det_chk
 			pred_str[0] = '\0';
-task_str_det_chk
 		}
 		
 		if(task->pred != NULL)
 		{
-task_str_det_chk
 			succ_str = pelib_string_detail(array_t(link_tp))(*task->succ, level - 1);
-task_str_det_chk
 		}
 		else
 		{
@@ -136,9 +112,7 @@ task_str_det_chk
 		
 		if(task->source != NULL)
 		{
-task_str_det_chk
 			src_str = pelib_string_detail(array_t(cross_link_tp))(*task->source, level - 1);
-task_str_det_chk
 		}
 		else
 		{
@@ -148,9 +122,7 @@ task_str_det_chk
 
 		if(task->sink != NULL)
 		{
-task_str_det_chk
 			sink_str = pelib_string_detail(array_t(cross_link_tp))(*task->sink, level - 1);
-task_str_det_chk
 		}
 		else
 		{
@@ -197,7 +169,7 @@ pelib_init(task_tp)(task_tp* task)
 }
 
 size_t
-pelib_fread(task_tp)(task_tp* ptr, size_t size, size_t nmemb, FILE* stream)
+pelib_fread(task_tp)(task_tp* ptr, FILE* stream)
 {
 	return 0;
 }
@@ -218,6 +190,23 @@ pelib_copy(task_tp)(task_tp source, task_tp* dest)
 //	printf("%s: task %d, src->pred=%X, dst->pred=%X\n", __FUNCTION__, source->id, source->pred, (*dest)->pred);
 	
 	return 0;
+}
+
+int
+drake_task_depleted(task_tp task)
+{
+	size_t i;
+	int all_killed = 1;
+	int all_empty = 1;
+
+	for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
+	{
+		link_tp link = pelib_array_read(link_tp)(task->pred, i);
+		all_killed = all_killed && ((link->prod == NULL) ? 1 : link->prod->status >= TASK_KILLED);
+		all_empty = all_empty && (pelib_cfifo_length(int)(link->buffer) == 0);
+	}
+
+	return all_killed && all_empty;
 }
 
 #define ARRAY_T task_tp

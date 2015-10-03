@@ -30,8 +30,14 @@
 #define DRAKE_MAPPING_MAX_PROCESSOR_COUNT 16
 #define DRAKE_MAPPING_MAX_TASK_COUNT    256
 
+/**  Generates graphic mapping representation from a mapping AMPL file
+	@param input Input matrix, task id (1 to n) vs processor (1 to p) in AMPL output format. 1 if task M(n,p) == 1 iff task n is mapped to processor p
+	@param output Output image file
+	@param error Output stream where error messages are written
+**/
 void
-pelib_drawgraph2_draw(FILE*, FILE*, FILE*);
+pelib_drawgraph2_draw(FILE* input, FILE* output, FILE* error);
 mapping_t*
+/** Reads a AMPL mapping matrix (task vs processor) and returns a corresponding instance if mapping_t **/
 pelib_drawgraph2_load(FILE*, mapping_t*, int(filter)(task_t*));
 #endif /* DRAWGRAPH2_H_ */

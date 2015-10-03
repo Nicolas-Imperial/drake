@@ -99,7 +99,7 @@ bin_drake-eval_static = 0
 bin_drake-eval_embed = 
 bin_drake-eval_ldflags = 
 bin_drake-eval_deps = drake.pc
-bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES) -DAPPLICATION=$(APPLICATION) -DTIME_OUTPUT=$(TIME_OUTPUT) -DPOWER_OUTPUT=$(POWER_OUTPUT)
+bin_drake-eval_cflags = -DSAMPLES=$(SAMPLES) -DPIPELINE=$(APPLICATION) -DTIME_OUTPUT=$(TIME_OUTPUT) -DPOWER_OUTPUT=$(POWER_OUTPUT)
 bin_drake-eval_cxxflags_private = 
 
 bincc__src = 

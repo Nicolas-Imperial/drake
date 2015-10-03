@@ -143,7 +143,6 @@ drake_processor_insert_task(processor_t * proc, task_t * task)
 {
   if (!(drake_processor_find_task(proc, task->id) < proc->handled_nodes))
     {
-      //printf("%s: task %d\n", __FUNCTION__, task->id);
       *(proc->task[proc->handled_nodes]) = *task;
       proc->task[proc->handled_nodes]->core = proc;
       proc->handled_nodes++;

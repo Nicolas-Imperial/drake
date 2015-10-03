@@ -29,24 +29,37 @@
 #ifndef CROSS_LINK_H
 #define CROSS_LINK_H
 
+/** Models a link between two tasks mapped to different processors **/
 struct cross_link
 {
+	/// Pointer to the corresponding generic link
 	link_t *link;
+	/// State of the producer task of this link
 	task_status_t *prod_state;
+	/// Total number of elements read through this link, sent back from the consumer task
 	volatile size_t *read;
+	/// Total number of elements written through this link, sent by the producer along with data
 	volatile size_t *write;
+	/// Number of elements available in queue
 	size_t available;
+	/// Total number of read and write operations performed on fifo
 	size_t total_read, total_written;
+	/// Link to buffer that holds data being transmitted
 	volatile CROSS_LINK_BUFFER *buffer;
+	/// Actual number of elements 
 	size_t actual_read, actual_written;
 };
+/** Space-less type alias for struct cross_link **/
 typedef struct cross_link cross_link_t;
+/** Symbol-less type alias for pointers to struct cross_link **/
 typedef cross_link_t* cross_link_tp;
 
+/** Define a cross link as a pelib object **/
 #define STRUCT_T cross_link_tp
 #include <pelib/structure.h>
 #define DONE_cross_link_tp 1
 
+/** Define array for cross links **/
 #define ARRAY_T cross_link_tp
 #include <pelib/array.h>
 #define DONE_array_cross_link_tp 1

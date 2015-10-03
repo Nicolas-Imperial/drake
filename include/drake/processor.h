@@ -30,6 +30,7 @@
 #define DRAKE_MAPPING_NODE_CHAR_LENGTH 2
 #define DRAKE_MAPPING_SEPARATOR ':'
 
+/** Internal id of a processor within the drake framework **/
 typedef unsigned int processor_id;
 
 struct processor
@@ -40,25 +41,26 @@ struct processor
 	unsigned int node_capacity;
 	/// Identification of the processor. All processors (say n processors) should be numbered from 0 to n-1 to be friendly with files generated to ILP solver and task graph graphic generator.
 	processor_id id;
-	/// List of tasks the processor has to process
+	/// List of cross links of tasks mapped to this core whose producer task is mapped to another core.
 	array_t(cross_link_tp) *source;
+	/// List of cross links of tasks mapped to this core whose consumer task is mapped to another core.
 	array_t(cross_link_tp) *sink;
-//		volatile unsigned char *private_mem, *mpb;
-//		int buffer_size;
+	/// Number of links between tasks mapped to this core
 	int inner_links;
-//		input_ctrl_t *input_ctrl;
-//		input_buffer_t input_buffer;
-	// make sure to pad to 32 bytes from last member
-//		output_ctrl_t *output_ctrl;
-	// make sure to pad to 32 bytes from last member
+	/// List of tasks mapped to this core
 	task_t ** task;
 };
+/** Space-less type alias for struct processor **/
 typedef struct processor processor_t;
 
+/** Inserts a copy of a task into the processor **/
 int drake_processor_insert_task(processor_t *proc, task_t *task);
+/** Removes a task from a processor **/
 int drake_processor_remove_task(processor_t *proc, task_id task);
+/** Finds the index of a task (starting at 0) within the list of task contained in a processor. If the task could not be found, return the number of tasks mapped to the processor. **/
 size_t drake_processor_find_task(processor_t *proc, task_id task);
 
+/// Generates a processor pelib object 
 #define STRUCT_T processor_t
 #include <pelib/structure.h>
 #define DONE_processor_t 1

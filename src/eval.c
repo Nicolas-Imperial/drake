@@ -23,16 +23,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <drake/stream.h>
+//#include <drake/stream.h>
 #include <stddef.h>
-#include <drake/platform.h>
-#include <drake/link.h>
+//#include <drake/platform.h>
+//#include <drake/link.h>
+#include <drake.h>
 #include <drake/eval.h>
-#include <pelib/integer.h>
+//#include <pelib/integer.h>
 
 // APPLICATION is aleady defined by a compile switch
 //#define APPLICATION merge
-#include <drake.h>
 // Cannot define this marker through the APPLICATION symbol
 // This means that drake.h should not be included a second time
 //#define DONE_merge 1
@@ -168,16 +168,17 @@ main(size_t argc, char **argv)
 	arguments_t args = parse_arguments(argc, argv);
 
 	drake_arch_init(&args.platform);
-	drake_stream_t stream = drake_stream_create(APPLICATION);
+	drake_stream_t stream;
+	drake_stream_create(&stream, PIPELINE);
 
 	// Allocate monitoring buffers
-	init = malloc(sizeof(drake_time_t) * drake_task_number());
-	start = malloc(sizeof(drake_time_t) * drake_task_number());
-	run = malloc(sizeof(drake_time_t) * drake_task_number());
-	killed = malloc(sizeof(drake_time_t) * drake_task_number());
-	destroy = malloc(sizeof(drake_time_t) * drake_task_number());
-	execute = malloc(sizeof(int) * drake_task_number());
-	for(i = 0; i < drake_task_number(); i++)
+	init = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
+	start = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
+	run = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
+	killed = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
+	destroy = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
+	execute = malloc(sizeof(int) * drake_task_number(PIPELINE)());
+	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
 		init[i] = drake_time_alloc();
 		start[i] = drake_time_alloc();
@@ -235,11 +236,11 @@ main(size_t argc, char **argv)
 		out = stdout;
 	}
 	fprintf(out, "core__task__init__start__run__kill__destroy__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t:=\n");
-	for(i = 0; i < drake_task_number(); i++)
+	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
 		if(execute[i] != 0)
 		{
-			fprintf(out, "%zu %zu %s ", i + 1, drake_core(), drake_task_name(i + 1));
+			fprintf(out, "%zu %zu %s ", i + 1, drake_core(), drake_task_name(PIPELINE)(i + 1));
 			drake_time_printf(out, init[i]);
 			fprintf(out, " ");
 			drake_time_printf(out, start[i]);

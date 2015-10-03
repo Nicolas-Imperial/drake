@@ -20,3 +20,5 @@
 
 
 #include <drake/schedule.h>
+#include <drake/stream.h>
+#include <drake/node.h>

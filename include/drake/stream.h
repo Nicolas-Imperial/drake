@@ -28,28 +28,65 @@
 #ifndef DRAKE_STREAM_H
 #define DRAKE_STREAM_H
 
-#define drake_stream_create(application) drake_stream_create_explicit(PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
+/** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
+#define drake_stream_create(stream, application) \
+void* (drake_function(application))(size_t id, task_status_t state); \
+void (drake_schedule_init(application))(); \
+void (drake_schedule_destroy(application))(); \
+int (drake_task_number(application))(); \
+char* (drake_task_name(application))(size_t); \
+*(stream) = drake_stream_create_explicit(PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
 
+/** On-chip communication memory allocation stack **/
 typedef struct {
+	/// Address of the first byte of the communication memory of the active core
 	void* base_ptr;
+	/// Size in bytes of the active core's local communication memory
 	size_t size;
+	/// Pointer to the first byte not allocated in the active core's local communication memory
 	size_t* stack_ptr;
 } drake_stack_t;
 
+/** Drake stream application **/
 typedef struct {
+	/// Mapping information
 	mapping_t *mapping;
+	/// List of processors in the application
 	processor_t *proc;
+	/// Active core's on-chip communication memory allocation stack
 	drake_stack_t *stack;
+	/// Size in bytes of the active core's local communication memory
 	size_t local_memory_size;
-	drake_time_t stage_time, stage_start_time, stage_stop_time, stage_sleep_time;
+	/// Time of the current pipeline stage, calculated from its start and stop time
+	drake_time_t stage_time;
+	/// Time at which the active core started the last pipeline stage
+	drake_time_t stage_start_time;
+	/// Time at which the active core stopped the last pipeline stage
+	drake_time_t stage_stop_time;
+	/// Time the active core needs to sleep in milliseconds before the next pipeline stage
+	drake_time_t stage_sleep_time;
+	/// Function pointer to cleanup and free the memory associated to the scheduling information of the application
 	void (*schedule_destroy)();
+	/// Schedule of the streaming application
 	drake_schedule_t schedule;
+	/// Function pointer to the function that returns the function pointer corresponding to a task and its state
 	void* (*func)(size_t id, task_status_t status);
 } drake_stream_t;
 
+/** Create a streaming application using schedule information from functions given as arguments
+	@param schedule_init Function that initialises data structure that holds scheduling information
+	@param schedule_destroy Function that cleans up a schedule and frees the associated memory
+	@param task_function Function that returns the function pointer corresponding to a task and its state
+**/
 drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status));
-int drake_stream_init(drake_stream_t*, void*);
+/** Initialises a stream already created. Runs the init() method of each of its tasks
+	@param stream Stream to be initialized
+	@param arg Memory address that holds arguments to transmit to task initialization function
+**/
+int drake_stream_init(drake_stream_t* stream, void* arg);
+/** Run the streaming application **/
 int drake_stream_run(drake_stream_t*);
+/** Destroys the stream and frees its associated memory **/
 void drake_stream_destroy(drake_stream_t*);
 
 #endif

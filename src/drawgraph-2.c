@@ -1,5 +1,5 @@
 /*
- Copyright 2015 Nicolas Melot
+ Copyright 2015 Nicolas Melot, Christoph Kessler
 
  This file is part of Drake.
 

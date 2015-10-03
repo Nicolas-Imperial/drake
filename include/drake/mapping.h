@@ -30,6 +30,8 @@
 #define DRAKE_MAPPING_OUT_PROC_COLUMN_WIDTH 4
 #define DRAKE_MAPPING_OUT_AFFECT " :="
 #define DRAKE_MAPPING_OUT_ENDING ";"
+
+/** Models tasks mapped to processors **/
 struct mapping
 {
 	/// Number of processors involved in this mapping. Never modify this value manually
@@ -41,6 +43,7 @@ struct mapping
 	/// List of processors involved in the mapping
 	struct processor ** proc;
 };
+/** space-less alias for struct mapping **/
 typedef struct mapping mapping_t;
 
 #define STRUCT_T mapping_t
@@ -66,9 +69,13 @@ drake_mapping_insert_processor(mapping_t*, processor_t*);
 int
 drake_mapping_remove_processor(mapping_t*, int);
 
+/** Returns 0 if any mapping inconsistency was detected **/
 int
 drake_mapping_violations(mapping_t*);
 
+/** Generates AMPL output mapping matrix from an instance of mapping_t and place it in a string
+	@param mapping Instance of mapping_t 
+	@param str String that receives the mapping in AMPL output format **/
 char*
 drake_mapping_drawstr(mapping_t*, char*);
 /// Draws the mapping to a .fig file in the appropriate format

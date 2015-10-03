@@ -645,7 +645,7 @@ feedback_link(task_t *task, cross_link_t *link)
 	size_t size;
 
 	//RC_cache_invalidate(); // Not important?
-	size = link->available - pelib_cfifo_length(int)(*link->link->buffer);
+	size = link->available - pelib_cfifo_length(int)(link->link->buffer);
 
 	if(size > 0)
 	{
@@ -683,7 +683,7 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		//pelib_scc_cache_invalidate(); // Not important ?
 		*link->read = link->total_read;
 		drake_arch_commit(link->read); // Important
-		link->available = pelib_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_FEEDBACK
 if((printf_enabled & 1) && monitor(task, link)) {
 		printf_int(link->total_read);
@@ -702,7 +702,7 @@ void
 push_link(task_t *task, cross_link_t* link)
 {
 	//RC_cache_invalidate(); // Not important?
-	size_t length = pelib_cfifo_length(int)(*link->link->buffer);
+	size_t length = pelib_cfifo_length(int)(link->link->buffer);
 	size_t size = length - link->available;
 	/*
 	printf("[%s:%s:%d][Task %d %s] Number of elements ready to push: %zu\n", __FILE__, __FUNCTION__, __LINE__, task->id, task->name, length);
@@ -733,7 +733,7 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		link->total_written += size;
 		*link->write = link->total_written;
 		drake_arch_commit(link->write); // Important
-		link->available = pelib_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_PUSH
 if((printf_enabled & 2) && monitor(task, link)) {
 		printf_int(link->total_written);
@@ -813,7 +813,7 @@ if((printf_enabled & 4) && monitor(task, link)) {
 		printf_int(link->link->buffer->last_op);
 }
 #endif
-		link->available = pelib_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(link->link->buffer);
 		link->total_written += write;
 #if PRINTF_CHECK_IN
 if((printf_enabled & 4) && monitor(task, link)) {
@@ -873,7 +873,7 @@ check_output_link(task_t *task, cross_link_t *link)
 		}
 #endif
 		// Keep track of how much was written before work
-		link->available = pelib_cfifo_length(int)(*link->link->buffer);
+		link->available = pelib_cfifo_length(int)(link->link->buffer);
 		link->total_read += read;
 #if PRINTF_CHECK_OUT
 		if((printf_enabled & 8) && monitor(task, link)) {
@@ -1409,7 +1409,7 @@ printf_link(cross_link_t *link)
 	printf_int(link->link->buffer->read);
 	printf_int(link->link->buffer->write);
 	printf_int(link->link->buffer->last_op);
-	printf_int(pelib_cfifo_length(int)(*link->link->buffer));
+	printf_int(pelib_cfifo_length(int)(link->link->buffer));
 	printf_int(pelib_cfifo_capacity(int)(link->link->buffer));	
 
 	printf_int(link->available);
@@ -1670,7 +1670,7 @@ drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)()
 
 	stream.mapping = mapping;
 	stream.proc = proc;
-	stream.local_memory_size = drake_arch_local_size(); // - 32; // TODO: this is scc-specific: transfer this -32 to drake-scc library
+	stream.local_memory_size = drake_arch_local_size();
 	stream.stage_start_time = drake_time_alloc();
 	stream.stage_stop_time = drake_time_alloc();
 	stream.stage_sleep_time = drake_time_alloc();
@@ -1845,7 +1845,7 @@ drake_stream_run(drake_stream_t* stream)
 #if MEASURE_STEPS
 					begin = rdtsc();
 #endif
-					if(task->status == TASK_RUN && done != 0)
+					if(task->status == TASK_RUN && done)
 					{
 						
 						task->status = TASK_KILLED;

@@ -104,14 +104,14 @@ pelib_printf_detail(link_tp)(FILE* stream, link_tp link, int level)
 }
 
 size_t
-pelib_fwrite(link_tp)(link_tp link, size_t size, size_t num, FILE* file)
+pelib_fwrite(link_tp)(link_tp link, FILE* file)
 {
 	fprintf(stderr, "[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;
 }
 
 size_t
-pelib_fread(link_tp)(link_tp* link, size_t size, size_t num, FILE* file)
+pelib_fread(link_tp)(link_tp* link, FILE* file)
 {
 	fprintf(stderr, "[%s:%d] Not implemented\n", __FILE__, __LINE__);
 	return 0;

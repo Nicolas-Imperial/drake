@@ -367,10 +367,8 @@ drake_mapping_drawstr(mapping_t * mapping, char * str)
 
   for (task_index = 0; task_index < mapping->task_count; task_index++)
     {
-      proc_index = drake_mapping_find_processor_index(mapping,
-          drake_mapping_find_processor(mapping, task_index + 1));
-      fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_NODE_COLUMN_WIDTH, task_index
-          + 1);
+      proc_index = drake_mapping_find_processor_index(mapping, drake_mapping_find_processor(mapping, task_index + 1));
+      fprintf(stream, "%-*u", DRAKE_MAPPING_OUT_NODE_COLUMN_WIDTH, task_index + 1);
 
       for (k = 0; k < mapping->processor_count; k++)
         {

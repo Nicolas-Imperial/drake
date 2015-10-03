@@ -18,7 +18,7 @@
 
 
 package = drake
-version = 1
+version = 2
 minor = 0
 release = 0
 
@@ -37,6 +37,12 @@ install: post-install
 post-install: dist
 	mkdir -p $(DESTDIR)$(prefix)/$(subdir)/share/drake/
 	install -m 644 $(package)-$(version).$(minor).$(release).tar.gz $(DESTDIR)$(prefix)/$(subdir)/share/drake/
+
+doc:
+	doxygen
+	./make-doc
+
+.PHONY: doc
 
 ## Targets to run before any other target runs
 ## Can be a custom target
