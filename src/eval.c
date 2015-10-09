@@ -22,26 +22,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-//#include <drake/stream.h>
 #include <stddef.h>
-//#include <drake/platform.h>
-//#include <drake/link.h>
+
 #include <drake.h>
 #include <drake/eval.h>
-//#include <pelib/integer.h>
 
-// APPLICATION is aleady defined by a compile switch
-//#define APPLICATION merge
-// Cannot define this marker through the APPLICATION symbol
-// This means that drake.h should not be included a second time
-//#define DONE_merge 1
-
-#if 0 
-#define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%X\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
-#define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_core(), #var, var); fflush(NULL)
+#if 10 
+#define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #else
 #define debug(var)
 #define debug_addr(var)
@@ -63,9 +53,9 @@ parse_arguments(int argc, char** argv)
 	size_t i;
 
 	// default values
-	args.time_output_file = malloc(sizeof(char*) * drake_core_max());
-	args.power_output_file = malloc(sizeof(char*) * drake_core_max());
-	for(i = 0; i < drake_core_max(); i++)
+	args.time_output_file = malloc(sizeof(char*) * drake_platform_core_max());
+	args.power_output_file = malloc(sizeof(char*) * drake_platform_core_max());
+	for(i = 0; i < drake_platform_core_max(); i++)
 	{
 		args.time_output_file[i] = NULL;
 		args.power_output_file[i] = NULL;
@@ -141,17 +131,23 @@ parse_arguments(int argc, char** argv)
 			argv++;
 			size_t core;
 			core = atoi(argv[0]);
+			argv++;
 
-			if(strcmp((argv + 1)[0], "--time") == 0)
+			for(; argv[0] != NULL && strcmp(argv[0], "--") != 0; argv++)
 			{
-				argv += 2;
-				args.time_output_file[core] = argv[0];
-			}
-
-			if(strcmp((argv + 1)[0], "--power") == 0)
-			{
-				argv += 2;
-				args.power_output_file[core] = argv[0];
+				if(strcmp(argv[0], "--time") == 0)
+				{
+					argv++;
+					args.time_output_file[core] = argv[0];
+					continue;
+				}
+	
+				if(strcmp(argv[0], "--power") == 0)
+				{
+					argv++;
+					args.power_output_file[core] = argv[0];
+					continue;
+				}
 			}
 
 			continue;
@@ -167,9 +163,8 @@ main(size_t argc, char **argv)
 	size_t i;
 	arguments_t args = parse_arguments(argc, argv);
 
-	drake_arch_init(&args.platform);
-	drake_stream_t stream;
-	drake_stream_create(&stream, PIPELINE);
+	drake_platform_t stream = drake_platform_init(&args.platform);
+	drake_platform_stream_create(stream, PIPELINE);
 
 	// Allocate monitoring buffers
 	init = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
@@ -180,20 +175,20 @@ main(size_t argc, char **argv)
 	execute = malloc(sizeof(int) * drake_task_number(PIPELINE)());
 	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
-		init[i] = drake_time_alloc();
-		start[i] = drake_time_alloc();
-		run[i] = drake_time_alloc();
-		killed[i] = drake_time_alloc();
-		destroy[i] = drake_time_alloc();
+		init[i] = drake_platform_time_alloc();
+		start[i] = drake_platform_time_alloc();
+		run[i] = drake_platform_time_alloc();
+		killed[i] = drake_platform_time_alloc();
+		destroy[i] = drake_platform_time_alloc();
 		execute[i] = 0;
 	}
 
 	// Initialize stream (The scc requires this phase to not be run in parallel because of extensive IOs when loading input)
-	drake_stream_init(&stream, &args.application);
+	drake_platform_stream_init(stream, &args.application);
 
 	// Measure global time
-	drake_time_t global_begin = drake_time_alloc();
-	drake_time_t global_end = drake_time_alloc();
+	drake_time_t global_begin = drake_platform_time_alloc();
+	drake_time_t global_end = drake_platform_time_alloc();
 
 	// Measure power consumption
 	drake_power_t power = drake_platform_power_init(SAMPLES, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER));
@@ -202,13 +197,13 @@ main(size_t argc, char **argv)
 	drake_platform_power_begin(power);
 
 	// Begin time measurement
-	drake_get_time(global_begin);
+	drake_platform_time_get(global_begin);
 
 	// Run the pipeline
-	drake_stream_run(&stream);
+	drake_platform_stream_run(stream);
 
 	// Stop time measurement
-	drake_get_time(global_end);
+	drake_platform_time_get(global_end);
 
 	// Stop energy measurement
 	size_t collected;
@@ -216,10 +211,9 @@ main(size_t argc, char **argv)
 
 	// Compute and output statistics
 	// Time
-	drake_time_t global = drake_time_alloc();
-	drake_time_substract(global, global_end, global_begin);
+	drake_time_t global = drake_platform_time_alloc();
+	drake_platform_time_substract(global, global_end, global_begin);
 	
-	//drake_exclusive_begin();
 	if(collected > SAMPLES)
 	{
 		fprintf(stderr, "[ERROR] Insufficient sample memory (%zu) to store all power data (%zu).\n", (size_t)SAMPLES, collected);
@@ -227,44 +221,45 @@ main(size_t argc, char **argv)
 
 	// Output time data
 	FILE* out;
-	if(args.time_output_file[drake_core()] != NULL)
+	if(args.time_output_file[drake_platform_core_id()] != NULL)
 	{
-		out = fopen(args.time_output_file[drake_core()], "w");
+
+		out = fopen(args.time_output_file[drake_platform_core_id()], "w");
 	}
 	else
 	{
 		out = stdout;
 	}
-	fprintf(out, "core__task__init__start__run__kill__destroy__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t:=\n");
+	fprintf(out, "core__task__task_name__init__start__run__kill__destroy__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t8\t:=\n");
 	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
 		if(execute[i] != 0)
 		{
-			fprintf(out, "%zu %zu %s ", i + 1, drake_core(), drake_task_name(PIPELINE)(i + 1));
-			drake_time_printf(out, init[i]);
+			fprintf(out, "%zu %zu %s ", i + 1, drake_platform_core_id(), drake_task_name(PIPELINE)(i + 1));
+			drake_platform_time_printf(out, init[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, start[i]);
+			drake_platform_time_printf(out, start[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, run[i]);
+			drake_platform_time_printf(out, run[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, killed[i]);
+			drake_platform_time_printf(out, killed[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, destroy[i]);
+			drake_platform_time_printf(out, destroy[i]);
 			fprintf(out, " ");
-			drake_time_printf(out, global);
+			drake_platform_time_printf(out, global);
 			fprintf(out, "\n");
 		}
 	}
 	fprintf(out, ";\n");
-	if(args.time_output_file[drake_core()] != NULL)
+	if(args.time_output_file[drake_platform_core_id()] != NULL)
 	{
 		fclose(out);
 	}
 
 	// Output power data
-	if(args.power_output_file[drake_core()] != NULL)
+	if(args.power_output_file[drake_platform_core_id()] != NULL)
 	{
-		out = fopen(args.power_output_file[drake_core()], "w");
+		out = fopen(args.power_output_file[drake_platform_core_id()], "w");
 	}
 	else
 	{
@@ -303,20 +298,19 @@ main(size_t argc, char **argv)
 		}
 		fprintf(out, ";\n");
 	}
-	if(args.power_output_file[drake_core()] != NULL)
+	if(args.power_output_file[drake_platform_core_id()] != NULL)
 	{
 		fclose(out);
 	}
-	//drake_exclusive_end();
 
 	// cleanup
 	drake_platform_power_destroy(power);
-	drake_time_destroy(global);
-	drake_time_destroy(global_begin);
-	drake_time_destroy(global_end);
+	drake_platform_time_destroy(global);
+	drake_platform_time_destroy(global_begin);
+	drake_platform_time_destroy(global_end);
 
-	drake_stream_destroy(&stream);
-	drake_arch_finalize(NULL);
+	drake_platform_stream_destroy(stream);
+	drake_platform_destroy(stream);
 
 	return EXIT_SUCCESS;
 }

@@ -28,14 +28,6 @@
 #ifndef DRAKE_STREAM_H
 #define DRAKE_STREAM_H
 
-/** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
-#define drake_stream_create(stream, application) \
-void* (drake_function(application))(size_t id, task_status_t state); \
-void (drake_schedule_init(application))(); \
-void (drake_schedule_destroy(application))(); \
-int (drake_task_number(application))(); \
-char* (drake_task_name(application))(size_t); \
-*(stream) = drake_stream_create_explicit(PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
 
 /** On-chip communication memory allocation stack **/
 typedef struct {
@@ -71,6 +63,10 @@ typedef struct {
 	drake_schedule_t schedule;
 	/// Function pointer to the function that returns the function pointer corresponding to a task and its state
 	void* (*func)(size_t id, task_status_t status);
+	/// Contains all management data relative to the platform that runs the stream
+	drake_platform_t platform;
+	/// Representation of time 0 depending on platform implementation
+	drake_time_t zero;
 } drake_stream_t;
 
 /** Create a streaming application using schedule information from functions given as arguments
@@ -78,7 +74,7 @@ typedef struct {
 	@param schedule_destroy Function that cleans up a schedule and frees the associated memory
 	@param task_function Function that returns the function pointer corresponding to a task and its state
 **/
-drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(), void* (*task_function)(size_t id, task_status_t status));
+drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status));
 /** Initialises a stream already created. Runs the init() method of each of its tasks
 	@param stream Stream to be initialized
 	@param arg Memory address that holds arguments to transmit to task initialization function
@@ -87,6 +83,6 @@ int drake_stream_init(drake_stream_t* stream, void* arg);
 /** Run the streaming application **/
 int drake_stream_run(drake_stream_t*);
 /** Destroys the stream and frees its associated memory **/
-void drake_stream_destroy(drake_stream_t*);
+int drake_stream_destroy(drake_stream_t*);
 
 #endif

@@ -21,6 +21,7 @@
 
 #include <stddef.h>
 #include <drake/processor.h>
+#include <drake/schedule.h>
 
 #ifndef MAPPING_H
 #define MAPPING_H
@@ -42,6 +43,7 @@ struct mapping
 	unsigned int task_count;
 	/// List of processors involved in the mapping
 	struct processor ** proc;
+	drake_schedule_t *schedule;
 };
 /** space-less alias for struct mapping **/
 typedef struct mapping mapping_t;

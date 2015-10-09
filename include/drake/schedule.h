@@ -22,31 +22,6 @@
 #include <drake/task.h>
 
 
-#if defined APPLICATION && PELIB_CONCAT_2(DONE_, APPLICATION) == 0
-
-#define drake_function PELIB_##CONCAT_2(drake_function_, APPLICATION)
-#define drake_schedule_init PELIB_##CONCAT_2(drake_schedule_init_, APPLICATION)
-#define drake_schedule_destroy PELIB_##CONCAT_2(drake_schedule_destroy_, APPLICATION)
-#define drake_task_number PELIB_##CONCAT_2(drake_task_number_, APPLICATION)
-#define drake_task_name PELIB_##CONCAT_2(drake_task_name_, APPLICATION)
-/** Returns the pointer function that correspond to a task in a certain state **/
-void* drake_function(size_t id, task_status_t state);
-/** Initialize scheduling information for the streaming application **/
-void drake_schedule_init();
-/** Cleans up scheduling information when the stream is destroyed **/
-void drake_schedule_destroy();
-/** Returns the number of tasks in a streaming application **/
-int drake_task_number();
-/** Returns the string description of a task from its id defined in drake framework **/
-char* drake_task_name(size_t);
-#else
-#define drake_function(application) PELIB_##CONCAT_2(drake_function_, application)
-#define drake_schedule_init(application) PELIB_##CONCAT_2(drake_schedule_init_, application)
-#define drake_schedule_destroy(application) PELIB_##CONCAT_2(drake_schedule_destroy_, application)
-#define drake_task_number(application) PELIB_##CONCAT_2(drake_task_number_, application)
-#define drake_task_name(application) PELIB_##CONCAT_2(drake_task_name_, application)
-#endif
-
 #ifndef DRAKE_SCHEDULE_H
 #define DRAKE_SCHEDULE_H
 
@@ -66,6 +41,8 @@ typedef struct {
 	size_t core_number;
 	/// Number of tasks in the application
 	size_t task_number;
+	/// String id as in taskgraph and schedule of a task
+	char **task_name;
 	/// Time in millisecond of a pipeline stage
 	double stage_time;
 	/// Number of tasks mapped to a core
@@ -90,33 +67,30 @@ typedef struct {
 	drake_schedule_task_t **schedule;
 } drake_schedule_t;
 
-/// Number of cores in the schedule
-extern size_t _drake_p;
-/// Number of tasks in the application
-extern size_t _drake_n;
-/// String id as in taskgraph and schedule of a task
-extern char **_drake_task_name;
-/// Time in millisecond of a pipeline stage
-extern double _drake_stage_time;
-/// Number of tasks mapped to a core
-extern size_t *_drake_tasks_in_core;
-/// Number of tasks mapped to a core that have at least one producer mapped to another core
-extern size_t *_drake_consumers_in_core;
-/// Number of tasks mapping to a core that have at least one consumer mapped to another core
-extern size_t *_drake_producers_in_core;
-/// Number of consumers of a task
-extern size_t *_drake_consumers_in_task;
-/// Number of producers of a task
-extern size_t *_drake_producers_in_task;
-/// For each core, list of task ids that consume data produced by tasks mapped to this core
-extern size_t **_drake_consumers_id;
-/// For each core, list of task ids that procude data consumed by tasks mapped to this core
-extern size_t **_drake_producers_id;
-/// Number of consumers of a task that are mapped to another core than this task is mapped to
-extern size_t *_drake_remote_consumers_in_task;
-/// Number of producers of a task that are mapped to another core than this task is mapped to
-extern size_t *_drake_remote_producers_in_task;
-/// Scheduling information for each task in the streaming application
-extern drake_schedule_task_t **_drake_schedule;
-
 #endif
+
+#if defined APPLICATION && PELIB_CONCAT_2(DONE_, APPLICATION) == 0
+
+#define drake_function PELIB_##CONCAT_2(drake_function_, APPLICATION)
+#define drake_schedule_init PELIB_##CONCAT_2(drake_schedule_init_, APPLICATION)
+#define drake_schedule_destroy PELIB_##CONCAT_2(drake_schedule_destroy_, APPLICATION)
+#define drake_task_number PELIB_##CONCAT_2(drake_task_number_, APPLICATION)
+#define drake_task_name PELIB_##CONCAT_2(drake_task_name_, APPLICATION)
+/** Returns the pointer function that correspond to a task in a certain state **/
+void* drake_function(size_t id, task_status_t state);
+/** Initialize scheduling information for the streaming application **/
+void drake_schedule_init(drake_schedule_t*);
+/** Cleans up scheduling information when the stream is destroyed **/
+void drake_schedule_destroy(drake_schedule_t*);
+/** Returns the number of tasks in a streaming application **/
+int drake_task_number();
+/** Returns the string description of a task from its id defined in drake framework **/
+char* drake_task_name(size_t);
+#else
+#define drake_function(application) PELIB_##CONCAT_2(drake_function_, application)
+#define drake_schedule_init(application) PELIB_##CONCAT_2(drake_schedule_init_, application)
+#define drake_schedule_destroy(application) PELIB_##CONCAT_2(drake_schedule_destroy_, application)
+#define drake_task_number(application) PELIB_##CONCAT_2(drake_task_number_, application)
+#define drake_task_name(application) PELIB_##CONCAT_2(drake_task_name_, application)
+#endif
+
