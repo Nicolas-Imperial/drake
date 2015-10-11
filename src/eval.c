@@ -27,7 +27,7 @@
 #include <drake.h>
 #include <drake/eval.h>
 
-#if 10 
+#if 0 
 #define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
@@ -57,6 +57,8 @@ parse_arguments(int argc, char** argv)
 	args.power_output_file = malloc(sizeof(char*) * drake_platform_core_max());
 	for(i = 0; i < drake_platform_core_max(); i++)
 	{
+		args.time_output_file[i] = "/dev/null";
+		args.power_output_file[i] = "/dev/null";
 		args.time_output_file[i] = NULL;
 		args.power_output_file[i] = NULL;
 	}
@@ -133,7 +135,7 @@ parse_arguments(int argc, char** argv)
 			core = atoi(argv[0]);
 			argv++;
 
-			for(; argv[0] != NULL && strcmp(argv[0], "--") != 0; argv++)
+			for(; argv[0] != NULL; argv++)
 			{
 				if(strcmp(argv[0], "--time") == 0)
 				{
@@ -148,8 +150,11 @@ parse_arguments(int argc, char** argv)
 					args.power_output_file[core] = argv[0];
 					continue;
 				}
+
+				break;
 			}
 
+			argv--;
 			continue;
 		}
 	}

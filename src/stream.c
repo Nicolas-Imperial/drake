@@ -54,7 +54,7 @@
 #include <drake/stream.h>
 #include <pelib/monitor.h>
 
-#if 10
+#if 0
 #define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
@@ -597,7 +597,6 @@ allocate_buffers(drake_stream_t* stream)
 							int core = link->cons->core->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in_succ, nb_out_succ) / sizeof(int);
 							capacity = capacity - (capacity % drake_platform_shared_align());
-							//link->buffer->buffer = (int*)drake_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
 							link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
 							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
