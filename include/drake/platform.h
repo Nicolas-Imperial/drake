@@ -59,7 +59,7 @@ int drake_platform_destroy(drake_platform_t);
 volatile void* drake_platform_shared_malloc(size_t size, size_t core);
 volatile void* drake_platform_shared_malloc_mailbox(size_t size, size_t core);
 /** Deallocates the on-chip communication memory corresponding to the address given. Only the calling cores can see that the memory has been freed. Every core should run this function in the same order using the same parameter. Any implementation must be deterministic. **/
-int drake_platform_shared_free(volatile void* addr, size_t core);
+void drake_platform_shared_free(volatile void* addr, size_t core);
 /** Allocates memory on on-chip private memory of the core that calls this function **/
 void* drake_platform_store_malloc(size_t size);
 /** Frees on-chip private memory of the core that call this function **/
