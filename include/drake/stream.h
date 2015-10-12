@@ -28,25 +28,12 @@
 #ifndef DRAKE_STREAM_H
 #define DRAKE_STREAM_H
 
-
-/** On-chip communication memory allocation stack **/
-typedef struct {
-	/// Address of the first byte of the communication memory of the active core
-	void* base_ptr;
-	/// Size in bytes of the active core's local communication memory
-	size_t size;
-	/// Pointer to the first byte not allocated in the active core's local communication memory
-	size_t* stack_ptr;
-} drake_stack_t;
-
 /** Drake stream application **/
 typedef struct {
 	/// Mapping information
 	mapping_t *mapping;
 	/// List of processors in the application
 	processor_t *proc;
-	/// Active core's on-chip communication memory allocation stack
-	drake_stack_t *stack;
 	/// Size in bytes of the active core's local communication memory
 	size_t local_memory_size;
 	/// Time of the current pipeline stage, calculated from its start and stop time

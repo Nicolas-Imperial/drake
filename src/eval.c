@@ -59,8 +59,6 @@ parse_arguments(int argc, char** argv)
 	{
 		args.time_output_file[i] = "/dev/null";
 		args.power_output_file[i] = "/dev/null";
-		args.time_output_file[i] = NULL;
-		args.power_output_file[i] = NULL;
 	}
 
 	args.application.argc = 0;
@@ -228,7 +226,6 @@ main(size_t argc, char **argv)
 	FILE* out;
 	if(args.time_output_file[drake_platform_core_id()] != NULL)
 	{
-
 		out = fopen(args.time_output_file[drake_platform_core_id()], "w");
 	}
 	else

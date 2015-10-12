@@ -504,42 +504,6 @@ check_mpb_size(size_t mpb_size, size_t nb_in, size_t nb_out, processor_t *proc)
 	}
 }
 
-static drake_stack_t*
-stack_malloc(size_t size)
-{
-	drake_stack_t *stack = (drake_stack_t*)drake_platform_private_malloc(sizeof(drake_stack_t));
-	//stack->base_ptr = (void*)drake_platform_shared_malloc(size, drake_platform_core_id());
-	stack->size = size;
-	stack->stack_ptr = (size_t*)drake_platform_private_malloc(sizeof(size_t) * drake_platform_core_size());
-	memset(stack->stack_ptr, 0, sizeof(size_t) * drake_platform_core_size());
-	return stack;
-}
-
-static void*
-stack_grow(drake_stack_t *stack, size_t size, int id)
-{
-	if((size_t)(stack->stack_ptr[id]) + size <= stack->size)
-	{
-		size_t ptr = stack->stack_ptr[id];
-		stack->stack_ptr[id] += size;
-		
-		return (void*)((size_t)stack->base_ptr + ptr);
-	}
-	fprintf(stdout, "[%s:%s:%d] Not enough local memory\n", __FILE__, __FUNCTION__, __LINE__);
-	abort();
-	return NULL;
-}
-
-static int
-stack_free(drake_stack_t* stack)
-{
-	free(stack->stack_ptr);
-	drake_local_free(stack->base_ptr);
-	free(stack);
-
-	return 1;
-}
-
 static
 void
 allocate_buffers(drake_stream_t* stream)
@@ -554,9 +518,7 @@ allocate_buffers(drake_stream_t* stream)
 	fprintf(stderr, "[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack);
 	fprintf(stderr, "[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->base_ptr);
 	fprintf(stderr, "[%s:%s:%d] %zX\n", __FILE__, __FUNCTION__, __LINE__, stream->stack->stack_ptr);
-	drake_stack_t *stack = stream->stack;
 	*/
-	drake_stack_t *stack = stack_malloc(stream->local_memory_size);
 
 	for(i = 0; i < mapping->processor_count; i++)
 	{
