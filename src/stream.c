@@ -42,6 +42,7 @@
 //#define __USE_GNU
 #include <ucontext.h>
 #endif
+#include <execinfo.h>
 
 #include <pelib/integer.h>
 
@@ -201,11 +202,14 @@ build_tree_network(mapping_t* mapping)
 	}
 }
 
+#if PRINTF_FEEDBACK || PRINTF_PUSH || PRINTF_CHECK_IN || PRINTF_CHECK_OUT
 static int
 monitor(task_t *task, cross_link_t *link)
 {
 	return 0;
 }
+int printf_enabled = -1;
+#endif
 
 static
 void
@@ -220,16 +224,16 @@ feedback_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_FEEDBACK
 if((printf_enabled & 1) && monitor(task, link)) {
-		printf_str(".............................................................");
-		printf_str("Feedback");
-		printf_str(".............................................................");
-		printf_int(*link->read);
-		printf_int(link->link->prod->id);
-		printf_int(link->link->cons->id);
-		printf_int(size);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
+		debug(".............................................................");
+		debug("Feedback");
+		debug(".............................................................");
+		debug_int(*link->read);
+		debug_int(link->link->prod->id);
+		debug_int(link->link->cons->id);
+		debug_int(size);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
 }
 #endif
 		link->total_read += size;
@@ -238,12 +242,12 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_FEEDBACK
 if((printf_enabled & 1) && monitor(task, link)) {
-		printf_int(link->total_read);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
-		printf_int(*link->read);
-		printf_str(".............................................................");
+		debug_int(link->total_read);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
+		debug_int(*link->read);
+		debug(".............................................................");
 }
 #endif
 	}
@@ -268,16 +272,16 @@ push_link(task_t *task, cross_link_t* link)
 	{
 #if PRINTF_PUSH
 if((printf_enabled & 1) && monitor(task, link)) {
-		printf_str("***********************************************");
-		printf_str("Push");
-		printf_str("***********************************************");
-		printf_int(link->link->prod->id);
-		printf_int(link->link->cons->id);
-		printf_int(size);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
-		printf_int(size);
+		debug("***********************************************");
+		debug("Push");
+		debug("***********************************************");
+		debug_int(link->link->prod->id);
+		debug_int(link->link->cons->id);
+		debug_int(size);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
+		debug_int(size);
 }
 #endif
 		link->total_written += size;
@@ -286,11 +290,11 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_PUSH
 if((printf_enabled & 2) && monitor(task, link)) {
-		printf_int(link->total_written);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
-		printf_str("***********************************************");
+		debug_int(link->total_written);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
+		debug("***********************************************");
 }
 #endif
 	}
@@ -333,30 +337,30 @@ check_input_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_CHECK_IN
 if((printf_enabled & 4) && monitor(task, link)) {
-		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
-		printf_str("Check");
-		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
-		printf_int(link->link->prod->id);
-		printf_int(link->link->cons->id);
-		printf_int(write);
-		printf_int(actual_write);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
+		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+		debug("Check");
+		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+		debug_int(link->link->prod->id);
+		debug_int(link->link->cons->id);
+		debug_int(write);
+		debug_int(actual_write);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
 }
 #endif
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 		link->total_written += write;
 #if PRINTF_CHECK_IN
 if((printf_enabled & 4) && monitor(task, link)) {
-		printf_int(write);
-		printf_int(link->link->prod->status);
-		printf_int(link->total_written);
-		printf_int(link->available);
-		printf_int(link->link->buffer->read);
-		printf_int(link->link->buffer->write);
-		printf_int(link->link->buffer->last_op);
-		printf_str("++++++++++++++++++++++++++++++++++++++++++++++++++++");
+		debug_int(write);
+		debug_int(link->link->prod->status);
+		debug_int(link->total_written);
+		debug_int(link->available);
+		debug_int(link->link->buffer->read);
+		debug_int(link->link->buffer->write);
+		debug_int(link->link->buffer->last_op);
+		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
 }
 #endif
 	}
@@ -367,9 +371,9 @@ if((printf_enabled & 4) && monitor(task, link)) {
 		link->link->prod->status = new_state;
 #if PRINTF_CHECK_IN
 		if((printf_enabled & 1) && monitor(task, link)) {
-			printf_int(link->link->prod->id);
-			printf_int(link->link->cons->id);
-			printf_int(link->link->prod->status);
+			debug_int(link->link->prod->id);
+			debug_int(link->link->cons->id);
+			debug_int(link->link->prod->status);
 		}
 #endif
 	}
@@ -389,17 +393,17 @@ check_output_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_CHECK_OUT
 		if((printf_enabled & 8) && monitor(task, link)) {
-			printf_str("##############################################################");
-			printf_str("Check output_link");
-			printf_str("##############################################################");
-			printf_int((int)*link->read);
-			printf_int((int)read);
-			printf_int((int)actual_read);
-			printf_int(link->link->prod->id);
-			printf_int(link->link->cons->id);
-			printf_int(link->link->buffer->read);
-			printf_int(link->link->buffer->write);
-			printf_int(link->link->buffer->last_op);
+			debug("##############################################################");
+			debug("Check output_link");
+			debug("##############################################################");
+			debug_int((int)*link->read);
+			debug_int((int)read);
+			debug_int((int)actual_read);
+			debug_int(link->link->prod->id);
+			debug_int(link->link->cons->id);
+			debug_int(link->link->buffer->read);
+			debug_int(link->link->buffer->write);
+			debug_int(link->link->buffer->last_op);
 		}
 #endif
 		// Keep track of how much was written before work
@@ -407,14 +411,14 @@ check_output_link(task_t *task, cross_link_t *link)
 		link->total_read += read;
 #if PRINTF_CHECK_OUT
 		if((printf_enabled & 8) && monitor(task, link)) {
-			printf_int(read);
-			printf_int(new_state);
-			printf_int(link->total_read);
-			printf_int(link->link->buffer->read);
-			printf_int(link->link->buffer->write);
-			printf_int(link->link->buffer->last_op);
-			printf_int((int)*link->read);
-			printf_str("##############################################################");
+			debug_int(read);
+			debug_int(new_state);
+			debug_int(link->total_read);
+			debug_int(link->link->buffer->read);
+			debug_int(link->link->buffer->write);
+			debug_int(link->link->buffer->last_op);
+			debug_int((int)*link->read);
+			debug("##############################################################");
 		}
 #endif
 	}
@@ -423,14 +427,14 @@ check_output_link(task_t *task, cross_link_t *link)
 		/*
 		if(read > 0)
 		{
-			printf_str("Could not receive acknowledgment");
-			printf_int(link->link->prod->id);
-			printf_int(link->link->cons->id);
-			printf_int(read);
-			printf_int(actual_read);
-			printf_int(link->link->buffer->read);
-			printf_int(link->link->buffer->write);
-			printf_int(link->link->buffer->last_op);
+			debug("Could not receive acknowledgment");
+			debug_int(link->link->prod->id);
+			debug_int(link->link->cons->id);
+			debug_int(read);
+			debug_int(actual_read);
+			debug_int(link->link->buffer->read);
+			debug_int(link->link->buffer->write);
+			debug_int(link->link->buffer->last_op);
 		}
 		*/
 	}
@@ -644,28 +648,28 @@ allocate_buffers(drake_stream_t* stream)
 	}
 }
 
-#if DEBUG && 0 
+#if MONITOR_EXCEPTIONS
 void
 printf_link(cross_link_t *link)
 {
-	printf_int(link->link->buffer->read);
-	printf_int(link->link->buffer->write);
-	printf_int(link->link->buffer->last_op);
-	printf_int(pelib_cfifo_length(int)(link->link->buffer));
-	printf_int(pelib_cfifo_capacity(int)(link->link->buffer));	
+	debug_int(link->link->buffer->read);
+	debug_int(link->link->buffer->write);
+	debug_int(link->link->buffer->last_op);
+	debug_int(pelib_cfifo_length(int)(link->link->buffer));
+	debug_int(pelib_cfifo_capacity(int)(link->link->buffer));	
 
-	printf_int(link->available);
-	printf_int(link->total_read);
-	printf_int(link->total_written);
+	debug_int(link->available);
+	debug_int(link->total_read);
+	debug_int(link->total_written);
 
-	printf_int(link->prod_state);
-	printf_int(link->actual_read);
-	printf_int(link->actual_written);
+	debug_int(link->prod_state);
+	debug_int(link->actual_read);
+	debug_int(link->actual_written);
 
-	pelib_arch_pull(link->read);
-	printf_int(*link->read);
-	pelib_arch_pull(link->write);
-	printf_int(*link->write);
+	drake_platform_pull(link->read);
+	debug_int(*link->read);
+	drake_platform_pull(link->write);
+	debug_int(*link->write);
 }
 
 task_t *current = NULL;
@@ -673,96 +677,34 @@ int signal_counter = 0;
 void
 bt_sighandler(int sig, siginfo_t *info, void *secret)
 {
-	void *trace[16];
-	char **messages = (char **)NULL, printf_input[3];
-	int i, j, trace_size = 0;
-	processor_t *proc;
-	task_t *task;
-	cross_link_t *link;
-	ucontext_t *uc = (ucontext_t *)secret;
+	void *array[10];
+	size_t size;
+	char **strings;
+	size_t i;
 
-	printf_str("Waiting for other cores to catch signal");
-	drake_platform_barrier(NULL);
-	printf_str("Ready to show state");
+	size = backtrace (array, 10);
+	strings = backtrace_symbols (array, size);
 
-	if(current != NULL)
+	printf ("Caught signal %d\n", sig);
+	switch(sig)
 	{
-		proc = current->core;
-		for(i = 0; i < proc->handled_nodes; i++)
+		case SIGFPE:
 		{
-			task_t *task = proc->task[i];
-
-			printf_str("++++++++++++++++ Task +++++++++++++++");
-			printf_int(task->id);
-			printf_int(task->status);
-
-			for(j = 0; j < pelib_array_length(cross_link_tp)(task->source); j++)
-			{
-				printf_str("=============== Source link ================");
-				link = pelib_array_read(cross_link_tp)(task->source, j);
-				printf_int(link->link->prod != NULL ? link->link->prod->id : -1);
-				printf_link(link);				
-			}
-
-			for(j = 0; j < pelib_array_length(cross_link_tp)(task->sink); j++)
-			{
-				printf_str("================= Sink link ===================");
-				link = pelib_array_read(cross_link_tp)(task->sink, j);
-				printf_int(link->link->cons != NULL ? link->link->cons->id : -1);
-				printf_link(link);				
-			}
+			printf("Caught floating-point exception (SIGFPE)\n");
 		}
+		break;
+		default:
+		{
+			printf("Caught unknown signal: %d\n", sig);
+		}
+		break;
 	}
-	else
-	{
-		printf_str("Current was not assigned yet");
-	}
+	
+	printf ("Obtained %zd stack frames.\n", size);
 
-	printf_str("Next output to printf");
-	printf_str("0: Nothing");
-	printf_str("1: Feedback"); 
-	printf_str("2: Push"); 
-	printf_str("4: Check in"); 
-	printf_str("8: Check out");
-	printf_str("16: Get new status");
-	printf_str("32: Exit");
-	printf_str("Output to printf (add to combine)");
-	scanf("%i", &printf_enabled); 
-
-	printf_int(printf_enabled);
-	printf_str("Waiting for other cores to continue");
-	drake_platform_barrier(NULL);
-	printf_str("Resuming computation");
-
-	/* Do something useful with siginfo_t */
-	if (sig == SIGSEGV)
+	for (i = 0; i < size; i++)
 	{
-		printf("Got signal %d, faulty address is %p, from %p\n", sig, info->si_addr, uc->uc_mcontext.gregs[REG_EIP]);
-	}
-	else
-	{
-		printf("Got signal %d\n", sig);
-	}
-
-	trace_size = backtrace(trace, 16);
-	/* overwrite sigaction with caller's address */
-	trace[1] = (void *) uc->uc_mcontext.gregs[REG_EIP];
-
-	messages = backtrace_symbols(trace, trace_size);
-	/* skip first stack frame (points here) */
-	printf("[bt] Execution path:\n");
-	for (i = 1; i < trace_size; i++)
-	{
-		printf("[bt] %s\n", messages[i]);
-	}
-
-	if(printf_enabled < 32)
-	{
-		signal_counter++;
-	}
-	else
-	{
-		exit(-1);
+		printf ("%s ", strings[i]);
 	}
 }
 #endif
@@ -929,6 +871,23 @@ drake_stream_run(drake_stream_t* stream)
 	time_t timeref = time(NULL);
 	int done = 0;
 
+#if MONITOR_EXCEPTIONS
+        /* Install our signal handler */
+        struct sigaction sa;
+
+        sa.sa_sigaction = bt_sighandler;
+        sigemptyset (&sa.sa_mask);
+        sa.sa_flags = SA_RESTART | SA_SIGINFO;
+
+        sigaction(SIGSEGV, &sa, NULL);
+        sigaction(SIGUSR1, &sa, NULL);
+        sigaction(SIGINT, &sa, NULL);
+        sigaction(SIGFPE, &sa, NULL);
+        sigaction(SIGTERM, &sa, NULL);
+#endif
+
+	int freq = 0;
+
 	/* Phase 1, real */
 	while(active_tasks > 0)
 	{
@@ -954,9 +913,11 @@ drake_stream_run(drake_stream_t* stream)
 					task_check(task);
 
 					// Switch frequency
-					if(drake_platform_get_frequency() != task->frequency)
+					freq = drake_platform_get_frequency();
+					if(freq != task->frequency)
 					{
-						drake_platform_set_voltage_frequency(task->frequency);
+						freq = task->frequency;
+						drake_platform_set_voltage_frequency(freq);
 					}
 
 					// Work
