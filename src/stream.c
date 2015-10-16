@@ -648,6 +648,7 @@ allocate_buffers(drake_stream_t* stream)
 	}
 }
 
+#define MONITOR_EXCEPTIONS 0
 #if MONITOR_EXCEPTIONS
 void
 printf_link(cross_link_t *link)
