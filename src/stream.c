@@ -55,11 +55,13 @@
 #include <drake/stream.h>
 #include <pelib/monitor.h>
 
+// Debuggin options
+#define MONITOR_EXCEPTIONS 0
 #if 0
-#define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug(var) printf("[%s:%s:%d:P%zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:P%zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:P%zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:P%zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #else
 #define debug(var)
 #define debug_addr(var)
@@ -224,16 +226,6 @@ feedback_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_FEEDBACK
 if((printf_enabled & 1) && monitor(task, link)) {
-		debug(".............................................................");
-		debug("Feedback");
-		debug(".............................................................");
-		debug_int(*link->read);
-		debug_int(link->link->prod->id);
-		debug_int(link->link->cons->id);
-		debug_int(size);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
 }
 #endif
 		link->total_read += size;
@@ -242,12 +234,6 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_FEEDBACK
 if((printf_enabled & 1) && monitor(task, link)) {
-		debug_int(link->total_read);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
-		debug_int(*link->read);
-		debug(".............................................................");
 }
 #endif
 	}
@@ -272,16 +258,6 @@ push_link(task_t *task, cross_link_t* link)
 	{
 #if PRINTF_PUSH
 if((printf_enabled & 1) && monitor(task, link)) {
-		debug("***********************************************");
-		debug("Push");
-		debug("***********************************************");
-		debug_int(link->link->prod->id);
-		debug_int(link->link->cons->id);
-		debug_int(size);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
-		debug_int(size);
 }
 #endif
 		link->total_written += size;
@@ -290,11 +266,6 @@ if((printf_enabled & 1) && monitor(task, link)) {
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 #if PRINTF_PUSH
 if((printf_enabled & 2) && monitor(task, link)) {
-		debug_int(link->total_written);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
-		debug("***********************************************");
 }
 #endif
 	}
@@ -337,30 +308,12 @@ check_input_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_CHECK_IN
 if((printf_enabled & 4) && monitor(task, link)) {
-		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
-		debug("Check");
-		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
-		debug_int(link->link->prod->id);
-		debug_int(link->link->cons->id);
-		debug_int(write);
-		debug_int(actual_write);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
 }
 #endif
 		link->available = pelib_cfifo_length(int)(link->link->buffer);
 		link->total_written += write;
 #if PRINTF_CHECK_IN
 if((printf_enabled & 4) && monitor(task, link)) {
-		debug_int(write);
-		debug_int(link->link->prod->status);
-		debug_int(link->total_written);
-		debug_int(link->available);
-		debug_int(link->link->buffer->read);
-		debug_int(link->link->buffer->write);
-		debug_int(link->link->buffer->last_op);
-		debug("++++++++++++++++++++++++++++++++++++++++++++++++++++");
 }
 #endif
 	}
@@ -371,9 +324,6 @@ if((printf_enabled & 4) && monitor(task, link)) {
 		link->link->prod->status = new_state;
 #if PRINTF_CHECK_IN
 		if((printf_enabled & 1) && monitor(task, link)) {
-			debug_int(link->link->prod->id);
-			debug_int(link->link->cons->id);
-			debug_int(link->link->prod->status);
 		}
 #endif
 	}
@@ -393,17 +343,6 @@ check_output_link(task_t *task, cross_link_t *link)
 	{
 #if PRINTF_CHECK_OUT
 		if((printf_enabled & 8) && monitor(task, link)) {
-			debug("##############################################################");
-			debug("Check output_link");
-			debug("##############################################################");
-			debug_int((int)*link->read);
-			debug_int((int)read);
-			debug_int((int)actual_read);
-			debug_int(link->link->prod->id);
-			debug_int(link->link->cons->id);
-			debug_int(link->link->buffer->read);
-			debug_int(link->link->buffer->write);
-			debug_int(link->link->buffer->last_op);
 		}
 #endif
 		// Keep track of how much was written before work
@@ -411,14 +350,6 @@ check_output_link(task_t *task, cross_link_t *link)
 		link->total_read += read;
 #if PRINTF_CHECK_OUT
 		if((printf_enabled & 8) && monitor(task, link)) {
-			debug_int(read);
-			debug_int(new_state);
-			debug_int(link->total_read);
-			debug_int(link->link->buffer->read);
-			debug_int(link->link->buffer->write);
-			debug_int(link->link->buffer->last_op);
-			debug_int((int)*link->read);
-			debug("##############################################################");
 		}
 #endif
 	}
@@ -427,14 +358,6 @@ check_output_link(task_t *task, cross_link_t *link)
 		/*
 		if(read > 0)
 		{
-			debug("Could not receive acknowledgment");
-			debug_int(link->link->prod->id);
-			debug_int(link->link->cons->id);
-			debug_int(read);
-			debug_int(actual_read);
-			debug_int(link->link->buffer->read);
-			debug_int(link->link->buffer->write);
-			debug_int(link->link->buffer->last_op);
 		}
 		*/
 	}
@@ -648,30 +571,7 @@ allocate_buffers(drake_stream_t* stream)
 	}
 }
 
-#define MONITOR_EXCEPTIONS 0
 #if MONITOR_EXCEPTIONS
-void
-printf_link(cross_link_t *link)
-{
-	debug_int(link->link->buffer->read);
-	debug_int(link->link->buffer->write);
-	debug_int(link->link->buffer->last_op);
-	debug_int(pelib_cfifo_length(int)(link->link->buffer));
-	debug_int(pelib_cfifo_capacity(int)(link->link->buffer));	
-
-	debug_int(link->available);
-	debug_int(link->total_read);
-	debug_int(link->total_written);
-
-	debug_int(link->prod_state);
-	debug_int(link->actual_read);
-	debug_int(link->actual_written);
-
-	drake_platform_pull(link->read);
-	debug_int(*link->read);
-	drake_platform_pull(link->write);
-	debug_int(*link->write);
-}
 
 task_t *current = NULL;
 int signal_counter = 0;
@@ -686,27 +586,39 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 	size = backtrace (array, 10);
 	strings = backtrace_symbols (array, size);
 
-	printf ("Caught signal %d\n", sig);
+	if(drake_platform_core_id() == 0)
+	{
+	printf("[%s:%s:%d:P%zu] Caught signal %d\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), sig);
 	switch(sig)
 	{
 		case SIGFPE:
 		{
-			printf("Caught floating-point exception (SIGFPE)\n");
+			printf("[%s:%s:%d:P%zu] Caught floating-point exception (SIGFPE)\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id());
+		}
+		break;
+		case SIGSEGV:
+		{
+			printf("[%s:%s:%d:P%zu] Caught segmentation fault exception (SIGSEGV)\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id());
 		}
 		break;
 		default:
 		{
-			printf("Caught unknown signal: %d\n", sig);
+			printf("[%s:%s:%d:P%zu] Caught unknown signal: %d\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), sig);
 		}
 		break;
 	}
 	
-	printf ("Obtained %zd stack frames.\n", size);
+	printf("[%s:%s:%d:P%zu] Obtained %zd stack frames.\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), size);
+	printf("[%s:%s:%d:P%zu] ", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id());
 
 	for (i = 0; i < size; i++)
 	{
-		printf ("%s ", strings[i]);
+		printf("%s ", strings[i]);
 	}
+	printf("\n");
+	}
+
+	abort();
 }
 #endif
 
