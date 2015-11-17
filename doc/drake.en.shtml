@@ -508,7 +508,7 @@ Acknowledgments
 </a>
 <p>
 This work was partly funded by the EU FP7 project 
-<a href="http://www.peppher.eu/">PEPPHER</a> and 
+<a href="http://http://www.excess-project.eu/">EXCESS</a> and 
 by <a href="http://www.e-science.se">SeRC</a> project OpCoReS.
 </p>
 <p>
@@ -519,8 +519,6 @@ by <a href="http://www.e-science.se">SeRC</a> project OpCoReS.
 
 <table width="98%">
 <tr bgcolor="#ffffff">
-<td border="8"><img width="100" bordercolor="#f0f0f0" src="http://www.par.univie.ac.at/project/peppher/images/EC_logo.jpg">
-</td>
 <td border="8"><img width="80" bordercolor="#f0f0f0" src="http://www.ida.liu.se/~chrke/logos/fp7.png"></td>
 
 <td border="18"><img width="200" src="https://dcs.cse.chalmers.se/excess/images/excess.png"></td>
