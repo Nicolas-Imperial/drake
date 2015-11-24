@@ -1,4 +1,5 @@
 <!--#include virtual="drake-data.shtml" -->
+<!--#include virtual="${absolute}../drake/drake-intel-ia-data.shtml" -->
 <!--#include virtual="${absolute}../drake/drake-scc-data.shtml" -->
 <!--#include virtual="${absolute}../drake/pelib-scc-data.shtml" -->
 <!--#include virtual="${absolute}../drake/merge-data.shtml" -->
