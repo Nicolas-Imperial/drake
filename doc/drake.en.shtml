@@ -169,7 +169,7 @@ Accepted for Eighth International Workshop on Parallel Programming Models and Sy
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="pelib-scc"-->.tar.gz">Pelib SCC</a><br>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-scc"-->.tar.gz">Drake SCC</a>
 <h4>Drake for Intel-IA</h4>
-<a href="<!--#echo var="absolute"-->drake-intel-ia/<!--#echo var="drake-intel-ia"-->.tar.gz">Drake Intel IA</a>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-intel-ia"-->.tar.gz">Drake Intel IA</a>
 <h3>Example</h3>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="merge" -->.tar.gz">Pipelined mergesort</a>
 <p>
