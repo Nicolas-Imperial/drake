@@ -319,14 +319,15 @@ The source code available above is released under GPLv3 licence. Please contact 
 <ul>
 <li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-intel-ia"-->.tar.gz">Drake Intel IA</a>
-<<<<<<< HEAD
+</li>
+</ul>
 <h3>Schedulers</h3>
+<ul>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="schedulers" -->.tar.gz">External (LPT) schedulers</a>
-=======
 </li>
 </ul>
 
->>>>>>> dd9b1d43d72a9bb1224ddcdf77a00aa3e025b06d
 <h3>Example</h3>
 <ul>
 <li>
