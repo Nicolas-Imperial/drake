@@ -9,6 +9,7 @@
 <!--#include virtual="${absolute}../crown/crown-data.shtml" -->
 <!--#include virtual="${absolute}../pelib/unit-data.shtml" -->
 <!--#include virtual="${absolute}../drake/merge-data.shtml" -->
+<!--#include virtual="${absolute}../drake/schedulers-data.shtml" -->
 <html>
 <head>
 <style type="text/css">
@@ -170,6 +171,8 @@ Accepted for Eighth International Workshop on Parallel Programming Models and Sy
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-scc"-->.tar.gz">Drake SCC</a>
 <h4>Drake for Intel-IA</h4>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-intel-ia"-->.tar.gz">Drake Intel IA</a>
+<h3>Schedulers</h3>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="schedulers" -->.tar.gz">External (LPT) schedulers</a>
 <h3>Example</h3>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="merge" -->.tar.gz">Pipelined mergesort</a>
 <p>
