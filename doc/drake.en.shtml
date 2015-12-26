@@ -10,6 +10,7 @@
 <!--#include virtual="${absolute}../pelib/unit-data.shtml" -->
 <!--#include virtual="${absolute}../drake/merge-data.shtml" -->
 <!--#include virtual="${absolute}../drake/schedulers-data.shtml" -->
+
 <html>
 <head>
 <style type="text/css">
@@ -60,12 +61,21 @@ Drake
 </h1>
 <h2>
 <font color=#000000>
-Documentation and Examples
+Generic Framework for Portable Specification of Streaming Applications<br>
+and Deployment for On-Chip-Pipelined Execution on Manycore Systems
 </font>
 </h2>
+<!--
+<h3>
+<font color=#000000>
+Documentation and Examples
+</font>
+</h3>
+ -->
 </center>
 
 <p>
+<br>
 </p>
 
 <p>
@@ -75,11 +85,16 @@ Documentation and Examples
 <font face=arial,helvetica size=0 color=#000000>
 <table border="1" bordercolor="#101010" bgcolor="#fffff0" cellpadding="3">
 <tr>
-<td><a href="#overview">Overview</a> </td>
+<td><a href="#background">Background and Motivation</a> </td>
+<td><a href="#overview">Main Features</a> </td>
 <td><a href="#publications">Publications</a> </td>
-<td><a href="#examples">Code Examples</a> </td>
+<td><a href="#license">Software license</a> </td>
 <td><a href="#download">Download</a> </td>
-<td><a href="#license">License</a> </td>
+<td><a href="#installation">Installation</a> </td>
+<td><a href="#application">Design a Drake Streaming Application</a> </td>
+<td><a href="#structure">Compiling a Drake Application</a> </td>
+<td><a href="#platform">Designing a Drake Execution Platform</a> </td>
+<td><a href="#examples">Code Examples</a> </td>
 <td><a href="#ongoing">Ongoing Work</a> </td>
 <td><a href="#contact">Contact</a> </td>
 <td><a href="#funding">Acknowledgments</a> </td>
@@ -94,16 +109,112 @@ Documentation and Examples
 <font face=arial,helvetica size=-1 color=#000000>
 
 <small>
-You can access to this page through the link <a href="<!--#echo var="absolute"-->index.en.shtml">http://www.ida.liu.se<!--#echo var="absolute"-->index.en.shtml</a>
+You can access to this page through the link 
+<a href="<!--#echo var="absolute"-->index.en.shtml">http://www.ida.liu.se<!--#echo var="absolute"-->index.en.shtml</a>
 </small>
 <p>
 <br>
 </p>
+
+<img height="560" align="right"
+     caption="Drake Workflow" alt="Drake Workflow"
+     src="<!--#echo var="absolute"-->/img/drake-workflow.svg" >
+
 <p>
-Designing experiments with streaming applications on real execution platforms is difficult. The programmer needs to adapt implementations to the platform that runs them so as to get the best performance and collect meaningful data, and repeat the optimization work for every execution platform is use, for every application. This process is error-prone and time consuming especially when parallelism enters the scene. Stream computing abstracts computation with tasks that run independently, possibly concurrently (all tasks run at the same time) and in parallel (a unique task may run on several cores) and exchange data packets from one another in a streaming graph. This approach limits the programming complexity to tasks of lower parallelism or even sequential, and it separates application-specific operations on one hand and message sending and reception on the other hand. The performance of streaming applications is influenced by the scheduling strategy, static and dynamic, that consists in deciding the set of cores to run each task in the graph as well as the core's voltage and frequency while tasks can execute the same application-specific program. A unique streaming application may run on different execution platform and performance ported through platform-specific message passing routines as well as specific schedules for an application and a platform.
-<br>Drake proposed a plain C framework that allows the design of such streaming application, with separate execution platform-specific message passing implementations as well as separate schedules, possibly computed automatically scheduling algorithms.
-However, Drake streaming application code may still be optimized for specific target execution platform, for instance to take profit of SIMD instructions.
-Drake makes easier to run scheduling experiment as theresearcehr doesn't have to rewrite an application for different schedules or platform, and compare performance differences brought by different schedules.
+<b>Drake</b> is a plain C based programming framework and toolchain
+  for the portable design and platform-specific optimized deployment of 
+  streaming applications on many-core processors.
+</p>
+<p>
+Drake allows for a high-level, portable specification of streaming
+applications composed from streaming tasks in a modular way, 
+separating between the following concerns:
+<ul>
+<li>Task execution (we also support <i>moldable</i> tasks,
+  i.e., internally parallelizable tasks that can use multiple cores
+  to possibly speed up their execution);</li>
+<li>Communication (forwarding of intermediate results between tasks)
+   by FIFO message passing channels
+    (with platform-specific implementations)</li>
+<li>Platform-specific schedules (in a general sense, i.e., 
+    including resource allocation and
+   assignment, mapping, and DVFS),
+   possibly computed automatically by scheduling algorithms.</li>
+</ul>
+While task code is based on plain C,
+Drake streaming application code may still be optimized 
+for specific target execution platforms, for instance by leveraging  
+SIMD instructions.
+</p>
+<p>
+Drake makes experimenting with scheduling algorithms and their 
+systematic quantitative evaluation considerably easier, as the 
+scheduling-researcher does not have to rewrite an application 
+for different schedules or platforms, and the experiments and
+the visualization of the results can be automatized.
+</p>
+
+<hr>
+<p>
+</p>
+
+<h2 id="background">Background and Motivation</h2>
+<p>
+<i>Stream computing</i> is a parallel computation model based on the
+<i>pipelining</i> pattern. It abstracts computations into separate 
+<i>streaming tasks</i>
+that run possibly concurrently (all tasks run at the same time) 
+and possibly in parallel (a unique task may run on several cores);
+<i>communication links</i> model the forwarding of intermediate
+data packets between producing
+and consuming tasks along FIFO-buffered communication channels, 
+thus forming a <i>streaming task graph</i>. 
+</p>
+<p>
+This approach limits the programming complexity to tasks of lower 
+parallelism or even sequential, and it separates application-specific 
+operations on one hand and message sending and reception on the other hand. 
+</p>
+<p>
+The performance of streaming applications is influenced by the 
+scheduling strategy, static and dynamic, that consists in deciding 
+the set of cores to run each task in the graph as well as the 
+core's voltage and frequency while tasks can execute the same 
+application-specific program. 
+</p>
+<p>
+We aim at a high-level programming toolchain for streaming tasks that
+enables <i>portability</i> and, where possible, 
+even <i>performance portability</i> across platforms, i.e.,
+a unique streaming application shall be able to run 
+on different execution platforms,
+ported through platform-specific message passing routines 
+as well as specific schedules for an application and a platform.
+</p>
+<p>
+Designing experiments with streaming applications on real execution platforms 
+is difficult. The programmer needs to adapt implementations to the platform 
+that runs them so as to get the best performance and collect meaningful data, 
+and repeat the optimization work for every execution platform is use, 
+for every application. This process is error-prone and time consuming
+especially when parallelism enters the scene.
+</p> 
+<p>
+Drake is a toolchain to help with the design and automatic deployment of
+streaming applications to
+multicore and manycore target architectures. <br>
+Being part of the
+<a href="http://www.ida.liu.se/labs/pelab/mimer">Mimer toolchain</a>,
+Drake thus also enables the automated systematic experimental
+evaluation of scheduling algorithms, providing a service to the
+scheduling research community.
+</p>
+
+
+<!--
+compare performance differences brought by different schedules.
+ -->
+<!--
 This page gives an introduction to Drake.
 Section <a href="#overvew">Overview</a> gives a brief overview of Drake's features.
 In Section <a href="#publications">Publications</a> is a list of publications related to Drake.
@@ -114,18 +225,20 @@ Section <a href="structure">Drake application structure</a> gives details about 
 Section <a href="#platform">Design a Drake execution platform</a> describes how to write an execution platform for Drake.
 Please refer to Drake's <a href="doxygen/html/index.html">doxygen documentation</a> for more details about the implementation of Drake.
 Section <a href="#ongoing">Ongoing work</a> gives our plans for future work with Drake. You can find our contact information in Section <a href="#contact">Contact</a>. Finally, we give credits to our funders in Section <a href="#funding">Acknowledgment</a>
+ -->
 </p>
 
 <hr>
 
-<h2 id="overview">Overview</h2>
+<h3 id="overview">Main Features</h3>
 </a>
 
 <p>
-Main features:
 <ul>
-<li>Separation between application-specific code, communication routines and scheduling strategies
-<li>Plain C framework
+<li>Separation between application-specific code,
+     communication routines and scheduling strategies
+<li>Plain C/C++ framework
+<li>Predefined backend for Intel IA and Single Chip Cloud computer (SCC)
 <li>Integrates into <a href="<!--#echo var="relative"-->mimer/">Mimer's</a> workflow
 </ul>
 
@@ -135,22 +248,32 @@ Main features:
 
 <hr>
 <p>
-<br>
 </p>
 
 <h2 id="publications">
 Publications 
 </h2>
-</a>
 
 <ul>
 <li><p>
 Nicolas Melot, Johan Janzen, Christoph Kessler:
-<b>Mimer and Schedeval: Comparison Tools for Static Schedulers and Streaming Applications on Concrete Manycore Architectures.</b>
-Accepted for Eighth International Workshop on Parallel Programming Models and Systems Software for High-End Computing (P2S2) at ICPP, 2015. IEEE. 
+<b>Mimer and Schedeval: Comparison Tools for Static Schedulers and
+ Streaming Applications on Concrete Manycore Architectures.</b>
+Eighth International Workshop on Parallel Programming Models and
+ System Software for High-End Computing (P2S2) at ICPP, Sep. 2015,
+ Proc. ICPPW-2015, to appear, IEEE. 
 </p></li>
 </ul>
 
+
+<hr>
+<p>
+</p>
+
+<h2 id="license"> Software License </h2>
+<p>
+The source code available above is released under GPLv3 licence. Please contact Nicolas Melot (nicolas.melot@liu.se) if you want to obtain another licence.
+</p>
 
 <hr>
 <p>
@@ -160,67 +283,155 @@ Accepted for Eighth International Workshop on Parallel Programming Models and Sy
 <h2 id="download">Download</h2>
 </a>
 
+<ul>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake"-->.tar.gz">Drake</a>
+</li>
+</ul>
+
+
 <h3>Dependencies</h3>
-<a href="<!--#echo var="absolute"-->../pelib/download/<!--#echo var="pelib"-->.tar.gz">Pelib</a><br>
+
+<ul>
+<li>
+<a href="<!--#echo var="absolute"-->../pelib/download/<!--#echo var="pelib"-->.tar.gz">Pelib</a></li>
+<li>
 <a href="<!--#echo var="absolute"-->../pelib/download/<!--#echo var="unit"-->.tar.gz">Unit</a>
+</li>
+</ul>
+
 <h3>Platform backend</h3>
+
 <h4>Drake for SCC</h4>
+<ul>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="rcce-liu" -->.tar.gz">Liu RCCE 2.0</a><br>
+</li>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="pelib-scc"-->.tar.gz">Pelib SCC</a><br>
+</li>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-scc"-->.tar.gz">Drake SCC</a>
+</li>
+</ul>
+
 <h4>Drake for Intel-IA</h4>
+<ul>
+<li>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-intel-ia"-->.tar.gz">Drake Intel IA</a>
+<<<<<<< HEAD
 <h3>Schedulers</h3>
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="schedulers" -->.tar.gz">External (LPT) schedulers</a>
-<h3>Example</h3>
-<a href="<!--#echo var="absolute"-->download/<!--#echo var="merge" -->.tar.gz">Pipelined mergesort</a>
-<p>
-See also the <a href="doxygen/html/index.html"><b>html documentation</b></a> generated by doxygen.
-</p>
+=======
 </li>
-</ol>
+</ul>
+
+>>>>>>> dd9b1d43d72a9bb1224ddcdf77a00aa3e025b06d
+<h3>Example</h3>
+<ul>
+<li>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="merge" -->.tar.gz">Pipelined mergesort</a>
+</li>
+</ul>
+
+<p>
+See also the <a href="<!--#echo var="absolute"-->doxygen/html/index.html"><b>html documentation</b></a> generated by doxygen.
+</p>
 
 <hr>
 <p>
-<br>
 </p>
 
 <h2 id="installation">Installation</h2>
 <p>
-Drake requires <a href="<!--#echo var="relative"-->pelib/">pelib</a> to be built and installed. Please refer to its documention on how to build and install it.
-Define environment variables CC=gcc and CXX=g++ (or replace these values with your favorite C and C++ compilers, respectively, as long as they use the same command line switches)
-One all dependencies are installed, 
+Drake requires <a href="<!--#echo var="relative"-->pelib/">pelib</a> 
+to be built and installed. Please refer to its documention on how 
+to build and install it.
+</p>
+<p>
+Define environment variables CC=gcc and CXX=g++ 
+(or replace these values with your favorite C and C++ compilers, 
+respectively, as long as they use the same command line switches).
+</p>
+<p>
+Once all dependencies are installed, 
 <a href="<!--#echo var="absolute"-->download/<!--#echo var="drake"-->.tar.gz" onclick="var that=this;_gaq.push(['_trackEvent','Download','Drake',this.href]);setTimeout(function(){location.href=that.href;},200);return false;">
-<b>download</b></a> drake, extract the package and open a terminal and enter the directory where drake is extracted then type
+<b>download</b></a> Drake, 
+extract the package and open a terminal and enter the directory where 
+drake is extracted, then type
 <pre class="brush: cpp">
 make install
 </pre>
-to install it. It creates directories $prefix/bin, $prefix/lib, $prefix/lib/pkgconfig and $prefix/include and install binaries, static and dynamic libraries, pkgconfig library information and include files in these directories, respectively. You can type
+to install it. 
+It creates directories $prefix/bin, $prefix/lib, $prefix/lib/pkgconfig 
+and $prefix/include and installs binaries, static and dynamic libraries, 
+pkgconfig library information and include files in these directories, 
+respectively. You can type
 <pre class="brush: cpp">
 make install prefix=/some/other/directory
 </pre>
-to install it elsewhere. Binaries are build with the library search path including $prefix/lib, so you may need to give a custom prefix location when linking binaries as well.
+to install it elsewhere. 
+<br>
+Binaries are built with the library search path including $prefix/lib, 
+so you may need to give a custom prefix location when linking binaries as well.
 </p>
 
 <hr>
 <p>
-<br>
 </p>
 
 <h2 id="application">Design a Drake streaming application</h2>
 <p>
-The design of a Drake application involve the design of the streaming application graph, the implementation of the module each task run and the elaboration of a static schedule and a main program to load and run the streaming application. Sections below shows the structure of each of them.
+The design of a Drake application involves the design of the 
+streaming application graph, the implementation of the module 
+each task runs, and the elaboration of a static schedule and
+a main program to load and run the streaming application. 
+The sections below shows the structure of each of them.
 </p>
 
 <h3 id="application_main">Main C program</h3>
 <p>
-The following code snippet shows a minimal program that runs a Drake stream. First, drake_arch_init() initializes the library that manages the execution platform. This function can take a pointer to some memory address that may be necessary to initialize the platform; see Section <a href="#examples">Examples</a> for an example. Then, we can create a stream, that is instanciate a existing Drake stream application. Here, we instanciate pingpong (see Section <a href="#examples">Examples</a> for more information), with drake_stream_create(). drake_stream_create() is a macro that takes a drake stream handler data structure instance and a drake application name as parameters and generates code that instanciates the stream and write management data into the drake stream handler data structure (here, the structure instance "stream"). We can then initialize the application with drake_stream_init, using the stream handler returned by drake_stream_create() and a pointer to memory that is passed to tasks for their initialization (see Section <a href="#application_module">Drake application module</a>). drake_stream_run() runs an initialized stream; once again it takes a stream handler structure. A call to drake_stream_run() is blocking and returns when all tasks of mapped to processors terminated. Finally, drake_stream_destroy() and drake_arch_finalize() destroy all tasks and cleans up memory.
+The following code snippet shows a minimal program that runs a Drake stream. 
+<p>
+</p>
+First, drake_arch_init() initializes the library that manages the 
+execution platform. 
+This function can take a pointer to some memory address that may be necessary 
+to initialize the platform; see Section <a href="#examples">Examples</a> 
+for an example. 
+<p>
+</p>
+Then, we can create a stream, that is, instantiate an existing Drake 
+stream application. Here, we instantiate <i>pingpong</i> 
+(see Section <a href="#examples">Examples</a> for more information), 
+with drake_stream_create(). 
+drake_stream_create() is a macro that takes a drake stream handler 
+data structure instance and a drake application name as parameters and 
+generates code that instantiates the stream and writes management data
+into the drake stream handler data structure 
+(here, the structure instance "stream"). 
+<p>
+</p>
+We can then initialize the application with drake_stream_init, 
+using the stream handler returned by drake_stream_create() 
+and a pointer to memory that is passed to tasks for their initialization 
+(see Section <a href="#application_module">Drake application module</a>). 
+</p>
+<p>
+drake_stream_run() runs an initialized stream; 
+once again it takes a stream handler structure. 
+A call to drake_stream_run() is blocking and returns when all tasks 
+mapped to processors terminated. 
+</p>
+<p>
+Finally, drake_stream_destroy() and drake_arch_finalize() destroy all tasks 
+and clean up memory.
+</p>
+
 <pre class="brush: cpp">
 #include <drake.h>
 
-int
-main(size_t argc, char **argv)
+int main(size_t argc, char **argv)
 {
         // Initialize platform backend
         drake_arch_init(NULL);
@@ -244,12 +455,23 @@ main(size_t argc, char **argv)
         return 0;
 }
 </pre>
-Depending on situation, more code may be necessary. For instance, the Drake backend for SCC requires arguments passed as an array of strings to function. Also, more code may be necessary to monitor performance.
+
+<p>
+Depending on the situation, more code may be necessary. 
+For instance, the Drake backend for SCC requires arguments passed 
+as an array of strings to function. 
+Also, more code may be necessary to monitor performance.
 </p>
 
-<h3 id="application_taskgraph">Drake application taskgraph</h3>
+<h3 id="application_taskgraph">Drake Application Taskgraph</h3>
+
 <p>
-A streaming application graph (taskgraph) must be expressed using the GraphML syntax, possibly using <a href="http://www.yworks.com/en/products/yfiles/yed/">yEd</a>. The code belows shows the example of a ping-pong application that consists in 2 tasks, ping and pong that exchange a message to each other
+A streaming application graph (taskgraph) must be expressed using 
+the GraphML syntax, possibly using 
+<a href="http://www.yworks.com/en/products/yfiles/yed/">yEd</a>. 
+The code belows shows the example of a ping-pong application 
+that consists in 2 tasks, ping and pong that exchange a message to each other:
+</p>
 <pre class="brush: cpp">
 &lt;?xml version="1.0" encoding="UTF-8" standalone="no"?&gt;
 &lt;graphml xmlns="http://graphml.graphdrawing.org/xmlns"
@@ -287,19 +509,39 @@ A streaming application graph (taskgraph) must be expressed using the GraphML sy
   &lt;/graph&gt;
 &lt;/graphml&gt;
 </pre>
-Figure 1 below is a visual representation generated by <a href="http://www.yworks.com/en/products/yfiles/yed/">yEd</a>. 
+
+<p>
+Figure 1 below is a visual representation generated by 
+<a href="http://www.yworks.com/en/products/yfiles/yed/">yEd</a>. 
+</p>
 <figure>
-<img src="<!--#echo var="relative"-->img/pingpong.svg"/>
+<img src="<!--#echo var="absolute"-->img/pingpong.svg"/>
 <figcaption>Fig 1: Graphic representation of the ping-pong application.</figcaption>
 </figure>
-Our streaming application graph description is based on <a href="http://graphml.graphdrawing.org/">GraphML</a> and add properties for the graph and nodes
-<br>Graph properties:
+<p>
+Our streaming application graph description is based on <a href="http://graphml.graphdrawing.org/">GraphML</a> and adds properties for the graph and the nodes:
+</p>
+<p>
+<b>Graph properties:</b>
+</p>
 <ul>
-<li><b>name</b> (string): Name of the application implemented. Should be the same for every graph that implement the same application.
-<li><b>label</b> (string): Human-readable alias for graph name. As for <b>name</b>, it should be the same for every graph that implement the same application.
-<li><b>deadline</b> (string formula): Formula that computes the deadline in milliseconds of a stage of the pipeline running the application. See the <a href="<!--#echo var="relative"-->pelib/index.en.shtml#parsing_use_formula">pelib documentation</a>. If the taskgraph is used for theoretical studies only, consider the same unit as a task's workload (see below).
+<li><b>name</b> (string): Name of the application implemented. 
+  Should be the same for every graph that implements the same application.</li>
+<li><b>label</b> (string): Human-readable alias for graph name.
+  As for <b>name</b>, it should be the same for every graph that implements
+  the same application.</li>
+<li><b>deadline</b> (string formula):
+  Formula that computes the deadline in milliseconds of a stage of the pipeline
+  running the application.
+  See the <a href="<!--#echo var="relative"-->pelib/index.en.shtml#parsing_use_formula">pelib documentation</a>.
+  <br>
+  If the taskgraph is used for theoretical studies only,
+  consider the same unit as a task's workload (see below).
+  </li>
 </ul>
-<br>Node properties:
+<p>
+<b>Node properties:</b>
+</p>
 <ul>
 <li><b>name</b> (string): Human-readable, unique task name that identifies the node in the graph.
 <li><b>module</b> (string): Drake module that contains the code the task executes
@@ -309,9 +551,13 @@ Our streaming application graph description is based on <a href="http://graphml.
 </ul>
 </p>
 
-<h3 id="application_module">Drake application module</h3>
+<h3 id="application_module">Drake Application Module</h3>
 <p>
-All the code a task must run is defined in an application module. A module implements 5 functions that define the complete lifecycle of a streaming task: initialization, start, work, stop and destruction. The code snippet below shows the skeleton of a module
+All the code a task must run is defined in an <i>application module</i>. 
+A module implements 5 functions that define the complete lifecycle 
+of a streaming task: initialization, start, work, stop and destruction. 
+<br>
+The code snippet below shows the skeleton of a module
 <pre class="brush: cpp">
 #include &lt;drake/node.h&gt;
 
@@ -350,13 +596,52 @@ drake_destroy(task_t *task)
 	return 1;
 }
 </pre>
-When a Drake stream is initialized, each core run the function drake_init() for each task that is mapped to the core. Similarly, core run drake_start() for each task when the stream begins to run, and they run it again until it returns a on-zero value. For instance, this function can be used to make sure that the main work function doesn't start before the task has received any input. After drake_start() returns a non-zero value, a task runs drake_run(), that is the main working function of the task. If drake_run() returns 0, then the task runs again drake_run() at the next streaming pipeline stage, otherwise the task is considered as terminated. One can use drake_task_depleted() to compute a return value suitable for drake_run(). It returns 0 if at least one task's input stream holds at least one data element or if at least of of its predecessor task is still running. When a task is terminated, it runs drake_kill() before the pipeline stops. Finally, each core run the function drake_destroy() of the task mapped to them, when the pipeline is destroyed. Except for drake_start() and drake_run(), all task functions run exactly once and their return value indicate if the function without error (return non-zero) or if anything bad happened (return 0).
-<br>Any global variable or custom additional function <b>must</b> be declared static to be portable. Any non-static global variable of function may be compiled correctly if a module is used by at most one task, and might result in linking errors otherwise. Also, global variables may allow tasks to communicate with some backend platform, which is invalid in streaming applications and cannot work with platforms without any globally shared memory space such as the SCC.
+<p>
+When a Drake stream is initialized, each core runs the function 
+drake_init() for each task that is mapped to the core. <br>
+Similarly, cores run drake_start() for each task when the stream begins
+ to run, and they run it again until it returns a non-zero value. 
+For instance, this functionality can be used to make sure that the main work 
+function doesn't start before the task has received any input. 
+<br>
+After drake_start() returns a non-zero value, a task runs drake_run(), 
+that is the main working function of the task. 
+If drake_run() returns 0, then the task runs again drake_run() 
+at the next streaming pipeline stage, otherwise the task is considered 
+as terminated. 
+One can use drake_task_depleted() to compute a return value suitable 
+for drake_run(). It returns 0 if at least one task's input stream holds 
+at least one data element or if at least one of its predecessor task is 
+still running. 
+<br>
+When a task is terminated, it runs drake_kill() before the pipeline stops. 
+<br>
+Finally, each core runs the function drake_destroy() for each task mapped 
+to them, when the pipeline is destroyed. 
+</p>
+<p>
+Except for drake_start() and drake_run(), all task functions 
+run exactly once and their return value indicate if the function 
+without error (return non-zero) or if anything bad happened (return 0).
+</p>
+<p>Any global variable or custom additional function 
+<b>must</b> be declared static to be portable. 
+Any non-static global variable of function may be compiled correctly 
+if a module is used by at most one task, and might result in 
+linking errors otherwise. 
+Also, global variables may allow tasks to communicate 
+with some backend platform, which is invalid in streaming applications 
+and cannot work with platforms without any globally shared memory space 
+such as the Intel SCC.
 </p>
 
-<h3 id="application_schedule">Drake application schedule</h3>
+<h3 id="application_schedule">Drake Application Schedule</h3>
 <p>
-The schedule of a drake application is written in XML. The core snippet below shows a schedule for the ping-pong application of Section <a href="#application_taskgraph">Drake application taskgraph</a>. 
+The schedule of a Drake application is written in XML. 
+<br>
+The core snippet below shows a schedule for the ping-pong application 
+of Section <a href="#application_taskgraph">Drake application taskgraph</a>. 
+
 <pre class="brush: cpp">
 &lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;schedule name="Generated from Algebra" appname="Generated from Algebra"&gt;
@@ -368,7 +653,15 @@ The schedule of a drake application is written in XML. The core snippet below sh
  &lt;/core&gt;
 &lt;/schedule&gt;
 </pre>
-You can choose to design manually a schedule for a Drake application, or use a <a href="<!--#echo var="relative"-->mimer/index.en.shtml#design_mimer_scheduler">Mimer scheduler</a> to compute one. See <a href="<!--#echo var="relative"-->mimer/index.en.shtml#structure_format_schedule">Mimer documentation</a> for more information about the structure of an XML schedule. You can use pelib-convert to generate C code from a XML schedule and compile it into the final application, for instance with the command below:
+
+You can choose to design manually a schedule for a Drake application, 
+or use a <a href="<!--#echo var="relative"-->mimer/index.en.shtml#design_mimer_scheduler">Mimer scheduler</a> to compute one. 
+See <a href="<!--#echo var="relative"-->mimer/index.en.shtml#structure_format_schedule">Mimer documentation</a> 
+for more information about the structure of an XML schedule. 
+<br>
+You can use pelib-convert to generate C code from a XML schedule 
+and compile it into the final application, for instance with the command below:
+
 <pre class="brush: cpp">
 pelib-convert --input --format taskgraph-graphml --file taskgraph.graphml --input --format platform-ampl_input --file platform.dat --input --format schedule-xml --file schedule.xml --output --format schedule-drake --stdout
 </pre>
@@ -380,21 +673,49 @@ pelib-convert --input --format taskgraph-graphml --file taskgraph.graphml --inpu
 </p>
 
 
-<h2 id="structure">Compiling a drake application</h2>
+<h2 id="structure">Compiling a Drake Application</h2>
 <p>
-A complete compiled Drake application consists in the main program, the compiled code for each task and the code that provides information about the streaming application such as the number of task or the static schedule. If several tasks share a unique module, its source code is compiled again for every task. This is how to compile a task:
+A complete compiled Drake application consists in the main program, 
+the compiled code for each task and the code that provides information 
+about the streaming application such as the number of task or the 
+static schedule. If several tasks share a unique module, 
+its source code is compiled again for every task. 
+</p>
+<p>
+This is how to compile a task:
+</p>
 <pre class="brush: cpp">
 gcc -c -D_DRAKE_COMPILE -DAPPLICATION=pingpong -DTASK_MODULE=ping -DTASK_NAME=ping -o ping.o ping.c
 </pre>
-where TASK_NAME=ping denotes the name of the task as in the corresponding taskgraph. "pingpong" is the name of the streaming application; it may vary from the graph name defined in the corresponding taskgraph. TASK_MODULE=ping is the is the module of the task and ping.c is teh source code of the module. The operation must be repeated for every task. This is how to compile the scheduling information code generated by pelib-convert (see <a href="#application_schedule">Drake application schedule</a>):
+<p>
+where TASK_NAME=ping denotes the name of the task as in the corresponding 
+taskgraph. "pingpong" is the name of the streaming application; 
+it may vary from the graph name defined in the corresponding taskgraph. 
+<br>
+TASK_MODULE=ping is the is the module of the task and ping.c is the 
+source code of the module. 
+The operation must be repeated for every task. 
+</p>
+<p>
+This is how to compile the scheduling information code generated 
+by pelib-convert (see <a href="#application_schedule">Drake application schedule</a>):
+
 <pre class="brush: cpp">
 gcc -c -DAPPLICATION=pingpong -o drakecc_pingpong.schedule.o pingpong.schedule.c
 </pre>
-Where "pingpong" is the application being compiled. Finally, the main program can be compiled with the command:
+
+where "pingpong" is the application being compiled. 
+</p>
+<p>
+Finally, the main program can be compiled with the command:
 <pre class="brush: cpp">
 gcc main.c schedule.o ping.o pong.o `pkg-config --cflags --libs drake drake-scc`
 </pre>
-Alternatively, you can reuse the set of Makefiles available in <a href="#examples">existing drake application</a> and adapt src/Makefile.in to your streaming application.
+
+<p>
+Alternatively, you can reuse the set of Makefiles 
+available in <a href="#examples">existing Drake applications</a> 
+and adapt src/Makefile.in to your streaming application.
 </p>
 
 <hr>
@@ -403,45 +724,171 @@ Alternatively, you can reuse the set of Makefiles available in <a href="#example
 </p>
 
 
-<h2 id="platform">Design a Drake execution platform</h2>
+<h2 id="platform">Designing a Drake Execution Platform</h2>
 <p>
-The role of a drake platform backend consists in managing platform-specific operations including message transmissions, frequency an voltage scaling as well as time and power monitoring. This section gives high-level instructions on how these operations are performed in Drake in order to facilitate any backend platform implementation. 
+The role of a drake platform backend consists in managing platform-specific 
+operations including message transmissions, frequency and voltage scaling 
+as well as time and power monitoring. 
+This section gives high-level instructions on how these operations 
+are performed in Drake in order to facilitate any backend platform implementation. 
 </p>
 
 <h3 id="platform_message">Message passing</h3>
 <p>
-Drake assumes an individual on-chip communication memory associated to each core. A core has a fast read and write access to its associated to a communication memory and a core can read or write another core's communication memory through direct or indeirect memory operation. For this reason, we consider this on-chip memory as shared and we call it <b>shared</b> memory. A drake platform backend provides a shared memory allocation function <a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>, shared memory free function <a href="doxygen/html/platform_8h.html#adb2eb01f40892147a092c84e2a93291a">drake_local_free()</a> as well as <a href="doxygen/html/platform_8h.html#ac47a3e7dd929fbd6479c94e9f8b7e041">drake_arch_local_size()</a>, that returns the size in bytes of the shared memory associated to a core. Furthermore, a Drake backend platform implement <a href="doxygen/html/platform_8h.html#a301a5e21a249783f05771cca1afb507b">drake_remote_addr()</a>, that for an address in the caller core's shared memory and a core id, returns an address the core can directly read from or write to that reflects the remote core's own shared memory at the same address. Data in memory addresses pointed by <a href="doxygen/html/platform_8h.html#a301a5e21a249783f05771cca1afb507b">drake_remote_addr()</a> are stalled until functions <a href="doxygen/html/platform_8h.html#a8ecbeb85195de3c1c47c901d0b5580b0">drake_arch_pull()</a> and <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a>, respectively before a read or after a write operation. The fundamental strategy of Drake to implement communications consists of exposing the streaming task programmer's with memory addresses that can be read from or written to and use as well as data transmission triggers (<a href="doxygen/html/platform_8h.html#a8ecbeb85195de3c1c47c901d0b5580b0">drake_arch_pull()</a> and <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a>) to actually transport data between remtoe tasks.
+Drake assumes an individual on-chip communication memory associated
+ to each core. A core has a fast read and write access to its associated
+ communication memory, and a core can read or write another core's 
+communication memory through direct or indirect memory operations. 
+For this reason, we consider this on-chip memory as shared 
+and we call it <b>shared</b> memory. 
 </p>
 <p>
-Tasks communicate data through <a href="<!--#echo var="relative"-->pelib/doxygen/html/fifo_8h.html">fifo</a> <a href="<!--#echo var="relative"-->pelib/index.en.shtml#c_data_structure"> data structures</a>. Pelib fifos include a memory buffer that holds data elements that tasks read or write. When both tasks are mapped to a unique core, this memory buffer is allocated using the standard "malloc()" allocation function. However, if both tasks are mapped to different cores, then Drake allocates a portion of a stack allocated for each core when a stream in created using <a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a> for as much memory as returned by <a href="doxygen/html/platform_8h.html#ac47a3e7dd929fbd6479c94e9f8b7e041">drake_arch_local_size()</a>. Communications between 2 tasks mapped to a different cores happen as shown in Fig. 2.
-
-<figure>
-<img width="30%" src="img/drake_communications.svg">
-<figcaption>Fig 2: Communication process in Drake.</figcaption>
-</figure>
-
-We assume t1 takes its input from main memory and t2 forwards it to another task, local or distant. Since t1 and t2 are mapped to exactly two processors and each processor runs exactly one task, we call p1 for t1 and p2 for t2. p1 pushes messages toward processor p2. The fifo's buffer, <b>read</b> and </b>write</b> are issued from the stack buffer allocated using <a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a> and held in the link data structure. Figure 2 shows 8 steps we detail here:
-<ul>
-<li type="1"> t1 loads data from its processor's private memory, transitions to state <b>START</b> and pre-processes the data it holds. 12 transitions to state <b>START</b> and polls on <b>write</b> in its processor's local communication memory to check if any data arrived yet.
-<li type="1"> t1 transitions to state <b>RUN,</b> runs its <b>TASKRUN</b> function and writes output through the link to t2. This is done by writing output directly in the fifo's buffer associated to the link. t1 does not notify t2 yet. t2 still polls on <b>write</b> in its local memory.
-<li type="1"> t1 cannot push any more data, therefore it stops its <b>TASKRUN</b> function. Drake notifies t2 by writing in <b>write</b> in t1's own copy of the link data structure allocated in p1. Then Drake runs <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a> with the address of <b>write</b> (included in the bemory buffer returned by <a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>), which initiates the data transfer. t2 still polls on <b>write</b> in its local memory.
-<li type="1"> Drake running on p2 reads <b>write</b> and updates t2's local copy of the fifo. Then it transitions t2 to state <b>RUN</b> and t2 begins immediately to process the data it received, popping data from its input link. t1 polls on <b>read</b> in its local memory.
-<li type="1"> When t2 cannot work anymore, it exits its work function and drake notifies t1 through <b>read</b> a message on how many items t2 consumed, using the same scheme as step 3. t1 polls on <b>read</b> in its local memory.
-<li type="1"> p1 receives the notification, updates its local copy of the read pointer for the shared fifo and consumes the rest of its input to output more tokens. Drake sends through t1's <b>write</b> in p1's local memory the number of tokens produced in total and use drake_arch_commit() to initiate another data transfers. Then it transitions t1 to state <b>KILLED</b> and transmit t1's new state to t2 through <b>prod_state</b> (also part of memory allocated with <a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>) as well as the written data counter <b>write</b>, and runs t1's <b>drake_killed()</b> function and transition to <b>ZOMBIE</b> state. t2 polls on <b>write</b> in its local memory.
-<li type="1"> Drake on p2 receives the <b>write</b> notification and updates t2's local copy. t2 executes drake_run() and processes the new input. t2 knows that t1 will not produce any more data thanks to <b>prod_state</b>.
-<li type="1"> t2 is done with computing its input. Since it has no more input to compute and all its predecessors passed state <b>KILLED,</b> it transitions to state <b>KILLED.</b> This step is not represented in Fig. 2.
-</ul>
-Figure 2 shows all local and distant messages exchanged through a communication round. All polling is performed locally and distant messages are sent exactly once from the producer to the consumer for data and notification, and exactly once from the consumer to the producer as requests to proceed. Note that a Drake application should use <a href="doxygen/html/fifo_8h.html#a1d9dfe7917b602d5f4ef166c5e4902c1">peekaddr()</a>, <a href="doxygen/html/fifo_8h.html#ad7929443bfb53b24d4001f06c9c01761">discard()</a> as well as <a href="doxygen/html/fifo_8h.html#a1a6b184727381530208d41aa5db9ad98">writeaddr()</a> and <a href="doxygen/html/fifo_8h.html#a4d6f68c987bb53e194d15e59358558b9">fill()</a> instead of <a href="doxygen/html/fifo_8h.html#a17480fe5dad59378331f213853ea8c79">pop()</a>, <a href="doxygen/html/fifo_8h.html#ab0781f21d0ff8ece616b1b846a516c26">peek()</a> and <a href="doxygen/html/fifo_8h.html#a9cc0a39136822f4dc3b0bebf09af23b2">push()</a> as the former aloow direct read and write operations for several elements with little addition work whereas the latter include lots of overhead and manipulate only one element at a time.
+A drake platform backend provides a shared memory allocation function 
+<a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>, 
+shared memory free function <a href="doxygen/html/platform_8h.html#adb2eb01f40892147a092c84e2a93291a">drake_local_free()</a> as well as 
+<a href="doxygen/html/platform_8h.html#ac47a3e7dd929fbd6479c94e9f8b7e041">drake_arch_local_size()</a>, that returns the size in bytes of the shared memory 
+associated to a core. 
+</p>
+<p>
+Furthermore, a Drake backend platform implements 
+<a href="doxygen/html/platform_8h.html#a301a5e21a249783f05771cca1afb507b">drake_remote_addr()</a>, 
+that for an address in the caller core's shared memory and a core id, 
+returns an address the core can directly read from or write to 
+that reflects the remote core's own shared memory at the same address. 
+</p>
+<p>
+Data in memory addresses pointed by <a href="doxygen/html/platform_8h.html#a301a5e21a249783f05771cca1afb507b">drake_remote_addr()</a> 
+are stalled until functions 
+<a href="doxygen/html/platform_8h.html#a8ecbeb85195de3c1c47c901d0b5580b0">drake_arch_pull()</a> and <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a>, 
+respectively before a read or after a write operation. 
+</p>
+<p>
+The fundamental strategy of Drake to implement communications consists 
+of exposing the streaming task programmer's with memory addresses that 
+can be read from or written to and use as well as data transmission triggers 
+(<a href="doxygen/html/platform_8h.html#a8ecbeb85195de3c1c47c901d0b5580b0">drake_arch_pull()</a> and <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a>) 
+to actually transport data between remote tasks.
+</p>
+<p>
+Tasks communicate data through 
+<a href="<!--#echo var="relative"-->pelib/doxygen/html/fifo_8h.html">fifo</a> <a href="<!--#echo var="relative"-->pelib/index.en.shtml#c_data_structure"> data structures</a>. 
+Pelib fifos include a memory buffer that holds data elements that tasks 
+read or write. When both tasks are mapped to a unique core, 
+this memory buffer is allocated using the standard "malloc()" allocation function.
+However, if both tasks are mapped to different cores, 
+then Drake allocates a portion of a stack allocated for each core 
+when a stream in created using 
+<a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a> for as much memory as returned by 
+<a href="doxygen/html/platform_8h.html#ac47a3e7dd929fbd6479c94e9f8b7e041">drake_arch_local_size()</a>. 
+Communications between 2 tasks mapped to a different cores happen 
+as shown in Fig. 2.
 </p>
 
-<h3 id="platform_scaling">Voltage and Freqeuncy scaling</h3>
+<figure>
+<img width="30%" src="<!--#echo var="absolute"-->img/drake_communications.svg">
+<figcaption>Figure 2: Communication process in Drake.</figcaption>
+</figure>
+
+We assume t1 takes its input from main memory and t2 forwards it 
+to another task, local or distant. Since t1 and t2 are mapped to 
+exactly two processors and each processor runs exactly one task, 
+we call p1 for t1 and p2 for t2. 
+p1 pushes messages toward processor p2. 
+The fifo's buffer, <b>read</b> and </b>write</b> are issued from 
+the stack buffer allocated using 
+<a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a> and held in the link data structure. 
+</p>
+<p>
+Figure 2 shows 8 steps that we detail here:
+<ul>
+<li type="1"> t1 loads data from its processor's private memory, 
+transitions to state <b>START</b> and pre-processes the data it holds. 
+12 transitions to state <b>START</b> and polls on <b>write</b> 
+in its processor's local communication memory to check if any data arrived yet.
+</li>
+<li type="1"> t1 transitions to state <b>RUN,</b> runs its <b>TASKRUN</b> 
+function and writes output through the link to t2. 
+This is done by writing output directly in the fifo buffer associated to the link. t1 does not notify t2 yet. t2 still polls on <b>write</b> in its local memory.
+</li>
+<li type="1"> t1 cannot push any more data, therefore it stops its 
+<b>TASKRUN</b> function. Drake notifies t2 by writing in <b>write</b> 
+in t1's own copy of the link data structure allocated in p1. 
+Then Drake runs <a href="doxygen/html/platform_8h.html#a3943e677675cf3d25ae9568b95a3f9f6">drake_arch_commit()</a> with the address of <b>write</b> 
+(included in the bemory buffer returned by 
+<a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>), which initiates the data transfer. 
+t2 still polls on <b>write</b> in its local memory.
+</li>
+<li type="1"> Drake running on p2 reads <b>write</b> and updates t2's local 
+copy of the fifo. Then it transitions t2 to state <b>RUN</b> and 
+t2 begins immediately to process the data it received, 
+popping data from its input link. t1 polls on <b>read</b> in its local memory.
+</li>
+<li type="1"> When t2 cannot work any more, it exits its work function 
+and Drake notifies t1 through <b>read</b> a message on how many items 
+t2 consumed, using the same scheme as step 3. 
+t1 polls on <b>read</b> in its local memory.
+</li>
+<li type="1"> p1 receives the notification, updates its local copy 
+of the read pointer for the shared fifo and consumes the rest of 
+its input to output more tokens. 
+Drake sends through t1's <b>write</b> in p1's local memory 
+the number of tokens produced in total and use drake_arch_commit() 
+to initiate another data transfers. 
+Then it transitions t1 to state <b>KILLED</b> and transmits
+t1's new state to t2 through <b>prod_state</b> 
+(also part of memory allocated with 
+<a href="doxygen/html/platform_8h.html#a044a61432f97bbac44c0a2164e5131c0">drake_local_malloc()</a>) 
+as well as the written data counter <b>write</b>, and runs t1's
+ <b>drake_killed()</b> function and transition to <b>ZOMBIE</b> state. 
+t2 polls on <b>write</b> in its local memory.
+</li>
+<li type="1"> Drake on p2 receives the <b>write</b> notification 
+and updates t2's local copy. 
+t2 executes drake_run() and processes the new input. 
+t2 knows that t1 will not produce any more data thanks to <b>prod_state</b>.
+</li>
+<li type="1"> t2 is done with computing its input. 
+Since it has no more input to compute and all its predecessors passed state 
+<b>KILLED,</b> it transitions to state <b>KILLED.</b> 
+This step is not represented in Fig. 2.
+</ul>
+
+<p>
+Figure 2 shows all local and distant messages exchanged through 
+a communication round. 
+All polling is performed locally and distant messages are sent 
+exactly once from the producer to the consumer for data and 
+notification, and exactly once from the consumer to the producer 
+as requests to proceed. 
+Note that a Drake application should use 
+<a href="doxygen/html/fifo_8h.html#a1d9dfe7917b602d5f4ef166c5e4902c1">peekaddr()</a>, <a href="doxygen/html/fifo_8h.html#ad7929443bfb53b24d4001f06c9c01761">discard()</a> as well as <a href="doxygen/html/fifo_8h.html#a1a6b184727381530208d41aa5db9ad98">writeaddr()</a> and <a href="doxygen/html/fifo_8h.html#a4d6f68c987bb53e194d15e59358558b9">fill()</a> instead of <a href="doxygen/html/fifo_8h.html#a17480fe5dad59378331f213853ea8c79">pop()</a>, <a href="doxygen/html/fifo_8h.html#ab0781f21d0ff8ece616b1b846a516c26">peek()</a> and <a href="doxygen/html/fifo_8h.html#a9cc0a39136822f4dc3b0bebf09af23b2">push()</a> as the former aloow direct read and write operations for several elements with little addition work whereas the latter include lots of overhead and manipulate only one element at a time.
+</p>
+
+<h3 id="platform_scaling">Voltage and Frequency scaling</h3>
 <p>
 Drake read voltage and frequency settings or set them with platform backend functions <a href="doxygen/html/platform_8h.html#ab58663f00fd0492ab75f2854467113ff">drake_get_frequency()</a> and <a href="doxygen/html/platform_8h.html#a2f0ecc6d18dbfad618379c69828f7e42">drake_get_voltage()</a>, or <a href="doxygen/html/platform_8h.html#a3f399dfeac68b6071b6f23a8ee26f166">drake_arch_set_frequency()</a> and <a href="doxygen/html/platform_8h.html#a373ec56cf20dfe3ba50df1acc49d7759">drake_arch_set_voltage()</a>, respectively. Please refer to doxygen documentation for more information about them. Additionally, <a href="doxygen/html/platform_8h.html#a50cfdac18c16e1ddbcdd38316c44315a">drake_arch_set_frequency_autoscale</a> sets the caller core's frequency as well as the minimal voltage level required for the frequency.
 </p>
 
 <h3 id="platform_scaling">Monitoring</h3>
 <p>
-Drake defines abstract monitory <a href="doxygen/html/platform_8h.html#ac322e414aa3215274c73762007c09766">time</a> and <a href="doxygen/html/platform_8h.html#a555c12b91a2265c16b14570d55e590b3">power</a> monitoring data type. They are defined as pointers to undefined structures so that any drake backend platform implementation can model them in the most efficient manner the platform can offer. The time data structure is intended to store the time upon any call to <a href="doxygen/html/platform_8h.html#a7586ea5ab515a415e96d79ea41e0488b">drake_get_time()</a>. See <a href="doxygen/html/platform_8h.html">doxygen documentation</a> for more information about allocation, free, display or arithmetic operations on time required by Drake. The power data structure manages the power monitoring and stores the data collected so that more platform backend implementation can display it on screen in formatted output. See power-related functions in <a href="doxygen/html/platform_8h.html">doxygen documentation</a> for more information of power alocation, free, display as well as on how Drake use power monitoring functions.
+Drake defines abstract monitory <a href="doxygen/html/platform_8h.html#ac322e414aa3215274c73762007c09766">time</a> and <a href="doxygen/html/platform_8h.html#a555c12b91a2265c16b14570d55e590b3">power</a> monitoring data types. 
+They are defined as pointers to undefined structures so that any 
+Drake backend platform implementation can model them in the most efficient 
+manner the platform can offer. 
+</p>
+<p>
+The time data structure is intended to store the time upon any call 
+to <a href="doxygen/html/platform_8h.html#a7586ea5ab515a415e96d79ea41e0488b">drake_get_time()</a>. 
+See <a href="doxygen/html/platform_8h.html">doxygen documentation</a> for more information about allocation, free, display or arithmetic operations 
+on time required by Drake. 
+</p>
+<p>
+The power data structure manages the power monitoring and stores the 
+data collected so that more platform backend implementation can display it 
+on screen in formatted output. See power-related functions in 
+<a href="doxygen/html/platform_8h.html">doxygen documentation</a> 
+for more information of power allocation, free, display operations
+as well as on how Drake use power monitoring functions.
 </p>
 
 <hr>
@@ -451,15 +898,45 @@ Drake defines abstract monitory <a href="doxygen/html/platform_8h.html#ac322e414
 
 <h2 id="examples">Examples</h2>
 <p>
-There are a few Drake application already available. <a href="<!--#echo var="absolute"-->download/<!--#echo var="pingpong"-->.tar.gz">Ping-pong</a> is an example Drake application to get programmers started. <a href="<!--#echo var="absolute"-->download/<!--#echo var="merge"-->.tar.gz">Mergesort</a> implements a 6-levels merging tree and used for performance measurement of Drake in our paper on Mimer and Schedeval. <a href="<!--#echo var="absolute"-->download/<!--#echo var="fft2_streamit"-->.tar.gz">fft2_streamit</a> is a re-implementation of FFT implementation in the streamit benchmark suite and is used as a scheduler evaluator regarding frequency scaling and power consumption. Its implementation could be improved by using <a href="doxygen/html/fifo_8h.html#a1d9dfe7917b602d5f4ef166c5e4902c1">peekaddr()</a>, <a href="doxygen/html/fifo_8h.html#ad7929443bfb53b24d4001f06c9c01761">discard()</a> as well as <a href="doxygen/html/fifo_8h.html#a1a6b184727381530208d41aa5db9ad98">writeaddr()</a> and <a href="doxygen/html/fifo_8h.html#a4d6f68c987bb53e194d15e59358558b9">fill()</a> instead of <a href="doxygen/html/fifo_8h.html#a17480fe5dad59378331f213853ea8c79">pop()</a>, <a href="doxygen/html/fifo_8h.html#ab0781f21d0ff8ece616b1b846a516c26">peek()</a> and <a href="doxygen/html/fifo_8h.html#a9cc0a39136822f4dc3b0bebf09af23b2">push()</a>.
-<br>You can download and extract any or all of the application examples and compile them with
+There are a few Drake application already available. 
+<ul>
+<li>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="pingpong"-->.tar.gz">Ping-pong</a> is an example Drake application to get programmers started. 
+</li>
+<li>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="merge"-->.tar.gz">Mergesort</a> implements a 6-level merging tree pipeline (63 tasks)
+and is used for performance measurement of Drake in our paper 
+on Mimer and Schedeval. 
+</li>
+<li>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="fft2_streamit"-->.tar.gz">fft2_streamit</a> 
+is a re-implementation of the FFT implementation in the StreamIt benchmark suite 
+and is used as a scheduler evaluator regarding frequency scaling and 
+power consumption. Its implementation could be improved by using 
+<a href="doxygen/html/fifo_8h.html#a1d9dfe7917b602d5f4ef166c5e4902c1">peekaddr()</a>, <a href="doxygen/html/fifo_8h.html#ad7929443bfb53b24d4001f06c9c01761">discard()</a> as well as <a href="doxygen/html/fifo_8h.html#a1a6b184727381530208d41aa5db9ad98">writeaddr()</a> and <a href="doxygen/html/fifo_8h.html#a4d6f68c987bb53e194d15e59358558b9">fill()</a> instead of <a href="doxygen/html/fifo_8h.html#a17480fe5dad59378331f213853ea8c79">pop()</a>, <a href="doxygen/html/fifo_8h.html#ab0781f21d0ff8ece616b1b846a516c26">peek()</a> and <a href="doxygen/html/fifo_8h.html#a9cc0a39136822f4dc3b0bebf09af23b2">push()</a>.
+</li>
+</ul>
+
+You can download and extract any or all of the application examples 
+and compile them with
 <pre class="brush: cpp">
 make install
 </pre>
-Note that you need pelib, drake as well as some Mimer scheduler installed. By default, these applications use a simple crown heuristic scheduler based on LTLG and Height heuristics. You can install this scheduler by <a href="<!--#echo var="absolute"-->download/<!--#echo var="crown"-->.tar.gz">downloading</a> and installing the crown scheduling library.
+
+Note that you need pelib, Drake, as well as some Mimer scheduler installed. 
+By default, these applications use a simple crown heuristic scheduler 
+based on LTLG and Height heuristics. 
+You can install this scheduler by 
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="crown"-->.tar.gz">downloading</a> and installing the crown scheduling library.
 </p>
 <p>
-<a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-scc"-->.tar.gz">Drake-scc</a> is an implementation of a drake platform backend for the Single-Chip Cloud computer (SCC) as well as its emulator for classic intel IA32 or IA64 processors and linux. Drake-scc depends on <a href="<!--#echo var="absolute"-->download/<!--#echo var="pelib"-->.tar.gz">pelib-scc</a> as well as a modified version of <a href="<!--#echo var="absolute"-->download/<!--#echo var="rcce-liu"-->.tar.gz">RCCE</a>. In order to use drake-scc, download it as well as its dependencies and extract all packages. If you have a SCC available, you can compile it for the SCC; otherwise you need to use the emulator. Open a terminal in the directory where RCCE is extracted and type (for the reall SCC)
+<ul>
+<li>
+<a href="<!--#echo var="absolute"-->download/<!--#echo var="drake-scc"-->.tar.gz">Drake-scc</a> is an implementation of a drake platform backend for 
+the Single-Chip Cloud computer (SCC) as well as its emulator for 
+classic Intel IA32 or IA64 processors and Linux. 
+<br>
+Drake-scc depends on <a href="<!--#echo var="absolute"-->download/<!--#echo var="pelib"-->.tar.gz">pelib-scc</a> as well as a modified version of <a href="<!--#echo var="absolute"-->download/<!--#echo var="rcce-liu"-->.tar.gz">RCCE</a>. In order to use drake-scc, download it as well as its dependencies and extract all packages. If you have a SCC available, you can compile it for the SCC; otherwise you need to use the emulator. Open a terminal in the directory where RCCE is extracted and type (for the reall SCC)
 <pre class="brush: cpp">
 ./configure SCC_LINUX ADD_POWER_API
 </pre>
@@ -480,19 +957,13 @@ and repeat the operation in drake-scc directory. If you use the SCC emulator, ty
 <pre class="brush: cpp">
 make install SCC_PLATFORM=OMP
 </pre>
+</ul>
 </p>
 <p>
-
-</p>
-
-<h2 id="license"> Software License </h2>
-<p>
-The source code available above is released under GPLv3 licence. Please contact Nicolas Melot (nicolas.melot@liu.se) if you want to obtain another licence.
 </p>
 
 <hr>
 <p>
-<br>
 </p>
 
 <h2 id="ongoing"> Ongoing work </h2>
@@ -500,7 +971,16 @@ The source code available above is released under GPLv3 licence. Please contact 
 
 <p>
 This is a work in progress.
-Future work includes function interface simplification and the definition of a more consistent naming convention. In particular, remote shared memory allocation should be done without a local stack and memory local address translation to remote address, but directly from a call to memory allocation function with the target core. Also, shared memory allocation can be split between data and mailboxes and include the possibility to allocate less memory than requested (and return the actual number amount available), so that memory allocator can return align memory addresses allowing SIMD operations. Also, we plan to improve our implementation of communication channels between parallel tasks. We also plan to implement a drake backend for Xeon processors.
+Future work includes function interface simplification and the 
+definition of a more consistent naming convention. 
+In particular, remote shared memory allocation should be done without 
+a local stack and memory local address translation to remote address, 
+but directly from a call to memory allocation function with the target core. 
+Also, shared memory allocation can be split between data and mailboxes 
+and include the possibility to allocate less memory than requested 
+(and return the actual number amount available), so that the memory allocator 
+can return align memory addresses allowing SIMD operations. 
+Also, we plan to improve our implementation of communication channels between parallel tasks. We also plan to implement a drake backend for Xeon processors.
 </p>
 <p>
 If you would like to contribute, please let us know.
@@ -543,7 +1023,7 @@ by <a href="http://www.e-science.se">SeRC</a> project OpCoReS.
 <tr bgcolor="#ffffff">
 <td border="8"><img width="80" bordercolor="#f0f0f0" src="http://www.ida.liu.se/~chrke/logos/fp7.png"></td>
 
-<td border="18"><img width="200" src="https://dcs.cse.chalmers.se/excess/images/excess.png"></td>
+<td border="18"><img width="200" src="http://excess-project.eu/images/excess.png"></td>
 
 <td border="28"><img width="120" src="http://www.e-science.se/sites/default/files/kthc_logo.png"></td>
 
@@ -555,6 +1035,6 @@ by <a href="http://www.e-science.se">SeRC</a> project OpCoReS.
 </p>
 
 
-<script type="text/javascript">SyntaxHighlighter.all();</script> 
+<script type="text/javascript">SyntaxHighlighter.all();</script>
 </body>
 </html>
