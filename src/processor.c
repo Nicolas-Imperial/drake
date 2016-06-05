@@ -143,8 +143,23 @@ drake_processor_insert_task(processor_t * proc, task_t * task)
 {
   if (!(drake_processor_find_task(proc, task->id) < proc->handled_nodes))
     {
+/*
+      if(proc->task[proc->handled_nodes]->core != NULL)
+      {
+        processor_t **list = task->core;
+        task = malloc(sizeof(processor_t*) * task->width + 1);
+	memcpy(task->core, list, sizeof(processor_t*) * task->width);
+        task->core[sizeof(processor_t*) * task->width] = proc;
+        task->width++;
+      }
+      else
+      {
+        task->core = malloc(sizeof(processor_t*));
+        task->core[0] = proc;
+        task->width = 1;
+      }
+*/
       *(proc->task[proc->handled_nodes]) = *task;
-      proc->task[proc->handled_nodes]->core = proc;
       proc->handled_nodes++;
 
       return 1;

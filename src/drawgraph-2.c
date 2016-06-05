@@ -456,10 +456,20 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 					fprintf(stderr, "[%s:%s:%d] task.id = %d\n", __FILE__, __FUNCTION__, __LINE__, i);
 
 					fprintf(stderr, "[%s:%s:%d] task.pred = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+#if USE_MAPS
+					task.pred = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
+					pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.pred);
+#else
 					task.pred = pelib_alloc_collection(array_t(link_tp))(num_tasks);
+#endif
 	//				pelib_init(array_t(link_tp))(task.pred);
 					fprintf(stderr, "[%s:%s:%d] task.succ = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
+#if USE_MAPS
+					task.succ = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
+					pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.succ);
+#else
 					task.succ = pelib_alloc_collection(array_t(link_tp))(num_tasks);
+#endif
 	//				pelib_init(array_t(link_tp))(task.succ);
 					fprintf(stderr, "[%s:%s:%d] task.source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 					task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);

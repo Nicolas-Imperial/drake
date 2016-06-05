@@ -49,6 +49,7 @@ struct link
 	struct task *prod;
 	/// Producer task of this link
 	struct task *cons;
+	char *name;
 	/// Fifo buffer that holds data transmitted between both tasks
 	cfifo_t(int)* buffer;
 };

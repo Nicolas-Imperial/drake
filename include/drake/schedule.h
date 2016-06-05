@@ -57,8 +57,10 @@ typedef struct {
 	size_t *producers_in_task;
 	/// For each core, list of task ids that consume data produced by tasks mapped to this core
 	size_t **consumers_id;
+	char ***consumers_name;
 	/// For each core, list of task ids that procude data consumed by tasks mapped to this core
 	size_t **producers_id;
+	char ***producers_name;
 	/// Number of consumers of a task that are mapped to another core than this task is mapped to
 	size_t *remote_consumers_in_task;
 	/// Number of producers of a task that are mapped to another core than this task is mapped to
@@ -76,7 +78,10 @@ typedef struct {
 #define drake_schedule_destroy PELIB_##CONCAT_2(drake_schedule_destroy_, APPLICATION)
 #define drake_task_number PELIB_##CONCAT_2(drake_task_number_, APPLICATION)
 #define drake_task_name PELIB_##CONCAT_2(drake_task_name_, APPLICATION)
-/** Returns the pointer function that correspond to a task in a certain state **/
+/** Returns the core id of a core within a parallel task **/
+size_t drake_core_id(task_tp task);
+size_t drake_task_width(task_tp task);
+/** Returns the function pointer that corresponds to a task in a certain state **/
 void* drake_function(size_t id, task_status_t state);
 /** Initialize scheduling information for the streaming application **/
 void drake_schedule_init(drake_schedule_t*);
