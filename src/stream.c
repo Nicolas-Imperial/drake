@@ -1047,7 +1047,7 @@ prepare_mapping(drake_schedule_t *schedule)
 }
 
 drake_stream_t
-drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status))
+drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status), drake_platform_t pt)
 {
 	drake_stream_t stream;
 	int k;
@@ -1099,6 +1099,8 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 	drake_platform_time_init(stream.stage_time, schedule->stage_time);
 	stream.zero = drake_platform_time_alloc();
 	drake_platform_time_init(stream.zero, 0);
+
+	stream.platform = pt;
 
 	return stream;
 }
@@ -1190,30 +1192,37 @@ drake_stream_run(drake_stream_t* stream)
 		for(i = 0; i < proc->handled_nodes; i++)
 		{
 			task = proc->task[i];
+			if(task->status < TASK_KILLED)
+			{
+				// Switch frequency
+				freq = drake_platform_get_frequency(stream->platform);
+				if(freq != task->frequency)
+				{
+					freq = task->frequency;
+					drake_platform_set_voltage_frequency(stream->platform, freq);
+				}
+			}
+
 			switch(task->status)
 			{
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
 					done = task->start(task);
 					task_check(task);
+
 					if(task->status == TASK_START && done)
 					{
 						task->status = TASK_RUN;
 					}
+
 					// Commit
 					task_commit(task);
-					break;
+				break;
+
 				case TASK_RUN:
 					// Check
 					task_check(task);
 
-					// Switch frequency
-					freq = drake_platform_get_frequency();
-					if(freq != task->frequency)
-					{
-						freq = task->frequency;
-						drake_platform_set_voltage_frequency(freq);
-					}
 
 					// Work
 					done = task->run(task);
@@ -1227,7 +1236,7 @@ drake_stream_run(drake_stream_t* stream)
 						task->status = TASK_KILLED;
 					}
 
-				// Stop stopwatch and decrement active tasks
+				// Decrement active tasks
 				case TASK_KILLED:
 					if(task->status == TASK_KILLED)
 					{

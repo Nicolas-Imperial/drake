@@ -61,7 +61,7 @@ typedef struct {
 	@param schedule_destroy Function that cleans up a schedule and frees the associated memory
 	@param task_function Function that returns the function pointer corresponding to a task and its state
 **/
-drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status));
+drake_stream_t drake_stream_create_explicit(void (*schedule_init)(), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status), drake_platform_t pt);
 /** Initialises a stream already created. Runs the init() method of each of its tasks
 	@param stream Stream to be initialized
 	@param arg Memory address that holds arguments to transmit to task initialization function

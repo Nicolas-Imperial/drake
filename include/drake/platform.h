@@ -23,6 +23,7 @@
 
 #include <drake/task.h>
 #include <drake/schedule.h>
+
 #ifndef DRAKE_PLATFORM_H
 #define DRAKE_PLATFORM_H
 
@@ -108,9 +109,9 @@ int drake_platform_set_voltage(float voltage);
 	@param frequency Frequency in KHz
 	@return 0 if frequency switching could not be performed
 **/
-int drake_platform_set_voltage_frequency(int frequency);
+int drake_platform_set_voltage_frequency(drake_platform_t, size_t frequency);
 /** Returns the current frequency in KHz **/
-int drake_platform_get_frequency();
+size_t drake_platform_get_frequency(drake_platform_t);
 /** Returns the current voltage in Volts **/
 float drake_platform_get_voltage();
 /** Gives the current time in millisecond
