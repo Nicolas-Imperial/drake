@@ -32,10 +32,9 @@
 
 #include <crown/allocation.h>
 #include <crown/mapping.h>
-#include <crown/frequency.h>
+#include <crown/scaling.h>
 #include <crown/annealing.h>
 #include <crown/crown.h>
-#include <crown/CrownUtil.hpp>
 
 #include <pelib/DrakeCSchedule.hpp>
 #include <pelib/AmplInput.hpp>
