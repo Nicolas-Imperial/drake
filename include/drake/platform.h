@@ -201,4 +201,7 @@ int drake_platform_stream_init(drake_platform_t stream, void* arg);
 int drake_platform_stream_run(drake_platform_t);
 int drake_platform_stream_destroy(drake_platform_t);
 
+void drake_platform_core_disable(drake_platform_t pt, size_t core);
+void drake_platform_core_enable(drake_platform_t pt, size_t core);
+
 #endif // DRAKE_PLATFORM_H

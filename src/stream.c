@@ -1112,15 +1112,24 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 	size_t i;
 	size_t max_nodes = stream->proc->handled_nodes;
 
-	allocate_buffers(stream);
-	for(i = 0; i < max_nodes; i++)
+	if(stream->proc->handled_nodes > 0)
 	{
-		task_t *task = stream->proc->task[i];
-		int run = task->init(task, aux);
-		//int run = 1;
-		success = success && run;		
+		allocate_buffers(stream);
+		for(i = 0; i < max_nodes; i++)
+		{
+			task_t *task = stream->proc->task[i];
+			int run = task->init(task, aux);
+			//int run = 1;
+			success = success && run;		
+		}
+		drake_platform_barrier(NULL);
 	}
-	drake_platform_barrier(NULL);
+	else
+	{
+		// Deactivate core is no task is to be run
+		drake_platform_core_disable(stream->platform, drake_platform_core_id());
+		drake_platform_barrier(NULL);
+	}
 
 	return success;
 }
@@ -1148,6 +1157,8 @@ drake_stream_destroy(drake_stream_t* stream)
 	free(stream->stage_sleep_time);
 	free(stream->stage_time);
 	free(stream->zero);
+
+	// TODO: deallocate buffers, if core had any task to run
 
 	return success;
 }
