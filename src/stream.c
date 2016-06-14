@@ -217,6 +217,7 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 			}
 			pelib_array_append(cross_link_tp)(prod->core[min_index]->sink, cross_link);
 			pelib_array_append(cross_link_tp)(prod->sink, cross_link);
+
 		}
 		else
 		{
@@ -726,6 +727,11 @@ allocate_buffers(drake_stream_t* stream)
 								break;
 							}
 						}
+						if(l == link->cons->width)
+						{
+							fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+							abort();
+						}
 						size_t nb_in_succ = pelib_array_length(cross_link_tp)(link->cons->core[l]->source);
 						size_t nb_out_succ = pelib_array_length(cross_link_tp)(link->cons->core[l]->sink);
 						check_mpb_size(stream->local_memory_size, nb_in_succ, nb_out_succ, proc);
@@ -839,6 +845,11 @@ allocate_buffers(drake_stream_t* stream)
 							break;
 						}
 					}
+					if(l == cross_link->link->cons->width)
+					{
+						fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+						abort();
+					}
 					//cross_link->read = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
 					cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
 					
@@ -856,16 +867,21 @@ allocate_buffers(drake_stream_t* stream)
 					size_t m;
 					for(m = 0; m < pelib_array_length(cross_link_tp)(link->prod->core[l]->sink); m++)
 					{
-						if(pelib_array_read(cross_link_tp)(link->prod->core[l]->sink, m)->link->prod->id == cross_link->link->prod->id)
+						if(pelib_array_read(cross_link_tp)(cross_link->link->prod->core[l]->sink, m)->link->prod->id == cross_link->link->prod->id)
 						{
 							break;
 						}
 					}
 
-					if(m < pelib_array_length(cross_link_tp)(link->prod->core[l]->sink))
+					if(m < pelib_array_length(cross_link_tp)(cross_link->link->prod->core[l]->sink))
 					{
 						break;
 					}
+				}
+				if(l == cross_link->link->cons->width)
+				{
+					fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+					abort();
 				}
 
 
@@ -982,11 +998,13 @@ prepare_mapping(drake_schedule_t *schedule)
 				// This is a new task
 				task_t task;
 				task.id = schedule->schedule[j - 1][i - 1].id;
+				task.name = schedule->task_name[task.id - 1];
         			task.core = malloc(sizeof(processor_t*));
 			        task.core[0] = mapping->proc[j - 1];
 			        task.width = 1;
 				tasks[task_counter] = task;
 				task_counter++;
+
 			}
 			else
 			{
@@ -1066,6 +1084,11 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 
 	unsigned long long int start, stop, begin, end;
 	schedule_init(&stream.schedule);
+	if(stream.schedule.core_number != drake_platform_core_size())
+	{
+		fprintf(stderr, "Application compiled for different number of cores than available on this platform. Please recompile drake application with a correct platform description\n");
+		abort();
+	}
 	drake_schedule_t *schedule = &stream.schedule;
 	drake_platform_barrier(NULL);
 	mapping = prepare_mapping(schedule);
@@ -1077,7 +1100,7 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 	proc = mapping->proc[stuff2];
 
 	// Initialize task's pointer
-	max_nodes = proc->handled_nodes;
+	max_nodes = (proc == NULL ? 0 : proc->handled_nodes);
 	for(i = 0; i < max_nodes; i++)
 	{
 		task_t *task = proc->task[i];
@@ -1110,10 +1133,10 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 {
 	int success = 1;
 	size_t i;
-	size_t max_nodes = stream->proc->handled_nodes;
 
-	if(stream->proc->handled_nodes > 0)
+	if(stream->proc != NULL && stream->proc->handled_nodes > 0)
 	{
+		size_t max_nodes = stream->proc->handled_nodes;
 		allocate_buffers(stream);
 		for(i = 0; i < max_nodes; i++)
 		{
@@ -1143,7 +1166,7 @@ drake_stream_destroy(drake_stream_t* stream)
 	int success;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
-	for(i = 0; i < proc->handled_nodes; i++)
+	for(i = 0; proc != NULL && i < proc->handled_nodes; i++)
 	{
 		task = proc->task[i];
 		task->status = TASK_DESTROY;
@@ -1171,6 +1194,12 @@ drake_stream_run(drake_stream_t* stream)
 	task_t *task;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
+
+	if(proc == NULL)
+	{
+		return 0;
+	}
+
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
@@ -1234,7 +1263,6 @@ drake_stream_run(drake_stream_t* stream)
 					// Check
 					task_check(task);
 
-
 					// Work
 					done = task->run(task);
 
@@ -1254,6 +1282,9 @@ drake_stream_run(drake_stream_t* stream)
 						task->kill(task);
 						task->status = TASK_ZOMBIE;
 						active_tasks--;
+						drake_platform_core_disable(stream->platform, drake_platform_core_id());
+					// Commit
+					task_commit(task);
 					}
 				break;
 
@@ -1281,8 +1312,11 @@ drake_stream_run(drake_stream_t* stream)
 		{
 			drake_platform_time_get(stream->stage_stop_time);
 			drake_platform_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
-			drake_platform_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
-			drake_platform_sleep(stream->stage_sleep_time);
+			if(!drake_platform_time_greater(stream->stage_sleep_time, stream->stage_time))
+			{
+				drake_platform_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
+				drake_platform_sleep(stream->stage_sleep_time);
+			}
 		}
 	}
 

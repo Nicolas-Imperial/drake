@@ -158,7 +158,7 @@ enum drake_power_monitor {DRAKE_POWER_CHIP, DRAKE_POWER_MEMORY_CONTROLLER, DRAKE
 	@param measurement binary combination of power quantities to measure. For instance, 1 << DRAKE_POWER_CHIP | 1 << DRAKE_POWER_CORE
 	@return 0 if the power structure could not be allocated
 **/
-drake_power_t drake_platform_power_init(size_t samples, int measurement);
+drake_power_t drake_platform_power_init(drake_platform_t pt, size_t samples, int measurement);
 /** Begins power consumption measurement
 	@param pwr Power data structure that holds power data measured and well as all pwoer measurement settings
 **/
