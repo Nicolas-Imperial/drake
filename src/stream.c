@@ -1222,7 +1222,13 @@ drake_stream_run(drake_stream_t* stream)
         sigaction(SIGTERM, &sa, NULL);
 #endif
 
-	int freq = 0;
+	// Set frequency of first task
+	int freq;
+	if(proc->handled_nodes > 0)
+	{
+		freq = proc->task[0]->frequency;
+		drake_platform_set_voltage_frequency(stream->platform, freq);
+	}
 
 	/* Phase 1, real */
 	while(active_tasks > 0)
@@ -1235,7 +1241,6 @@ drake_stream_run(drake_stream_t* stream)
 			if(task->status < TASK_KILLED)
 			{
 				// Switch frequency
-				freq = drake_platform_get_frequency(stream->platform);
 				if(freq != task->frequency)
 				{
 					freq = task->frequency;
@@ -1282,9 +1287,9 @@ drake_stream_run(drake_stream_t* stream)
 						task->kill(task);
 						task->status = TASK_ZOMBIE;
 						active_tasks--;
-						drake_platform_core_disable(stream->platform, drake_platform_core_id());
-					// Commit
-					task_commit(task);
+
+						// Commit
+						task_commit(task);
 					}
 				break;
 
@@ -1319,6 +1324,10 @@ drake_stream_run(drake_stream_t* stream)
 			}
 		}
 	}
+
+	// Get core to sleep
+	drake_platform_sleep_enable(stream->platform, drake_platform_core_id());
+	//drake_platform_core_disable(stream->platform, drake_platform_core_id());
 
 	return 0;
 }
