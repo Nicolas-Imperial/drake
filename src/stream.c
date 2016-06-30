@@ -1170,7 +1170,10 @@ drake_stream_destroy(drake_stream_t* stream)
 	{
 		task = proc->task[i];
 		task->status = TASK_DESTROY;
-		success = success && task->destroy(task);
+		// /!\ Do not invert the operand of the boolean expression below
+		// Or Drake will not run a destroy method of a task if a previous
+		// task did not return 1 when destroyed.
+		success = task->destroy(task) && success;
 	}
 
 	// Free the stream data structures

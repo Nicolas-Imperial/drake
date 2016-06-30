@@ -76,6 +76,8 @@ CXX_TEST_LDFLAGS = -L.
 LIBS_TEST = 
 PKG_TEST = 
 
+attach = drake-eval-build
+
 ## Cross-package flags for individual c/c++ source files
 #CFLAGS_foo.c = -DFOO_CROSS=foo_cross
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
@@ -226,6 +228,10 @@ subdirs =
 
 ## Additional settings
 clean = *.o *.txt *.fig *.bin *.e *.d *.obj
+
+post-install:
+	chmod 755 $(DESTDIR)$(final_sharedir)/drake-eval-build 
+	ln -sf $(DESTDIR)$(final_sharedir)/drake-eval-build $(DESTDIR)$(final_bindir)
 
 ## Targets to run before any other target runs
 ## Can be a custom target
