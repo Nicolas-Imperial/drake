@@ -42,9 +42,8 @@ make_drake_eval()
 	local backend=$4
 	local drake_src=$5
 
-	rm ${drake_src}/src/${var}drake-eval ${drake_src}/src/bincc_${var}drake-eval_eval.o > /dev/null 2>&1
+	rm ${drake_src}/src/${var}drake-eval ${drake_src}/src/bincc_drake-eval_eval.{o,d,e} > /dev/null 2>&1
 	PKG_CONFIG_PATH=${app_src}/src:$PKG_CONFIG_PATH make -C "$drake_src" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CONFIG=RELEASE CC_LDFLAGS=-L${app_src}/src
-	cp ${drake_src}/src/${var}${app}-drake-eval .
 
 	#sudo setcap "cap_sys_admin=eip cap_sys_rawio=eip" ${drake_src}/src/${var}${app}-drake-eval
 	#sudo /etc/init.d/sysfsutils restart
@@ -144,6 +143,11 @@ read_args()
 				eval read_drake_args `for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`
 				shift $?
 			;;
+			"--out")
+				shift
+				dest="$1"
+				shift
+			;;
 			*)
 				break;
 			;;
@@ -158,6 +162,11 @@ if [ "$app_lib" != "" ] && [ "$app_src" != "" ] && [ "$backend" != "" ] && [ "$d
 then
 	make_drake_capp "$app_lib" "$app_var" "$platform" "$taskgraph" "$schedule" "$app_src" $app_cflags
 	make_drake_eval "$app_lib" "$app_var" "$app_src" "$backend" "$drake_src"
+
+	if [ "$dest" != "" ]
+	then
+		cp ${drake_src}/src/${app_var}${app_lib}-drake-eval $dest
+	fi
 else
 	echo Missing required arguments. >&2
 	usage
