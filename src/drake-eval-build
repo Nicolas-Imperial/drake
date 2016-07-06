@@ -30,8 +30,9 @@ make_drake_capp()
 	shift 6
 	local CFLAGS="$@"
 
-	rm ${src}/src/*.{o,d,e,a,pc} > /dev/null 2>&1
-	make -C "$src" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS="${CFLAGS}"
+	rm ${src}/src/drake{cc,cxx}_${app}_*.{o,d,e,a,pc} > /dev/null 2>&1
+	rm ${src}/src/${app}.schedule.c > /dev/null 2>&1
+	make -C "$src" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS="${CFLAGS}" $args
 }
 
 make_drake_eval()
@@ -43,7 +44,7 @@ make_drake_eval()
 	local drake_src=$5
 
 	rm ${drake_src}/src/${var}drake-eval ${drake_src}/src/bincc_drake-eval_eval.{o,d,e} > /dev/null 2>&1
-	PKG_CONFIG_PATH=${app_src}/src:$PKG_CONFIG_PATH make -C "$drake_src" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CONFIG=RELEASE CC_LDFLAGS=-L${app_src}/src
+	PKG_CONFIG_PATH=${app_src}/src:$PKG_CONFIG_PATH make -C "$drake_src" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CC_LDFLAGS=-L${app_src}/src $args
 
 	#sudo setcap "cap_sys_admin=eip cap_sys_rawio=eip" ${drake_src}/src/${var}${app}-drake-eval
 	#sudo /etc/init.d/sysfsutils restart
@@ -146,7 +147,10 @@ read_args()
 			"--out")
 				shift
 				dest="$1"
+			;;
+			"--")
 				shift
+				args="$@"
 			;;
 			*)
 				break;
