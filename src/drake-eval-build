@@ -32,6 +32,10 @@ make_drake_capp()
 
 	rm ${src}/src/drake{cc,cxx}_${app}_*.{o,d,e,a,pc} > /dev/null 2>&1
 	rm ${src}/src/${app}.schedule.c > /dev/null 2>&1
+	if [ "$schedule" != "${src}/src/${app}.schedule.xml" ]
+	then
+		rm ${src}/src/${app}.schedule.xml
+	fi
 	make -C "$src" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS="${CFLAGS}" $args
 }
 
