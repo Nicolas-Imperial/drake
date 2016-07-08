@@ -32,11 +32,11 @@ make_drake_capp()
 
 	rm ${src}/src/drake{cc,cxx}_${app}_*.{o,d,e,a,pc} > /dev/null 2>&1
 	rm ${src}/src/${app}.schedule.c > /dev/null 2>&1
-	if [ "$schedule" != "${src}/src/${app}.schedule.xml" ]
+	if [ "$schedule" != "${src}/src/${app}.schedule.xml" ] && [ -f ${src}/src/${app}.schedule.xml ]
 	then
 		rm ${src}/src/${app}.schedule.xml
 	fi
-	make -C "$src" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS="${CFLAGS}" $args
+	eval make -C \"$src\" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS=\"${CFLAGS}\" $args
 }
 
 make_drake_eval()
@@ -48,11 +48,7 @@ make_drake_eval()
 	local drake_src=$5
 
 	rm ${drake_src}/src/${var}drake-eval ${drake_src}/src/bincc_drake-eval_eval.{o,d,e} > /dev/null 2>&1
-	PKG_CONFIG_PATH=${app_src}/src:$PKG_CONFIG_PATH make -C "$drake_src" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CC_LDFLAGS=-L${app_src}/src $args
-
-	#sudo setcap "cap_sys_admin=eip cap_sys_rawio=eip" ${drake_src}/src/${var}${app}-drake-eval
-	#sudo /etc/init.d/sysfsutils restart
-	#ls -l /sys/devices/system/cpu/cpu*/cpuidle/state1/disable
+	eval PKG_CONFIG_PATH=\"${app_src}/src:$PKG_CONFIG_PATH\" make -C \"$drake_src\" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CC_LDFLAGS=-L${app_src}/src $args
 }
 
 read_drake_args()
@@ -154,7 +150,7 @@ read_args()
 			;;
 			"--")
 				shift
-				args="$@"
+				eval args=\'`for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`\'
 			;;
 			*)
 				break;
@@ -190,4 +186,3 @@ else
 	#echo app_var = \"$app_var\" '(--app --variant <variant>)' >&2
 fi
 
-#DRAKE_IA_CONFIG_ARGS=1 src/var1_drake-eval --platform-args --num-cores 2 -- --application-args $(echo '2^24' | bc -l) 0 -- --core-output 0 --time /dev/stdout --power /dev/stdout 2>&1 | tee /tmp/out
