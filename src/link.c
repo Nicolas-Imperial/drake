@@ -199,14 +199,14 @@ pelib_destroy(link_tp)(link_tp link)
 	return 1;
 }
 
-#define PAIR_KEY_T MAP_KEY_TYPE
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T link_tp
 #include <pelib/pair.c>
 
-#define ITERATOR_T pair_t(MAP_KEY_TYPE, link_tp)
+#define ITERATOR_T pair_t(string, link_tp)
 #include <pelib/iterator.c>
 
-#define MAP_KEY_T MAP_KEY_TYPE
+#define MAP_KEY_T string
 #define MAP_VALUE_T link_tp
 #include <pelib/map.c>
 

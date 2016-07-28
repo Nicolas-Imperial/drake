@@ -105,11 +105,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		simple_str = pelib_string(task_tp)(task);
 		if(task->pred != NULL)
 		{
-#if USE_MAPS
-			pred_str = pelib_string_detail(map_t(MAP_KEY_TYPE, link_tp))(*task->pred, level - 1);
-#else
-			pred_str = pelib_string_detail(array_t(link_tp))(*task->pred, level - 1);
-#endif
+			pred_str = pelib_string_detail(map_t(string, link_tp))(*task->pred, level - 1);
 		}
 		else
 		{
@@ -119,11 +115,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		
 		if(task->pred != NULL)
 		{
-#if USE_MAPS
-			succ_str = pelib_string_detail(map_t(MAP_KEY_TYPE, link_tp))(*task->succ, level - 1);
-#else
-			succ_str = pelib_string_detail(array_t(link_tp))(*task->succ, level - 1);
-#endif
+			succ_str = pelib_string_detail(map_t(string, link_tp))(*task->succ, level - 1);
 		}
 		else
 		{
@@ -186,8 +178,6 @@ pelib_alloc(task_tp)(void* aux)
 int
 pelib_init(task_tp)(task_tp* task)
 {
-	//(*task)->core = NULL;
-	//(*task)->width = 0;
 	return 0;
 }
 
@@ -200,17 +190,7 @@ pelib_fread(task_tp)(task_tp* ptr, FILE* stream)
 int
 pelib_copy(task_tp)(task_tp source, task_tp* dest)
 {
-/*	task_t src, *dst;
-	src = *source;
-	dst = *dest;
-
-	dst->pred = pelib_array_task_tp_t_alloc(pelib_array_task_tp_capacity(src.pred));
-	dst->succ = pelib_array_task_tp_t_alloc(pelib_array_task_tp_capacity(src.succ));
-	pelib_array_task_tp_t_copy(*src.pred, dst->pred);
-	pelib_array_task_tp_t_copy(*src.succ, dst->succ);
-*/
 	*dest = source;
-//	printf("%s: task %d, src->pred=%X, dst->pred=%X\n", __FUNCTION__, source->id, source->pred, (*dest)->pred);
 	
 	return 0;
 }
@@ -231,19 +211,10 @@ drake_task_depleted(task_tp task)
 	int all_killed = 1;
 	int all_empty = 1;
 
-#if USE_MAPS
-	map_iterator_t(MAP_KEY_TYPE, link_tp)* i;
-	for(i = pelib_map_begin(MAP_KEY_TYPE, link_tp)(task->pred); i != pelib_map_end(MAP_KEY_TYPE, link_tp)(task->pred); i = pelib_map_next(MAP_KEY_TYPE, link_tp)(i))
-#else
-	int i;
-	for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
-#endif
+	map_iterator_t(string, link_tp)* i;
+	for(i = pelib_map_begin(string, link_tp)(task->pred); i != pelib_map_end(string, link_tp)(task->pred); i = pelib_map_next(string, link_tp)(i))
 	{
-#if USE_MAPS
-		link_tp link = pelib_map_read(MAP_KEY_TYPE, link_tp)(i).value;
-#else
-		link_tp link = pelib_array_read(link_tp)(task->pred, i);
-#endif
+		link_tp link = pelib_map_read(string, link_tp)(i).value;
 		all_killed = all_killed && ((link->prod == NULL) ? 1 : link->prod->status >= TASK_KILLED);
 		all_empty = all_empty && (pelib_cfifo_length(int)(link->buffer) == 0);
 	}
@@ -251,14 +222,14 @@ drake_task_depleted(task_tp task)
 	return all_killed && all_empty;
 }
 
-#define PAIR_KEY_T MAP_KEY_TYPE
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T task_tp
 #include <pelib/pair.c>
 
-#define ITERATOR_T pair_t(MAP_KEY_TYPE, task_tp)
+#define ITERATOR_T pair_t(string, task_tp)
 #include <pelib/iterator.c>
 
-#define MAP_KEY_T MAP_KEY_TYPE
+#define MAP_KEY_T string
 #define MAP_VALUE_T task_tp
 #include <pelib/map.c>
 

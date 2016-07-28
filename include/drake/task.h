@@ -49,20 +49,20 @@ typedef link_t* link_tp;
 #include <pelib/structure.h>
 #define DONE_link_tp 1
 
-#define PAIR_KEY_T MAP_KEY_TYPE
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T link_tp
 #include <pelib/pair.h>
-#define DONE_pair_MAP_KEY_TYPE_link_tp 1
+#define DONE_pair_string_link_tp 1
 
-#define ITERATOR_T pair_t(MAP_KEY_TYPE, link_tp)
+#define ITERATOR_T pair_t(string, link_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_pair_MAP_KEY_TYPE_link_tp 1
+#define DONE_iterator_pair_string_link_tp 1
 
 /** Defines arrays for pointers to link **/
-#define MAP_KEY_T MAP_KEY_TYPE
+#define MAP_KEY_T string
 #define MAP_VALUE_T link_tp
 #include <pelib/map.h>
-#define DONE_map_MAP_KEY_TYPE_link_tp 1
+#define DONE_map_string_link_tp 1
 
 #define ARRAY_T link_tp
 #include <pelib/array.h>
@@ -85,20 +85,20 @@ typedef cross_link_t* cross_link_tp;
 #include <pelib/structure.h>
 #define DONE_cross_link_tp 1
 
-#define PAIR_KEY_T MAP_KEY_TYPE
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T cross_link_tp
 #include <pelib/pair.h>
-#define DONE_pair_MAP_KEY_TYPE_cross_link_tp 1
+#define DONE_pair_string_cross_link_tp 1
 
-#define ITERATOR_T pair_t(MAP_KEY_TYPE, cross_link_tp)
+#define ITERATOR_T pair_t(string, cross_link_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_pair_MAP_KEY_TYPE_cross_link_tp 1
+#define DONE_iterator_pair_string_cross_link_tp 1
 
 /** Defines arrays for pointers to cross link **/
-#define MAP_KEY_T MAP_KEY_TYPE
+#define MAP_KEY_T string
 #define MAP_VALUE_T cross_link_tp
 #include <pelib/map.h>
-#define DONE_map_MAP_KEY_TYPE_cross_link_tp 1
+#define DONE_map_string_cross_link_tp 1
 
 #define ARRAY_T cross_link_tp
 #include <pelib/array.h>
@@ -118,22 +118,14 @@ struct task
  	processor_t **core;
 	size_t width;
 	/// List of link pointers that consume data produced by this task
-#if USE_MAPS
-	map_t(MAP_KEY_TYPE, link_tp) *succ;
-#else
-	array_t(link_tp) *succ;
-#endif
+	map_t(string, link_tp) *succ;
  	/// List of link pointers that produce data this task consumes
-#if USE_MAPS
- 	map_t(MAP_KEY_TYPE, link_tp) *pred;
-#else
- 	array_t(link_tp) *pred;
-#endif
+ 	map_t(string, link_tp) *pred;
 	/// List of links toward consumer tasks mapped to another core
-	//map_t(MAP_KEY_TYPE, cross_link_tp) *sink;
+	//map_t(string, cross_link_tp) *sink;
 	array_t(cross_link_tp) *sink;
  	/// List of links toward producer tasks mapped to another cores
- 	//map_t(MAP_KEY_TYPE, cross_link_tp) *source;
+ 	//map_t(string, cross_link_tp) *source;
  	array_t(cross_link_tp) *source;
 	/// Frequency in KHz this task should run at
 	int frequency;
@@ -171,19 +163,19 @@ typedef struct task* task_tp;
 #include <pelib/structure.h>
 #define DONE_task_tp 1
 
-#define PAIR_KEY_T MAP_KEY_TYPE
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T task_tp
 #include <pelib/pair.h>
-#define DONE_pair_MAP_KEY_TYPE_task_tp 1
+#define DONE_pair_string_task_tp 1
 
-#define ITERATOR_T pair_t(MAP_KEY_TYPE, task_tp)
+#define ITERATOR_T pair_t(string, task_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_MAP_KEY_TYPE_task_tp 1
+#define DONE_iterator_string_task_tp 1
 
-#define MAP_KEY_T MAP_KEY_TYPE
+#define MAP_KEY_T string
 #define MAP_VALUE_T task_tp
 #include <pelib/map.h>
-#define DONE_map_MAP_KEY_TYPE_task_tp 1
+#define DONE_map_string_task_tp 1
 
 /** Defines arrays for pointers to tasks **/
 #define ARRAY_T task_tp

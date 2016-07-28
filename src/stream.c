@@ -97,33 +97,17 @@ tasks_mapped_same_cores(task_tp t1, task_tp t2)
 
 static
 void
-#if USE_MAPS
-build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, MAP_KEY_TYPE prod_name, MAP_KEY_TYPE cons_name)
-#else
-build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
-#endif
+build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, string prod_name, string cons_name)
 {
-#if USE_MAPS
 	int i, j;
-#else
-	int i, j, k;
-#endif
 	link_t *link = NULL;
 	cross_link_t *cross_link;
 	
 	// Find in target task if this link doesn't already exist
-#if USE_MAPS
-	map_iterator_t(MAP_KEY_TYPE, link_tp) *kk;
-	for(kk = pelib_map_begin(MAP_KEY_TYPE, link_tp)(prod->succ); kk != pelib_map_end(MAP_KEY_TYPE, link_tp)(prod->succ); kk = pelib_map_next(MAP_KEY_TYPE, link_tp)(kk))
-#else
-	for(k = 0; k < pelib_array_length(link_tp)(prod->succ); k++)
-#endif
+	map_iterator_t(string, link_tp) *kk;
+	for(kk = pelib_map_begin(string, link_tp)(prod->succ); kk != pelib_map_end(string, link_tp)(prod->succ); kk = pelib_map_next(string, link_tp)(kk))
 	{
-#if USE_MAPS
-		link = pelib_map_read(MAP_KEY_TYPE, link_tp)(kk).value;
-#else
-		link = pelib_array_read(link_tp)(prod->succ, k);
-#endif
+		link = pelib_map_read(string, link_tp)(kk).value;
 		if(link->prod->id == prod->id && link->cons->id == cons->id)
 		{
 			break;
@@ -142,37 +126,17 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 		link->prod = prod;
 		link->cons = cons;
 		link->buffer = NULL;
-#if USE_MAPS
-#ifdef STRING
-		//link->name = malloc((strlen(name) + 1) * sizeof(char));
-		//strcpy(link->name, name);
-#else
-		link->name = name == 0 ? "left" : "right";
-#endif
-#endif
 
 		// Add it as source and sink to both current and target tasks
-#if USE_MAPS
-		pair_t(MAP_KEY_TYPE, link_tp) link_prod_pair, link_cons_pair;
-#ifdef STRING
-		pelib_alloc_buffer(MAP_KEY_TYPE)(&link_prod_pair.key, (strlen(prod_name) + 1) * sizeof(char));
-		pelib_alloc_buffer(MAP_KEY_TYPE)(&link_cons_pair.key, (strlen(cons_name) + 1) * sizeof(char));
-		pelib_copy(MAP_KEY_TYPE)(prod_name, &link_prod_pair.key);
-		pelib_copy(MAP_KEY_TYPE)(cons_name, &link_cons_pair.key);
-#else
-		int key = link_name_to_int(link->name);
-		pelib_copy(MAP_KEY_TYPE)(key, &link_pair.key);
-#endif
+		pair_t(string, link_tp) link_prod_pair, link_cons_pair;
+		pelib_alloc_buffer(string)(&link_prod_pair.key, (strlen(prod_name) + 1) * sizeof(char));
+		pelib_alloc_buffer(string)(&link_cons_pair.key, (strlen(cons_name) + 1) * sizeof(char));
+		pelib_copy(string)(prod_name, &link_prod_pair.key);
+		pelib_copy(string)(cons_name, &link_cons_pair.key);
 		pelib_copy(link_tp)(link, &link_prod_pair.value);
 		pelib_copy(link_tp)(link, &link_cons_pair.value);
-		//debug(link_prod_pair.value->name);
-		//debug(link_cons_pair.value->name);
-		pelib_map_insert(MAP_KEY_TYPE, link_tp)(prod->succ, link_prod_pair);
-		pelib_map_insert(MAP_KEY_TYPE, link_tp)(cons->pred, link_cons_pair);
-#else
-		pelib_array_append(link_tp)(cons->pred, link);
-		pelib_array_append(link_tp)(prod->succ, link);
-#endif
+		pelib_map_insert(string, link_tp)(prod->succ, link_prod_pair);
+		pelib_map_insert(string, link_tp)(cons->pred, link_cons_pair);
 
 		// If tasks are mapped to different sets of cores
 		size_t i;
@@ -233,102 +197,43 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 	}
 }
 
-#if USE_MAPS
-static map_t(MAP_KEY_TYPE, task_tp)*
-#else
-static array_t(task_tp)*
-#endif
+static map_t(string, task_tp)*
 get_task_consumers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-#if USE_MAPS
-	map_t(MAP_KEY_TYPE, task_tp) *consumers;
-	consumers = pelib_alloc(map_t(MAP_KEY_TYPE, task_tp))();
-	pelib_init(map_t(MAP_KEY_TYPE, task_tp))(consumers);
-#else
-	array_t(task_tp) *consumers;
-	consumers = pelib_alloc_collection(array_t(task_tp))(mapping->schedule->consumers_in_task[task->id - 1]);
-	pelib_init(array_t(task_tp))(consumers);
-#endif
+	map_t(string, task_tp) *consumers;
+	consumers = pelib_alloc(map_t(string, task_tp))();
+	pelib_init(map_t(string, task_tp))(consumers);
 	for(i = 0; i < mapping->schedule->consumers_in_task[task->id - 1]; i++)
 	{
-#if USE_MAPS
-		pair_t(MAP_KEY_TYPE, task_tp) pair;
-#ifdef STRING
-		MAP_KEY_TYPE name = mapping->schedule->producers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
-		pelib_alloc_buffer(MAP_KEY_TYPE)(&pair.key, strlen(name) + 1);
-#else
-		MAP_KEY_TYPE name = link_name_to_int(mapping->schedule->consumers_name[task->id - 1][i]);
-#endif
-		pelib_copy(MAP_KEY_TYPE)(name, &pair.key);
-		//debug(pair.key);
+		pair_t(string, task_tp) pair;
+		string name = mapping->schedule->consumers_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
-		pelib_map_insert(MAP_KEY_TYPE, task_tp)(consumers, pair);
-#else
-		pelib_array_append(task_tp)(consumers, drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]));
-#endif
+		pelib_map_insert(string, task_tp)(consumers, pair);
 	}
 
 	return consumers;	
 }
 
-#if USE_MAPS
-static map_t(MAP_KEY_TYPE, task_tp)*
-#else
-static array_t(task_tp)*
-#endif
+static map_t(string, task_tp)*
 get_task_producers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-#if USE_MAPS
-	map_t(MAP_KEY_TYPE, task_tp) *producers;
-	producers = pelib_alloc(map_t(MAP_KEY_TYPE, task_tp))();
-	pelib_init(map_t(MAP_KEY_TYPE, task_tp))(producers);
-#else
-	array_t(task_tp) *producers;
-	producers = pelib_alloc_collection(array_t(task_tp))(mapping->schedule->producers_in_task[task->id - 1]);
-	pelib_init(array_t(task_tp))(producers);
-#endif
+	map_t(string, task_tp) *producers;
+	producers = pelib_alloc(map_t(string, task_tp))();
+	pelib_init(map_t(string, task_tp))(producers);
 	for(i = 0; i < mapping->schedule->producers_in_task[task->id - 1]; i++)
 	{
-#if USE_MAPS
-		pair_t(MAP_KEY_TYPE, task_tp) pair;
-#ifdef STRING
-		MAP_KEY_TYPE name = mapping->schedule->consumers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
-		pelib_alloc_buffer(MAP_KEY_TYPE)(&pair.key, strlen(name) + 1);
-#else
-		MAP_KEY_TYPE name = link_name_to_int(mapping->schedule->producers_name[task->id - 1][i]); // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
-#endif
-		pelib_copy(MAP_KEY_TYPE)(name, &pair.key);
-		//debug(pair.key);
+		pair_t(string, task_tp) pair;
+		string name = mapping->schedule->producers_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
-		pelib_map_insert(MAP_KEY_TYPE, task_tp)(producers, pair);
-#else
-		size_t task_id = mapping->schedule->producers_id[task->id - 1][i];
-		task_t *prod = drake_mapping_find_task(mapping, task_id);
-		pelib_array_append(task_tp)(producers, prod);
-#endif
+		pelib_map_insert(string, task_tp)(producers, pair);
 	}
 
-/*
-#if USE_MAPS
-			map_iterator_t(MAP_KEY_TYPE, task_tp)* kk;
-			for(kk = pelib_map_begin(MAP_KEY_TYPE, task_tp)(producers); kk != pelib_map_end(MAP_KEY_TYPE, task_tp)(producers); kk = pelib_map_next(MAP_KEY_TYPE, task_tp)(kk))
-			{
-				MAP_KEY_TYPE name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
-				task_tp target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
-				debug(target_task->name);
-			}
-#endif
-
-#if USE_MAPS
-			pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*producers);
-			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(producers);
-#else
-			pelib_free(array_t(task_tp))(producers);
-#endif
-	abort();
-*/
 	return producers;	
 }
 
@@ -336,11 +241,7 @@ static
 void
 build_tree_network(mapping_t* mapping)
 {
-#if USE_MAPS
 	int i, j;
-#else
-	int i, j, k;
-#endif
 	task_t *target_task, *current_task;
 	link_t *link;
 	processor_t *proc;
@@ -355,117 +256,69 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
-#if USE_MAPS
-			map_t(MAP_KEY_TYPE, task_tp) *producers = get_task_producers(mapping, current_task);
-			map_iterator_t(MAP_KEY_TYPE, task_tp)* kk;
-			for(kk = pelib_map_begin(MAP_KEY_TYPE, task_tp)(producers); kk != pelib_map_end(MAP_KEY_TYPE, task_tp)(producers); kk = pelib_map_next(MAP_KEY_TYPE, task_tp)(kk))
-#else
-			array_t(task_tp) *producers = get_task_producers(mapping, current_task);
-			for(k = 0; k < pelib_array_length(task_tp)(producers); k++)
-#endif
+			map_t(string, task_tp) *producers = get_task_producers(mapping, current_task);
+			map_iterator_t(string, task_tp)* kk;
+			for(kk = pelib_map_begin(string, task_tp)(producers); kk != pelib_map_end(string, task_tp)(producers); kk = pelib_map_next(string, task_tp)(kk))
 			{
-#if USE_MAPS
-				target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
-/*
-				debug(current_task->name);
-				debug_uint(current_task->id);
-				debug(target_task->name);
-				debug_uint(target_task->id);
-*/
-				MAP_KEY_TYPE cons_name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
+				target_task = pelib_map_read(string, task_tp)(kk).value;
+				string prod_name = pelib_map_read(string, task_tp)(kk).key;
 				// Get link name from the producer's point of view
-				MAP_KEY_TYPE prod_name;
+				string cons_name;
 				size_t l;
 				for(l = 0; l < mapping->schedule->consumers_in_task[target_task->id - 1]; l++)
 				{
-					//debug_luint(mapping->schedule->consumers_id[target_task->id - 1][l]);
-					//debug_int(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id);
 					if(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id)
-					{
-						prod_name = mapping->schedule->producers_name[target_task->id - 1][l];
-						//debug_addr(prod_name);
-						//debug(prod_name);
-						break;
-					}
-				}
-#else
-				target_task = pelib_array_read(task_tp)(producers, k);
-#endif
-				if(target_task != NULL)
-				{
-					/*
-					debug(target_task->name);
-					debug(current_task->name);
-					*/
-#if USE_MAPS
-					//debug(name);
-					debug(target_task->name);
-					debug(prod_name);
-					debug(current_task->name);
-					debug(cons_name);
-					build_link(mapping, proc, target_task, current_task, prod_name, cons_name);
-#else
-					build_link(mapping, proc, target_task, current_task);
-#endif
-					size_t l;
-					for(l = 0; l < current_task->width; l++)
-					{
-						int index = drake_mapping_find_processor_index(mapping, current_task->core[l]->id);
-						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], current_task->id)];
-						*t = *current_task;
-					}
-
-					for(l = 0; l < target_task->width; l++)
-					{
-						int index = drake_mapping_find_processor_index(mapping, target_task->core[l]->id);
-						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], target_task->id)];
-						*t = *target_task;
-					}
-				}
-			}
-#if USE_MAPS
-			//pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*producers);
-			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(producers);
-#else
-			pelib_free(array_t(task_tp))(producers);
-#endif
-
-#if USE_MAPS
-			map_t(MAP_KEY_TYPE, task_tp) *consumers = get_task_consumers(mapping, current_task);
-			for(kk = pelib_map_begin(MAP_KEY_TYPE, task_tp)(consumers); kk != pelib_map_end(MAP_KEY_TYPE, task_tp)(consumers); kk = pelib_map_next(MAP_KEY_TYPE, task_tp)(kk))
-#else
-			array_t(task_tp) *consumers = get_task_consumers(mapping, current_task);
-			for(k = 0; k < pelib_array_length(task_tp)(consumers); k++)
-#endif
-			{
-#if USE_MAPS
-				target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
-
-				MAP_KEY_TYPE prod_name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
-				// Get link name from the producer's point of view
-				MAP_KEY_TYPE cons_name;
-				size_t l;
-				for(l = 0; l < mapping->schedule->producers_in_task[target_task->id - 1]; l++)
-				{
-					if(mapping->schedule->producers_id[target_task->id - 1][l] == current_task->id)
 					{
 						cons_name = mapping->schedule->consumers_name[target_task->id - 1][l];
 						break;
 					}
 				}
-#else
-				target_task = pelib_array_read(task_tp)(consumers, k);
-#endif
+
 				if(target_task != NULL)
 				{
-					debug(target_task->name);
-					debug(current_task->name);
-#if USE_MAPS
-					//debug(name);
+					build_link(mapping, proc, target_task, current_task, prod_name, cons_name);
+
+					size_t l;
+					for(l = 0; l < current_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, current_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], current_task->id)];
+						*t = *current_task;
+					}
+
+					for(l = 0; l < target_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, target_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], target_task->id)];
+						*t = *target_task;
+					}
+				}
+			}
+			//pelib_destroy(map_t(string, task_tp))(*producers);
+			pelib_free(map_t(string, task_tp))(producers);
+
+			map_t(string, task_tp) *consumers = get_task_consumers(mapping, current_task);
+			for(kk = pelib_map_begin(string, task_tp)(consumers); kk != pelib_map_end(string, task_tp)(consumers); kk = pelib_map_next(string, task_tp)(kk))
+			{
+				target_task = pelib_map_read(string, task_tp)(kk).value;
+
+				string cons_name = pelib_map_read(string, task_tp)(kk).key;
+				// Get link name from the producer's point of view
+				string prod_name;
+				size_t l;
+				for(l = 0; l < mapping->schedule->producers_in_task[target_task->id - 1]; l++)
+				{
+					if(mapping->schedule->producers_id[target_task->id - 1][l] == current_task->id)
+					{
+						prod_name = mapping->schedule->producers_name[target_task->id - 1][l];
+						break;
+					}
+				}
+
+				if(target_task != NULL)
+				{
 					build_link(mapping, proc, current_task, target_task, prod_name, cons_name);
-#else
-					build_link(mapping, proc, current_task, target_task);
-#endif
+
 					size_t l;
 					for(l = 0; l < current_task->width; l++)
 					{
@@ -481,12 +334,8 @@ build_tree_network(mapping_t* mapping)
 					}
 				}
 			}
-#if USE_MAPS
-			//pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*consumers);
-			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(consumers);
-#else
-			pelib_free(array_t(task_tp))(consumers);
-#endif
+			//pelib_destroy(map_t(string, task_tp))(*consumers);
+			pelib_free(map_t(string, task_tp))(consumers);
 		}
 	}
 }
@@ -758,18 +607,10 @@ allocate_buffers(drake_stream_t* stream)
 			task = proc->task[j];
 
 			// Take care of all successor links
-#if USE_MAPS
-			map_iterator_t(MAP_KEY_TYPE, link_tp)* kk;
-			for(kk = pelib_map_begin(MAP_KEY_TYPE, link_tp)(task->succ); kk != pelib_map_end(MAP_KEY_TYPE, link_tp)(task->succ); kk = pelib_map_next(MAP_KEY_TYPE, link_tp)(kk))
-#else
-			for(k = 0; k < pelib_array_length(link_tp)(task->succ); k++)
-#endif
+			map_iterator_t(string, link_tp)* kk;
+			for(kk = pelib_map_begin(string, link_tp)(task->succ); kk != pelib_map_end(string, link_tp)(task->succ); kk = pelib_map_next(string, link_tp)(kk))
 			{
-#if USE_MAPS
-				link = pelib_map_read(MAP_KEY_TYPE, link_tp)(kk).value;
-#else
-				link = pelib_array_read(link_tp)(task->succ, k);
-#endif
+				link = pelib_map_read(string, link_tp)(kk).value;
 				// If this is not the root task
 				if(link->cons != NULL)
 				{
@@ -828,17 +669,9 @@ allocate_buffers(drake_stream_t* stream)
 			}
 
 			// Take care of all predecessor links
-#if USE_MAPS
-			for(kk = pelib_map_begin(MAP_KEY_TYPE, link_tp)(task->pred); kk != pelib_map_end(MAP_KEY_TYPE, link_tp)(task->pred); kk = pelib_map_next(MAP_KEY_TYPE, link_tp)(kk))
-#else
-			for(k = 0; k < pelib_array_length(link_tp)(task->pred); k++)
-#endif
+			for(kk = pelib_map_begin(string, link_tp)(task->pred); kk != pelib_map_end(string, link_tp)(task->pred); kk = pelib_map_next(string, link_tp)(kk))
 			{
-#if USE_MAPS
-				link = pelib_map_read(MAP_KEY_TYPE, link_tp)(kk).value;
-#else
-				link = pelib_array_read(link_tp)(task->pred, k);
-#endif
+				link = pelib_map_read(string, link_tp)(kk).value;
 
 				// If this is not the root task
 				if(link->prod != NULL)
@@ -896,7 +729,6 @@ allocate_buffers(drake_stream_t* stream)
 			}
 
 			// Take care of all output links
-			// TODO: replace these loops by loops over map structures... or not
 			for(k = 0; k < pelib_array_length(cross_link_tp)(task->sink); k++)
 			{
 				cross_link = pelib_array_read(cross_link_tp)(task->sink, k);
@@ -925,7 +757,6 @@ allocate_buffers(drake_stream_t* stream)
 						fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
 						abort();
 					}
-					//cross_link->read = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
 					cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
 					
 					*cross_link->read = 0;
@@ -962,14 +793,12 @@ allocate_buffers(drake_stream_t* stream)
 
 				if(cross_link->prod_state == NULL)
 				{
-					//cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
 					cross_link->prod_state = (task_status_t*)drake_platform_shared_malloc_mailbox(sizeof(enum task_status), cross_link->link->cons->core[l]->id);
 					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
 				{
-					//cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
 					cross_link->write = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
 					*cross_link->write = 0;
 				}
@@ -987,11 +816,11 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 {
 	void *array[10];
 	size_t size;
-	char **MAP_KEY_TYPEs;
+	char **strings;
 	size_t i;
 
 	size = backtrace (array, 10);
-	MAP_KEY_TYPEs = backtrace_symbols (array, size);
+	strings = backtrace_symbols (array, size);
 
 	if(drake_platform_core_id() == 0)
 	{
@@ -1020,7 +849,7 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	for (i = 0; i < size; i++)
 	{
-		printf("%s ", MAP_KEY_TYPEs[i]);
+		printf("%s ", strings[i]);
 	}
 	printf("\n");
 	}
@@ -1058,7 +887,6 @@ prepare_mapping(drake_schedule_t *schedule)
 	{
 		for(i = 1; i <= schedule->tasks_in_core[j - 1]; i++)
 		{
-			//t->id = schedule->schedule[j - 1][i - 1].id;
 			// Check if this that has been already mapped or not
 			size_t k;
 			for(k = 0; k < task_counter; k++)
@@ -1118,15 +946,10 @@ prepare_mapping(drake_schedule_t *schedule)
 			size_t consumers_in_task = schedule->consumers_in_task[task.id - 1];
 			size_t remote_producers_in_task = schedule->remote_producers_in_task[task.id - 1];
 			size_t remote_consumers_in_task = schedule->remote_consumers_in_task[task.id - 1];
-#if USE_MAPS
-			task.pred = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
-			task.succ = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
-			pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.pred);
-			pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.succ);
-#else
-			task.pred = pelib_alloc_collection(array_t(link_tp))(producers_in_task);
-			task.succ = pelib_alloc_collection(array_t(link_tp))(consumers_in_task);
-#endif
+			task.pred = pelib_alloc(map_t(string, link_tp))();
+			task.succ = pelib_alloc(map_t(string, link_tp))();
+			pelib_init(map_t(string, link_tp))(task.pred);
+			pelib_init(map_t(string, link_tp))(task.succ);
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
 			task.sink = pelib_alloc_collection(array_t(cross_link_tp))(remote_consumers_in_task);
 
@@ -1409,3 +1232,4 @@ drake_stream_run(drake_stream_t* stream)
 
 	return 0;
 }
+

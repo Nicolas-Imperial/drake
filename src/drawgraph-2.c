@@ -148,8 +148,6 @@ inputstructure(void)
 			abort();
 		}
 
-		//            fprintf(output, "XX%sXX\n",instr);
-
 		if (!strncmp(instr, "k =", 3))
 		{
 			flag = 1;
@@ -164,8 +162,6 @@ inputstructure(void)
 	}
 	n = (1 << p) - 1;
 	logn = p;
-
-	//printf("YY p=%d, n=%d, logn=%d\n",p,n,logn);
 
 	flag = 0;
 	while (!feof(input))
@@ -199,23 +195,10 @@ inputstructure(void)
 
 	str[1] = '\0';
 	i = 1;
-	//for (i = 1; i <= n; i++)
-	//num_tasks = 1;
 	while (1)
 	{
 		flag = fscanf(input, "%s", (char*) &instr);
 		tmp = strtol(instr, &endstr, 10);
-		//printf("%i -> %i (endstr = %i, strlen(instr) = %i, flag = %i)\n", i, tmp, endstr - instr, strlen(instr), flag);
-		/**/
-
-		//printf("'%s', j = %i, end = %X, end of instr = %X\n", instr, j, end,  instr + strlen(instr));
-
-		/*
-		 fscanf(input, "%d", &tmp);
-		 if (tmp != i)
-		 fprintf(error, "Error: index mismatch\n");
-		 //printf("Error: index mismatch\n");
-		 */
 
 		j = 1;
 		int n = fscanf(input, "%c", &str[0]);
@@ -248,7 +231,6 @@ inputstructure(void)
 		}
 		i++;
 		num_tasks = i;
-		/**/
 	}
 
 	return 1;
@@ -420,15 +402,12 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 	input = read_from;
 	output = fopen("std-bitbucket.txt", "w");
 	error = fopen("err-bitbucket.txt", "w");
-	//  output = fopen("/dev/null", "w");
-	//  error = fopen("/dev/null", "w");
 	num_procs = 0;
 	num_tasks = 0;
 	inputstructure();
 
 	fprintf(stderr, "[%s:%s:%d] mapping = pelib_alloc_collection(mapping_t)(%d);\n", __FILE__, __FUNCTION__, __LINE__, DRAKE_MAPPING_MAX_PROCESSOR_COUNT);
 	mapping = pelib_alloc_collection(mapping_t)(DRAKE_MAPPING_MAX_PROCESSOR_COUNT);
-	//  mapping->processor_count = p;
 
 	// Fills mapping with processors and processors with tasks
 	for (j = 1; j <= num_procs; j++)
@@ -439,10 +418,8 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 		processor->id = j - 1;
 		fprintf(stderr, "[%s:%s:%d] processor->source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 		processor->source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//		pelib_init(array_t(task_tp))(processor->source);
 		fprintf(stderr, "[%s:%s:%d] processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-//		pelib_init(array_t(task_tp))(processor->sink);
 		fprintf(stderr, "[%s:%s:%d] nb_mapping_insert_processor(mapping, processor);\n", __FILE__, __FUNCTION__, __LINE__);
 		drake_mapping_insert_processor(mapping, processor);
 
@@ -456,27 +433,15 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 					fprintf(stderr, "[%s:%s:%d] task.id = %d\n", __FILE__, __FUNCTION__, __LINE__, i);
 
 					fprintf(stderr, "[%s:%s:%d] task.pred = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
-#if USE_MAPS
-					task.pred = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
-					pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.pred);
-#else
-					task.pred = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-#endif
-	//				pelib_init(array_t(link_tp))(task.pred);
+					task.pred = pelib_alloc(map_t(string, link_tp))();
+					pelib_init(map_t(string, link_tp))(task.pred);
 					fprintf(stderr, "[%s:%s:%d] task.succ = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
-#if USE_MAPS
-					task.succ = pelib_alloc(map_t(MAP_KEY_TYPE, link_tp))();
-					pelib_init(map_t(MAP_KEY_TYPE, link_tp))(task.succ);
-#else
-					task.succ = pelib_alloc_collection(array_t(link_tp))(num_tasks);
-#endif
-	//				pelib_init(array_t(link_tp))(task.succ);
+					task.succ = pelib_alloc(map_t(string, link_tp))();
+					pelib_init(map_t(string, link_tp))(task.succ);
 					fprintf(stderr, "[%s:%s:%d] task.source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 					task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-	//				pelib_init(array_t(cross_link_tp))(task.source);
 					fprintf(stderr, "[%s:%s:%d] task.sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 					task.sink = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
-	//				pelib_init(array_t(cross_link_tp))(task.sink);
 
 					fprintf(stderr, "[%s:%s:%d] task.status = TASK_INIT;\n", __FILE__, __FUNCTION__, __LINE__);
 					task.status = TASK_INIT;
