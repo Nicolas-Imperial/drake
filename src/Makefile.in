@@ -36,8 +36,8 @@ TIME_OUTPUT=\"/tmp/time-\"
 
 ## C global parameters
 #CFLAGS_BASE = -DUSE_MAPS=1 -DMAP_KEY_TYPE=int -DINT
-#CFLAGS_BASE = -DUSE_MAPS=1 -DMAP_KEY_TYPE=string -DSTRING
-CFLAGS_BASE = -DUSE_MAPS=0 -DMAP_KEY_TYPE=string -DINT
+CFLAGS_BASE = -DUSE_MAPS=1 -DMAP_KEY_TYPE=string -DSTRING
+#CFLAGS_BASE = -DUSE_MAPS=0 -DMAP_KEY_TYPE=string -DINT
 CFLAGS_PRIVATE = -isystem ../include
 CFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
@@ -83,7 +83,7 @@ attach = drake-eval-build
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
 
 ## C++-compiled programs and their sources
-bincxx_package = drake
+bincxx_package = #drake
 
 bincxx_drake_src = drake.cpp
 bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)

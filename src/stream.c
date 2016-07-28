@@ -61,6 +61,8 @@
 #define debug(var) printf("[%s:%s:%d:P%zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:P%zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:P%zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_uint(var) printf("[%s:%s:%d:P%zu] %s = \"%u\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_luint(var) printf("[%s:%s:%d:P%zu] %s = \"%lu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_size_t(var) printf("[%s:%s:%d:P%zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #else
 #define debug(var)
@@ -96,7 +98,7 @@ tasks_mapped_same_cores(task_tp t1, task_tp t2)
 static
 void
 #if USE_MAPS
-build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, MAP_KEY_TYPE name)
+build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, MAP_KEY_TYPE prod_name, MAP_KEY_TYPE cons_name)
 #else
 build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 #endif
@@ -142,8 +144,8 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 		link->buffer = NULL;
 #if USE_MAPS
 #ifdef STRING
-		link->name = malloc((strlen(name) + 1) * sizeof(char));
-		strcpy(link->name, name);
+		//link->name = malloc((strlen(name) + 1) * sizeof(char));
+		//strcpy(link->name, name);
 #else
 		link->name = name == 0 ? "left" : "right";
 #endif
@@ -151,17 +153,22 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 
 		// Add it as source and sink to both current and target tasks
 #if USE_MAPS
-		pair_t(MAP_KEY_TYPE, link_tp) link_pair;
+		pair_t(MAP_KEY_TYPE, link_tp) link_prod_pair, link_cons_pair;
 #ifdef STRING
-		pelib_alloc_buffer(MAP_KEY_TYPE)(&link_pair.key, (strlen(link->name) + 1) * sizeof(char));
-		pelib_copy(MAP_KEY_TYPE)(link->name, &link_pair.key);
+		pelib_alloc_buffer(MAP_KEY_TYPE)(&link_prod_pair.key, (strlen(prod_name) + 1) * sizeof(char));
+		pelib_alloc_buffer(MAP_KEY_TYPE)(&link_cons_pair.key, (strlen(cons_name) + 1) * sizeof(char));
+		pelib_copy(MAP_KEY_TYPE)(prod_name, &link_prod_pair.key);
+		pelib_copy(MAP_KEY_TYPE)(cons_name, &link_cons_pair.key);
 #else
 		int key = link_name_to_int(link->name);
 		pelib_copy(MAP_KEY_TYPE)(key, &link_pair.key);
 #endif
-		pelib_copy(link_tp)(link, &link_pair.value);
-		pelib_map_insert(MAP_KEY_TYPE, link_tp)(cons->pred, link_pair);
-		pelib_map_insert(MAP_KEY_TYPE, link_tp)(prod->succ, link_pair);
+		pelib_copy(link_tp)(link, &link_prod_pair.value);
+		pelib_copy(link_tp)(link, &link_cons_pair.value);
+		//debug(link_prod_pair.value->name);
+		//debug(link_cons_pair.value->name);
+		pelib_map_insert(MAP_KEY_TYPE, link_tp)(prod->succ, link_prod_pair);
+		pelib_map_insert(MAP_KEY_TYPE, link_tp)(cons->pred, link_cons_pair);
 #else
 		pelib_array_append(link_tp)(cons->pred, link);
 		pelib_array_append(link_tp)(prod->succ, link);
@@ -248,12 +255,13 @@ get_task_consumers(mapping_t *mapping, task_t *task)
 #if USE_MAPS
 		pair_t(MAP_KEY_TYPE, task_tp) pair;
 #ifdef STRING
-		MAP_KEY_TYPE name = mapping->schedule->consumers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
+		MAP_KEY_TYPE name = mapping->schedule->producers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
 		pelib_alloc_buffer(MAP_KEY_TYPE)(&pair.key, strlen(name) + 1);
 #else
 		MAP_KEY_TYPE name = link_name_to_int(mapping->schedule->consumers_name[task->id - 1][i]);
 #endif
 		pelib_copy(MAP_KEY_TYPE)(name, &pair.key);
+		//debug(pair.key);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
 		pelib_map_insert(MAP_KEY_TYPE, task_tp)(consumers, pair);
 #else
@@ -286,12 +294,13 @@ get_task_producers(mapping_t *mapping, task_t *task)
 #if USE_MAPS
 		pair_t(MAP_KEY_TYPE, task_tp) pair;
 #ifdef STRING
-		MAP_KEY_TYPE name = mapping->schedule->producers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
+		MAP_KEY_TYPE name = mapping->schedule->consumers_name[task->id - 1][i]; // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
 		pelib_alloc_buffer(MAP_KEY_TYPE)(&pair.key, strlen(name) + 1);
 #else
 		MAP_KEY_TYPE name = link_name_to_int(mapping->schedule->producers_name[task->id - 1][i]); // TODO: fetch from pelib-generated Drake application description, using consumer index i iterated by the loop
 #endif
 		pelib_copy(MAP_KEY_TYPE)(name, &pair.key);
+		//debug(pair.key);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
 		pelib_map_insert(MAP_KEY_TYPE, task_tp)(producers, pair);
 #else
@@ -301,6 +310,25 @@ get_task_producers(mapping_t *mapping, task_t *task)
 #endif
 	}
 
+/*
+#if USE_MAPS
+			map_iterator_t(MAP_KEY_TYPE, task_tp)* kk;
+			for(kk = pelib_map_begin(MAP_KEY_TYPE, task_tp)(producers); kk != pelib_map_end(MAP_KEY_TYPE, task_tp)(producers); kk = pelib_map_next(MAP_KEY_TYPE, task_tp)(kk))
+			{
+				MAP_KEY_TYPE name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
+				task_tp target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
+				debug(target_task->name);
+			}
+#endif
+
+#if USE_MAPS
+			pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*producers);
+			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(producers);
+#else
+			pelib_free(array_t(task_tp))(producers);
+#endif
+	abort();
+*/
 	return producers;	
 }
 
@@ -337,15 +365,45 @@ build_tree_network(mapping_t* mapping)
 #endif
 			{
 #if USE_MAPS
-				MAP_KEY_TYPE name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
 				target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
+/*
+				debug(current_task->name);
+				debug_uint(current_task->id);
+				debug(target_task->name);
+				debug_uint(target_task->id);
+*/
+				MAP_KEY_TYPE cons_name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
+				// Get link name from the producer's point of view
+				MAP_KEY_TYPE prod_name;
+				size_t l;
+				for(l = 0; l < mapping->schedule->consumers_in_task[target_task->id - 1]; l++)
+				{
+					//debug_luint(mapping->schedule->consumers_id[target_task->id - 1][l]);
+					//debug_int(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id);
+					if(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id)
+					{
+						prod_name = mapping->schedule->producers_name[target_task->id - 1][l];
+						//debug_addr(prod_name);
+						//debug(prod_name);
+						break;
+					}
+				}
 #else
 				target_task = pelib_array_read(task_tp)(producers, k);
 #endif
 				if(target_task != NULL)
 				{
+					/*
+					debug(target_task->name);
+					debug(current_task->name);
+					*/
 #if USE_MAPS
-					build_link(mapping, proc, target_task, current_task, name);
+					//debug(name);
+					debug(target_task->name);
+					debug(prod_name);
+					debug(current_task->name);
+					debug(cons_name);
+					build_link(mapping, proc, target_task, current_task, prod_name, cons_name);
 #else
 					build_link(mapping, proc, target_task, current_task);
 #endif
@@ -366,6 +424,7 @@ build_tree_network(mapping_t* mapping)
 				}
 			}
 #if USE_MAPS
+			//pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*producers);
 			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(producers);
 #else
 			pelib_free(array_t(task_tp))(producers);
@@ -380,15 +439,30 @@ build_tree_network(mapping_t* mapping)
 #endif
 			{
 #if USE_MAPS
-				MAP_KEY_TYPE name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
 				target_task = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).value;
+
+				MAP_KEY_TYPE prod_name = pelib_map_read(MAP_KEY_TYPE, task_tp)(kk).key;
+				// Get link name from the producer's point of view
+				MAP_KEY_TYPE cons_name;
+				size_t l;
+				for(l = 0; l < mapping->schedule->producers_in_task[target_task->id - 1]; l++)
+				{
+					if(mapping->schedule->producers_id[target_task->id - 1][l] == current_task->id)
+					{
+						cons_name = mapping->schedule->consumers_name[target_task->id - 1][l];
+						break;
+					}
+				}
 #else
 				target_task = pelib_array_read(task_tp)(consumers, k);
 #endif
 				if(target_task != NULL)
 				{
+					debug(target_task->name);
+					debug(current_task->name);
 #if USE_MAPS
-					build_link(mapping, proc, current_task, target_task, name);
+					//debug(name);
+					build_link(mapping, proc, current_task, target_task, prod_name, cons_name);
 #else
 					build_link(mapping, proc, current_task, target_task);
 #endif
@@ -408,6 +482,7 @@ build_tree_network(mapping_t* mapping)
 				}
 			}
 #if USE_MAPS
+			//pelib_destroy(map_t(MAP_KEY_TYPE, task_tp))(*consumers);
 			pelib_free(map_t(MAP_KEY_TYPE, task_tp))(consumers);
 #else
 			pelib_free(array_t(task_tp))(consumers);
