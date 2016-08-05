@@ -129,6 +129,7 @@ struct task
  	array_t(cross_link_tp) *source;
 	/// Frequency in KHz this task should run at
 	int frequency;
+	double workload;
  	/// State of the task: initialized, running, killed, etc.
  	task_status_t status;
 	/// Human-readable identifier for the task

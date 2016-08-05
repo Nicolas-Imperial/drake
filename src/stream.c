@@ -56,7 +56,6 @@
 #include <pelib/monitor.h>
 
 // Debuggin options
-#define MONITOR_EXCEPTIONS 0
 #if 1
 #define debug(var) printf("[%s:%s:%d:P%zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:P%zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
@@ -810,10 +809,18 @@ allocate_buffers(drake_stream_t* stream)
 #if MONITOR_EXCEPTIONS
 
 task_t *current = NULL;
+struct sigaction oldact[5];
 int signal_counter = 0;
 void
 bt_sighandler(int sig, siginfo_t *info, void *secret)
 {
+	// Restores normal signal catching
+        sigaction(SIGSEGV, &oldact[0], NULL);
+        sigaction(SIGUSR1, &oldact[1], NULL);
+        sigaction(SIGINT, &oldact[2], NULL);
+        sigaction(SIGFPE, &oldact[3], NULL);
+        sigaction(SIGTERM, &oldact[4], NULL);
+
 	void *array[10];
 	size_t size;
 	char **strings;
@@ -941,6 +948,7 @@ prepare_mapping(drake_schedule_t *schedule)
 				abort();
 			}
 			task.name = schedule->task_name[task.id - 1];
+			task.workload = schedule->task_workload[task.id - 1];
 			task.frequency = schedule->schedule[j - 1][i - 1].frequency;
 			size_t producers_in_task = schedule->producers_in_task[task.id - 1];
 			size_t consumers_in_task = schedule->consumers_in_task[task.id - 1];
@@ -1116,11 +1124,11 @@ drake_stream_run(drake_stream_t* stream)
         sigemptyset (&sa.sa_mask);
         sa.sa_flags = SA_RESTART | SA_SIGINFO;
 
-        sigaction(SIGSEGV, &sa, NULL);
-        sigaction(SIGUSR1, &sa, NULL);
-        sigaction(SIGINT, &sa, NULL);
-        sigaction(SIGFPE, &sa, NULL);
-        sigaction(SIGTERM, &sa, NULL);
+        sigaction(SIGSEGV, &sa, &oldact[0]);
+        sigaction(SIGUSR1, &sa, &oldact[1]);
+        sigaction(SIGINT, &sa, &oldact[2]);
+        sigaction(SIGFPE, &sa, &oldact[3]);
+        sigaction(SIGTERM, &sa, &oldact[4]);
 #endif
 
 	// Set frequency of first task

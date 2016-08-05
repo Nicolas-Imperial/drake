@@ -34,8 +34,10 @@ POWER_OUTPUT=\"/tmp/power-\"
 ## Time output file prefix
 TIME_OUTPUT=\"/tmp/time-\"
 
+MONITOR_EXCEPTIONS=1
+
 ## C global parameters
-CFLAGS_BASE = 
+#CFLAGS_BASE = -DMONITOR_EXCEPTIONS=$(MONITOR_EXCEPTIONS)
 CFLAGS_PRIVATE = -isystem ../include
 CFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1

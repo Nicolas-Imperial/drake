@@ -43,6 +43,7 @@ typedef struct {
 	size_t task_number;
 	/// String id as in taskgraph and schedule of a task
 	char **task_name;
+	double *task_workload;
 	/// Time in millisecond of a pipeline stage
 	double stage_time;
 	/// Number of tasks mapped to a core
