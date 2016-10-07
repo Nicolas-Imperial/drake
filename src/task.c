@@ -199,6 +199,11 @@ drake_task_depleted(task_tp task)
 	int all_killed = 1;
 	int all_empty = 1;
 
+	if(task == NULL)
+	{
+		return 1;
+	}
+
 	for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
 	{
 		link_tp link = pelib_array_read(link_tp)(task->pred, i);
