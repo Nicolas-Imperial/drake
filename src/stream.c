@@ -56,11 +56,12 @@
 #include <pelib/monitor.h>
 
 // Debuggin options
-#define MONITOR_EXCEPTIONS 0
-#if 0
+#if 1
 #define debug(var) printf("[%s:%s:%d:P%zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:P%zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:P%zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_uint(var) printf("[%s:%s:%d:P%zu] %s = \"%u\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_luint(var) printf("[%s:%s:%d:P%zu] %s = \"%lu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_size_t(var) printf("[%s:%s:%d:P%zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #else
 #define debug(var)
@@ -69,18 +70,43 @@
 #define debug_size_t(var)
 #endif
 
+#define link_name_to_int(name) strcmp((name), "left") == 0 || strcmp((name), "output") == 0 ? 0 : 1
+
+static
+int
+tasks_mapped_same_cores(task_tp t1, task_tp t2)
+{
+	if(t1->width != t2->width)
+	{
+		return 0;
+	}
+	else
+	{
+		size_t i;
+		for(i = 0; i < t1->width; i++)
+		{
+			if(t1->core[i]->id != t2->core[i]->id)
+			{
+				return 0;
+			}
+		}
+		return 1;
+	}
+}
+
 static
 void
-build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
+build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, string prod_name, string cons_name)
 {
-	int i, j, k;
+	int i, j;
 	link_t *link = NULL;
 	cross_link_t *cross_link;
 	
 	// Find in target task if this link doesn't already exist
-	for(k = 0; k < pelib_array_length(link_tp)(prod->succ); k++)
+	map_iterator_t(string, link_tp) *kk;
+	for(kk = pelib_map_begin(string, link_tp)(prod->succ); kk != pelib_map_end(string, link_tp)(prod->succ); kk = pelib_map_next(string, link_tp)(kk))
 	{
-		link = pelib_array_read(link_tp)(prod->succ, k);
+		link = pelib_map_read(string, link_tp)(kk).value;
 		if(link->prod->id == prod->id && link->cons->id == cons->id)
 		{
 			break;
@@ -101,11 +127,29 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 		link->buffer = NULL;
 
 		// Add it as source and sink to both current and target tasks
-		pelib_array_append(link_tp)(cons->pred, link);
-		pelib_array_append(link_tp)(prod->succ, link);
+		pair_t(string, link_tp) link_prod_pair, link_cons_pair;
+		pelib_alloc_buffer(string)(&link_prod_pair.key, (strlen(prod_name) + 1) * sizeof(char));
+		pelib_alloc_buffer(string)(&link_cons_pair.key, (strlen(cons_name) + 1) * sizeof(char));
+		pelib_copy(string)(prod_name, &link_prod_pair.key);
+		pelib_copy(string)(cons_name, &link_cons_pair.key);
+		pelib_copy(link_tp)(link, &link_prod_pair.value);
+		pelib_copy(link_tp)(link, &link_cons_pair.value);
+		pelib_map_insert(string, link_tp)(prod->succ, link_prod_pair);
+		pelib_map_insert(string, link_tp)(cons->pred, link_cons_pair);
 
-		// If tasks are mapped to different cores
-		if(prod->core != cons->core)
+		// If tasks are mapped to different sets of cores
+		size_t i;
+		for(i = 0; i < (prod->width < cons->width ? prod->width : cons->width); i++)
+		{
+			if(prod->core[i] != cons->core[i])
+			{
+				break;
+			}
+		}
+
+		// Then create a cross link between these tasks
+		if(prod->width != cons->width || !tasks_mapped_same_cores(prod, cons))
+		//if(prod->width != cons->width || i < (prod->width < cons->width ? prod->width : cons->width))
 		{
 			cross_link = (cross_link_t*)drake_platform_private_malloc(sizeof(cross_link_t));
 			cross_link->link = link;
@@ -117,11 +161,33 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 			cross_link->available = 0;
 
 			// Add cross-core link to current task and processor
-			pelib_array_append(cross_link_tp)(cons->core->source, cross_link);
+			size_t min = pelib_array_length(cross_link_tp)(cons->core[0]->source);
+			size_t min_index = 0;
+			for(i = 1; i < cons->width; i++)
+			{
+				if(min > pelib_array_length(cross_link_tp)(cons->core[i]->source))
+				{
+					min = pelib_array_length(cross_link_tp)(cons->core[i]->source);
+					min_index = i;
+				}
+			}
+			pelib_array_append(cross_link_tp)(cons->core[min_index]->source, cross_link);
 			pelib_array_append(cross_link_tp)(cons->source, cross_link);
-			// Add cross-core link to target task and its procesor
-			pelib_array_append(cross_link_tp)(prod->core->sink, cross_link);
+
+			// Add cross-core link to target task and its processor
+			min = pelib_array_length(cross_link_tp)(prod->core[0]->source);
+			min_index = 0;
+			for(i = 1; i < prod->width; i++)
+			{
+				if(min > pelib_array_length(cross_link_tp)(prod->core[i]->source))
+				{
+					min = pelib_array_length(cross_link_tp)(prod->core[i]->source);
+					min_index = i;
+				}
+			}
+			pelib_array_append(cross_link_tp)(prod->core[min_index]->sink, cross_link);
 			pelib_array_append(cross_link_tp)(prod->sink, cross_link);
+
 		}
 		else
 		{
@@ -130,31 +196,41 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons)
 	}
 }
 
-static array_t(task_tp)*
+static map_t(string, task_tp)*
 get_task_consumers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-	array_t(task_tp) *consumers;
-	consumers = pelib_alloc_collection(array_t(task_tp))(mapping->schedule->consumers_in_task[task->id - 1]);
+	map_t(string, task_tp) *consumers;
+	consumers = pelib_alloc(map_t(string, task_tp))();
+	pelib_init(map_t(string, task_tp))(consumers);
 	for(i = 0; i < mapping->schedule->consumers_in_task[task->id - 1]; i++)
 	{
-		pelib_array_append(task_tp)(consumers, drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]));
+		pair_t(string, task_tp) pair;
+		string name = mapping->schedule->consumers_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key);
+		pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
+		pelib_map_insert(string, task_tp)(consumers, pair);
 	}
 
 	return consumers;	
 }
 
-static array_t(task_tp)*
+static map_t(string, task_tp)*
 get_task_producers(mapping_t *mapping, task_t *task)
 {
-	array_t(task_tp) *producers;
 	size_t i;
-	producers = pelib_alloc_collection(array_t(task_tp))(mapping->schedule->producers_in_task[task->id - 1]);
+	map_t(string, task_tp) *producers;
+	producers = pelib_alloc(map_t(string, task_tp))();
+	pelib_init(map_t(string, task_tp))(producers);
 	for(i = 0; i < mapping->schedule->producers_in_task[task->id - 1]; i++)
 	{
-		size_t task_id = mapping->schedule->producers_id[task->id - 1][i];
-		task_t *prod = drake_mapping_find_task(mapping, task_id);
-		pelib_array_append(task_tp)(producers, prod);
+		pair_t(string, task_tp) pair;
+		string name = mapping->schedule->producers_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key);
+		pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
+		pelib_map_insert(string, task_tp)(producers, pair);
 	}
 
 	return producers;	
@@ -164,7 +240,7 @@ static
 void
 build_tree_network(mapping_t* mapping)
 {
-	int i, j, k;
+	int i, j;
 	task_t *target_task, *current_task;
 	link_t *link;
 	processor_t *proc;
@@ -179,27 +255,86 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
-			array_t(task_tp) *producers = get_task_producers(mapping, current_task);
-			for(k = 0; k < pelib_array_length(task_tp)(producers); k++)
+			map_t(string, task_tp) *producers = get_task_producers(mapping, current_task);
+			map_iterator_t(string, task_tp)* kk;
+			for(kk = pelib_map_begin(string, task_tp)(producers); kk != pelib_map_end(string, task_tp)(producers); kk = pelib_map_next(string, task_tp)(kk))
 			{
-				target_task = pelib_array_read(task_tp)(producers, k);
-				if(target_task != NULL)
+				target_task = pelib_map_read(string, task_tp)(kk).value;
+				string prod_name = pelib_map_read(string, task_tp)(kk).key;
+				// Get link name from the producer's point of view
+				string cons_name;
+				size_t l;
+				for(l = 0; l < mapping->schedule->consumers_in_task[target_task->id - 1]; l++)
 				{
-					build_link(mapping, proc, target_task, current_task);
+					if(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id)
+					{
+						cons_name = mapping->schedule->consumers_name[target_task->id - 1][l];
+						break;
+					}
 				}
-			}
-			pelib_free(array_t(task_tp))(producers);
 
-			array_t(task_tp) *consumers = get_task_consumers(mapping, current_task);
-			for(k = 0; k < pelib_array_length(task_tp)(consumers); k++)
-			{
-				target_task = pelib_array_read(task_tp)(consumers, k);
 				if(target_task != NULL)
 				{
-					build_link(mapping, proc, current_task, target_task);
+					build_link(mapping, proc, target_task, current_task, prod_name, cons_name);
+
+					size_t l;
+					for(l = 0; l < current_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, current_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], current_task->id)];
+						*t = *current_task;
+					}
+
+					for(l = 0; l < target_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, target_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], target_task->id)];
+						*t = *target_task;
+					}
 				}
 			}
-			pelib_free(array_t(task_tp))(consumers);
+			//pelib_destroy(map_t(string, task_tp))(*producers);
+			pelib_free(map_t(string, task_tp))(producers);
+
+			map_t(string, task_tp) *consumers = get_task_consumers(mapping, current_task);
+			for(kk = pelib_map_begin(string, task_tp)(consumers); kk != pelib_map_end(string, task_tp)(consumers); kk = pelib_map_next(string, task_tp)(kk))
+			{
+				target_task = pelib_map_read(string, task_tp)(kk).value;
+
+				string cons_name = pelib_map_read(string, task_tp)(kk).key;
+				// Get link name from the producer's point of view
+				string prod_name;
+				size_t l;
+				for(l = 0; l < mapping->schedule->producers_in_task[target_task->id - 1]; l++)
+				{
+					if(mapping->schedule->producers_id[target_task->id - 1][l] == current_task->id)
+					{
+						prod_name = mapping->schedule->producers_name[target_task->id - 1][l];
+						break;
+					}
+				}
+
+				if(target_task != NULL)
+				{
+					build_link(mapping, proc, current_task, target_task, prod_name, cons_name);
+
+					size_t l;
+					for(l = 0; l < current_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, current_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], current_task->id)];
+						*t = *current_task;
+					}
+					for(l = 0; l < target_task->width; l++)
+					{
+						int index = drake_mapping_find_processor_index(mapping, target_task->core[l]->id);
+						task_t *t = mapping->proc[index]->task[drake_processor_find_task(mapping->proc[index], target_task->id)];
+						*t = *target_task;
+					}
+				}
+			}
+			//pelib_destroy(map_t(string, task_tp))(*consumers);
+			pelib_free(map_t(string, task_tp))(consumers);
 		}
 	}
 }
@@ -269,6 +404,9 @@ if((printf_enabled & 2) && monitor(task, link)) {
 }
 #endif
 	}
+
+	// Also send the latest task status
+	*link->prod_state = task->status;
 }
 
 static
@@ -384,6 +522,18 @@ static
 size_t
 buffer_size(size_t mpb_size, size_t nb_in, size_t nb_out)
 {
+#if 0
+	size_t ret = (nb_in > 0) ? (mpb_size // total allocable MPB size
+		- nb_in // As many input buffer as
+			* (sizeof(size_t)  // Size of a write
+				+ sizeof(enum task_status) // State of a task
+			)
+		- nb_out // As many output buffers as
+			* sizeof(size_t) // Size of a read
+		)
+	/ nb_in : mpb_size; // Remaining space to be divided by number of input links
+#endif
+
 	size_t ret = (mpb_size // total allocable MPB size
 		- nb_in // As many input buffer as
 			* (sizeof(size_t)  // Size of a write
@@ -392,7 +542,7 @@ buffer_size(size_t mpb_size, size_t nb_in, size_t nb_out)
 		- nb_out // As many output buffers as
 			* sizeof(size_t) // Size of a read
 		)
-	 / nb_in; // Remaining space to be divided by number of input links
+	/ nb_in; // Remaining space to be divided by number of input links
 
 	return ret;
 }
@@ -456,14 +606,15 @@ allocate_buffers(drake_stream_t* stream)
 			task = proc->task[j];
 
 			// Take care of all successor links
-			for(k = 0; k < pelib_array_length(link_tp)(task->succ); k++)
+			map_iterator_t(string, link_tp)* kk;
+			for(kk = pelib_map_begin(string, link_tp)(task->succ); kk != pelib_map_end(string, link_tp)(task->succ); kk = pelib_map_next(string, link_tp)(kk))
 			{
-				link = pelib_array_read(link_tp)(task->succ, k);
+				link = pelib_map_read(string, link_tp)(kk).value;
 				// If this is not the root task
 				if(link->cons != NULL)
 				{
 					// If the task is mapped to the same core: inner link
-					if(link->cons->core->id == proc->id)
+					if(tasks_mapped_same_cores(task, link->cons))
 					{
 						if(link->buffer == NULL)
 						{
@@ -474,8 +625,30 @@ allocate_buffers(drake_stream_t* stream)
 					}
 					else
 					{
-						size_t nb_in_succ = pelib_array_length(cross_link_tp)(link->cons->core->source);
-						size_t nb_out_succ = pelib_array_length(cross_link_tp)(link->cons->core->sink);
+						size_t l;
+						for(l = 0; l < link->cons->width; l++)
+						{
+							size_t m;
+							for(m = 0; m < pelib_array_length(cross_link_tp)(link->cons->core[l]->source); m++)
+							{
+								if(pelib_array_read(cross_link_tp)(link->cons->core[l]->source, m)->link->prod->id == task->id)
+								{
+									break;
+								}
+							}
+
+							if(m < pelib_array_length(cross_link_tp)(link->cons->core[l]->source))
+							{
+								break;
+							}
+						}
+						if(l == link->cons->width)
+						{
+							fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+							abort();
+						}
+						size_t nb_in_succ = pelib_array_length(cross_link_tp)(link->cons->core[l]->source);
+						size_t nb_out_succ = pelib_array_length(cross_link_tp)(link->cons->core[l]->sink);
 						check_mpb_size(stream->local_memory_size, nb_in_succ, nb_out_succ, proc);
 
 						// If the task is mapped to another core: output link
@@ -483,7 +656,7 @@ allocate_buffers(drake_stream_t* stream)
 						{
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
-							int core = link->cons->core->id;
+							int core = link->cons->core[l]->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in_succ, nb_out_succ) / sizeof(int);
 							capacity = capacity - (capacity % drake_platform_shared_align());
 							link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
@@ -495,15 +668,15 @@ allocate_buffers(drake_stream_t* stream)
 			}
 
 			// Take care of all predecessor links
-			for(k = 0; k < pelib_array_length(link_tp)(task->pred); k++)
+			for(kk = pelib_map_begin(string, link_tp)(task->pred); kk != pelib_map_end(string, link_tp)(task->pred); kk = pelib_map_next(string, link_tp)(kk))
 			{
-				link = pelib_array_read(link_tp)(task->pred, k);
+				link = pelib_map_read(string, link_tp)(kk).value;
 
 				// If this is not the root task
 				if(link->prod != NULL)
 				{
 					// If the task is mapped to the same core: inner link
-					if(link->prod->core->id == proc->id)
+					if(tasks_mapped_same_cores(task, link->prod))
 					{
 						if(link->buffer == NULL)
 						{
@@ -514,6 +687,24 @@ allocate_buffers(drake_stream_t* stream)
 					}
 					else
 					{
+						size_t l;
+						for(l = 0; l < link->cons->width; l++)
+						{
+							size_t m;
+							for(m = 0; m < pelib_array_length(cross_link_tp)(link->cons->core[l]->source); m++)
+							{
+								if(pelib_array_read(cross_link_tp)(link->cons->core[l]->source, m)->link->prod->id == link->prod->id)
+								{
+									break;
+								}
+							}
+
+							if(m < pelib_array_length(cross_link_tp)(link->cons->core[l]->source))
+							{
+								break;
+							}
+						}
+
 						nb_in = pelib_array_length(cross_link_tp)(proc->source);
 						nb_out = pelib_array_length(cross_link_tp)(proc->sink);
 						check_mpb_size(stream->local_memory_size, nb_in, nb_out, proc);
@@ -523,7 +714,8 @@ allocate_buffers(drake_stream_t* stream)
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 
-							int core = task->core->id;
+							//int core = task->core[l]->id;
+							int core = link->cons->core[l]->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in, nb_out) / sizeof(int);
 							capacity = capacity - (capacity % drake_platform_shared_align());
 							//link->buffer->buffer = (int*)drake_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
@@ -542,8 +734,30 @@ allocate_buffers(drake_stream_t* stream)
 
 				if(cross_link->read == NULL)
 				{
-					//cross_link->read = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);	
-					cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), task->core->id);
+					size_t l;
+					for(l = 0; l < cross_link->link->cons->width; l++)
+					{
+						size_t m;
+						for(m = 0; m < pelib_array_length(cross_link_tp)(cross_link->link->cons->core[l]->source); m++)
+						{
+							if(pelib_array_read(cross_link_tp)(cross_link->link->cons->core[l]->source, m)->link->prod->id == cross_link->link->prod->id)
+							{
+								break;
+							}
+						}
+
+						if(m < pelib_array_length(cross_link_tp)(cross_link->link->cons->core[l]->source))
+						{
+							break;
+						}
+					}
+					if(l == cross_link->link->cons->width)
+					{
+						fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+						abort();
+					}
+					cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
+					
 					*cross_link->read = 0;
 				}
 			}
@@ -552,18 +766,39 @@ allocate_buffers(drake_stream_t* stream)
 			for(k = 0; k < pelib_array_length(cross_link_tp)(task->source); k++)
 			{
 				cross_link = pelib_array_read(cross_link_tp)(task->source, k);
+				size_t l;
+				for(l = 0; l < cross_link->link->prod->width; l++)
+				{
+					size_t m;
+					for(m = 0; m < pelib_array_length(cross_link_tp)(link->prod->core[l]->sink); m++)
+					{
+						if(pelib_array_read(cross_link_tp)(cross_link->link->prod->core[l]->sink, m)->link->prod->id == cross_link->link->prod->id)
+						{
+							break;
+						}
+					}
+
+					if(m < pelib_array_length(cross_link_tp)(cross_link->link->prod->core[l]->sink))
+					{
+						break;
+					}
+				}
+				if(l == cross_link->link->cons->width)
+				{
+					fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
+					abort();
+				}
+
 
 				if(cross_link->prod_state == NULL)
 				{
-					//cross_link->prod_state = (task_status_t*)drake_remote_addr(stack_grow(stack, sizeof(enum task_status), task->core->id), task->core->id);
-					cross_link->prod_state = (task_status_t*)drake_platform_shared_malloc_mailbox(sizeof(enum task_status), task->core->id);
+					cross_link->prod_state = (task_status_t*)drake_platform_shared_malloc_mailbox(sizeof(enum task_status), cross_link->link->cons->core[l]->id);
 					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
 				{
-					//cross_link->write = (volatile size_t*)drake_remote_addr(stack_grow(stack, sizeof(size_t), task->core->id), task->core->id);
-					cross_link->write = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), task->core->id);
+					cross_link->write = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
 					*cross_link->write = 0;
 				}
 			}
@@ -574,10 +809,18 @@ allocate_buffers(drake_stream_t* stream)
 #if MONITOR_EXCEPTIONS
 
 task_t *current = NULL;
+struct sigaction oldact[5];
 int signal_counter = 0;
 void
 bt_sighandler(int sig, siginfo_t *info, void *secret)
 {
+	// Restores normal signal catching
+        sigaction(SIGSEGV, &oldact[0], NULL);
+        sigaction(SIGUSR1, &oldact[1], NULL);
+        sigaction(SIGINT, &oldact[2], NULL);
+        sigaction(SIGFPE, &oldact[3], NULL);
+        sigaction(SIGTERM, &oldact[4], NULL);
+
 	void *array[10];
 	size_t size;
 	char **strings;
@@ -628,7 +871,6 @@ prepare_mapping(drake_schedule_t *schedule)
 	size_t i, j;
 	mapping_t *mapping;
 	processor_t *processor = NULL;
-	task_t task;
 
 	size_t num_cores = schedule->core_number;
 	mapping = pelib_alloc_collection(mapping_t)(num_cores);
@@ -644,37 +886,97 @@ prepare_mapping(drake_schedule_t *schedule)
 		processor->source = pelib_alloc_collection(array_t(cross_link_tp))(producers_in_core);
 		processor->sink = pelib_alloc_collection(array_t(cross_link_tp))(consumers_in_core);
 		drake_mapping_insert_processor(mapping, processor);
+	}
 
+	size_t task_counter = 0;
+	task_t *tasks = malloc(sizeof(task_t) * schedule->task_number);	
+	for(j = 1; j <= schedule->core_number; j++)
+	{
 		for(i = 1; i <= schedule->tasks_in_core[j - 1]; i++)
 		{
-			task.id = schedule->schedule[j - 1][i - 1].id;
+			// Check if this that has been already mapped or not
+			size_t k;
+			for(k = 0; k < task_counter; k++)
+			{
+				if(tasks[k].id == schedule->schedule[j - 1][i - 1].id)
+				{
+					break;
+				}
+			}
+			if(k == task_counter)
+			{
+				// This is a new task
+				task_t task;
+				task.id = schedule->schedule[j - 1][i - 1].id;
+				task.name = schedule->task_name[task.id - 1];
+        			task.core = malloc(sizeof(processor_t*));
+			        task.core[0] = mapping->proc[j - 1];
+			        task.width = 1;
+				tasks[task_counter] = task;
+				task_counter++;
+
+			}
+			else
+			{
+				// We update an existing task
+				processor_t **list = tasks[k].core;
+				tasks[k].core = malloc(sizeof(processor_t*) * (tasks[k].width + 1));
+				memcpy(tasks[k].core, list, sizeof(processor_t*) * tasks[k].width);
+				tasks[k].core[tasks[k].width] = mapping->proc[j - 1];
+				tasks[k].width++;
+				free(list);
+			}
+		}
+	}
+	for(j = 1; j <= schedule->core_number; j++)
+	{
+		for(i = 1; i <= schedule->tasks_in_core[j - 1]; i++)
+		{
+			size_t k;
+			task_t task;
+			for(k = 0; k < task_counter; k++)
+			{
+				if(tasks[k].id == schedule->schedule[j - 1][i - 1].id)
+				{
+					task = tasks[k];
+					break;
+				}
+			}
+			if(k == task_counter)
+			{
+				fprintf(stderr, "Catastrophic error at %s:%d: trying to create a task that is not in schedule. This is non-sense, aborting.\n", __FILE__, __LINE__);
+				abort();
+			}
 			task.name = schedule->task_name[task.id - 1];
+			task.workload = schedule->task_workload[task.id - 1];
 			task.frequency = schedule->schedule[j - 1][i - 1].frequency;
 			size_t producers_in_task = schedule->producers_in_task[task.id - 1];
 			size_t consumers_in_task = schedule->consumers_in_task[task.id - 1];
 			size_t remote_producers_in_task = schedule->remote_producers_in_task[task.id - 1];
 			size_t remote_consumers_in_task = schedule->remote_consumers_in_task[task.id - 1];
-			task.pred = pelib_alloc_collection(array_t(link_tp))(producers_in_task);
-			task.succ = pelib_alloc_collection(array_t(link_tp))(consumers_in_task);
+			task.pred = pelib_alloc(map_t(string, link_tp))();
+			task.succ = pelib_alloc(map_t(string, link_tp))();
+			pelib_init(map_t(string, link_tp))(task.pred);
+			pelib_init(map_t(string, link_tp))(task.succ);
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
 			task.sink = pelib_alloc_collection(array_t(cross_link_tp))(remote_consumers_in_task);
 
 			task.status = TASK_START;
-
 			drake_mapping_insert_task(mapping, j - 1, &task);
 		}
 	}
+	free(tasks);
 
 	return mapping;
 }
 
 drake_stream_t
-drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status))
+drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status), drake_platform_t pt)
 {
+	drake_stream_t stream;
 	int k;
 	char* outputfile;
 	array_t(int) *array = NULL;
-	drake_stream_t stream;
 
 	// Initialize functions
 	stream.schedule_destroy = schedule_destroy;
@@ -688,16 +990,23 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 
 	unsigned long long int start, stop, begin, end;
 	schedule_init(&stream.schedule);
+	if(stream.schedule.core_number != drake_platform_core_size())
+	{
+		fprintf(stderr, "Application compiled for different number of cores than available on this platform. Please recompile drake application with a correct platform description\n");
+		abort();
+	}
 	drake_schedule_t *schedule = &stream.schedule;
 	drake_platform_barrier(NULL);
 	mapping = prepare_mapping(schedule);
 
 	// Build task network based on tasks' id
 	build_tree_network(mapping);
-	proc = mapping->proc[drake_mapping_find_processor_index(mapping, drake_platform_core_id())];
+	size_t stuff1 = drake_platform_core_id();
+	int stuff2 = drake_mapping_find_processor_index(mapping, stuff1);
+	proc = mapping->proc[stuff2];
 
 	// Initialize task's pointer
-	max_nodes = proc->handled_nodes;
+	max_nodes = (proc == NULL ? 0 : proc->handled_nodes);
 	for(i = 0; i < max_nodes; i++)
 	{
 		task_t *task = proc->task[i];
@@ -720,6 +1029,8 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 	stream.zero = drake_platform_time_alloc();
 	drake_platform_time_init(stream.zero, 0);
 
+	stream.platform = pt;
+
 	return stream;
 }
 
@@ -728,16 +1039,26 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 {
 	int success = 1;
 	size_t i;
-	size_t max_nodes = stream->proc->handled_nodes;
 
-	allocate_buffers(stream);
-	for(i = 0; i < max_nodes; i++)
+	if(stream->proc != NULL && stream->proc->handled_nodes > 0)
 	{
-		task_t *task = stream->proc->task[i];
-		int run = task->init(task, aux);
-		success = success && run;		
+		size_t max_nodes = stream->proc->handled_nodes;
+		allocate_buffers(stream);
+		for(i = 0; i < max_nodes; i++)
+		{
+			task_t *task = stream->proc->task[i];
+			int run = task->init(task, aux);
+			//int run = 1;
+			success = success && run;		
+		}
+		drake_platform_barrier(NULL);
 	}
-	drake_platform_barrier(NULL);
+	else
+	{
+		// Deactivate core is no task is to be run
+		drake_platform_core_disable(stream->platform, drake_platform_core_id());
+		drake_platform_barrier(NULL);
+	}
 
 	return success;
 }
@@ -751,11 +1072,14 @@ drake_stream_destroy(drake_stream_t* stream)
 	int success;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
-	for(i = 0; i < proc->handled_nodes; i++)
+	for(i = 0; proc != NULL && i < proc->handled_nodes; i++)
 	{
 		task = proc->task[i];
 		task->status = TASK_DESTROY;
-		success = success && task->destroy(task);
+		// /!\ Do not invert the operand of the boolean expression below
+		// Or Drake will not run a destroy method of a task if a previous
+		// task did not return 1 when destroyed.
+		success = task->destroy(task) && success;
 	}
 
 	// Free the stream data structures
@@ -765,6 +1089,8 @@ drake_stream_destroy(drake_stream_t* stream)
 	free(stream->stage_sleep_time);
 	free(stream->stage_time);
 	free(stream->zero);
+
+	// TODO: deallocate buffers, if core had any task to run
 
 	return success;
 }
@@ -777,6 +1103,12 @@ drake_stream_run(drake_stream_t* stream)
 	task_t *task;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
+
+	if(proc == NULL)
+	{
+		return 0;
+	}
+
 	int active_tasks = proc->handled_nodes;
 	unsigned long long int begin, end, obegin, oend;
 
@@ -792,46 +1124,58 @@ drake_stream_run(drake_stream_t* stream)
         sigemptyset (&sa.sa_mask);
         sa.sa_flags = SA_RESTART | SA_SIGINFO;
 
-        sigaction(SIGSEGV, &sa, NULL);
-        sigaction(SIGUSR1, &sa, NULL);
-        sigaction(SIGINT, &sa, NULL);
-        sigaction(SIGFPE, &sa, NULL);
-        sigaction(SIGTERM, &sa, NULL);
+        sigaction(SIGSEGV, &sa, &oldact[0]);
+        sigaction(SIGUSR1, &sa, &oldact[1]);
+        sigaction(SIGINT, &sa, &oldact[2]);
+        sigaction(SIGFPE, &sa, &oldact[3]);
+        sigaction(SIGTERM, &sa, &oldact[4]);
 #endif
 
-	int freq = 0;
+	// Set frequency of first task
+	int freq;
+	if(proc->handled_nodes > 0)
+	{
+		freq = proc->task[0]->frequency;
+		drake_platform_set_voltage_frequency(stream->platform, freq);
+	}
 
 	/* Phase 1, real */
 	while(active_tasks > 0)
 	{
 		// Capture the stage starting time
 		drake_platform_time_get(stream->stage_start_time);
-		
 		for(i = 0; i < proc->handled_nodes; i++)
 		{
 			task = proc->task[i];
+			if(task->status < TASK_KILLED)
+			{
+				// Switch frequency
+				if(freq != task->frequency)
+				{
+					freq = task->frequency;
+					drake_platform_set_voltage_frequency(stream->platform, freq);
+				}
+			}
+
 			switch(task->status)
 			{
 				// Checks input and proceeds to start when first input come
 				case TASK_START:
 					done = task->start(task);
 					task_check(task);
+
 					if(task->status == TASK_START && done)
 					{
 						task->status = TASK_RUN;
 					}
-					break;
+
+					// Commit
+					task_commit(task);
+				break;
+
 				case TASK_RUN:
 					// Check
 					task_check(task);
-
-					// Switch frequency
-					freq = drake_platform_get_frequency();
-					if(freq != task->frequency)
-					{
-						freq = task->frequency;
-						drake_platform_set_voltage_frequency(freq);
-					}
 
 					// Work
 					done = task->run(task);
@@ -845,20 +1189,16 @@ drake_stream_run(drake_stream_t* stream)
 						task->status = TASK_KILLED;
 					}
 
-				// Stop stopwatch and decrement active tasks
+				// Decrement active tasks
 				case TASK_KILLED:
 					if(task->status == TASK_KILLED)
 					{
 						task->kill(task);
-						// Send successor tasks the task killed information
-						for(j = 0; j < pelib_array_length(cross_link_tp)(task->sink); j++)
-						{
-							cross_link_t *link = pelib_array_read(cross_link_tp)(task->sink, j);
-							*link->prod_state = task->status;
-							drake_platform_commit(link->prod_state);
-						}
 						task->status = TASK_ZOMBIE;
 						active_tasks--;
+
+						// Commit
+						task_commit(task);
 					}
 				break;
 
@@ -886,10 +1226,18 @@ drake_stream_run(drake_stream_t* stream)
 		{
 			drake_platform_time_get(stream->stage_stop_time);
 			drake_platform_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
-			drake_platform_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
-			drake_platform_sleep(stream->stage_sleep_time);
+			if(!drake_platform_time_greater(stream->stage_sleep_time, stream->stage_time))
+			{
+				drake_platform_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
+				drake_platform_sleep(stream->stage_sleep_time);
+			}
 		}
 	}
 
+	// Get core to sleep
+	drake_platform_sleep_enable(stream->platform, drake_platform_core_id());
+	//drake_platform_core_disable(stream->platform, drake_platform_core_id());
+
 	return 0;
 }
+

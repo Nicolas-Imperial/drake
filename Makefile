@@ -47,7 +47,7 @@ $(TARGETS): $(FIRST)
 all check install uninstall: version
 all: submake-all
 check: submake-check
-install: pre-install submake-install do-install post-install
+install: pre-install do-install submake-install post-install
 uninstall: submake-uninstall
 
 $(abspath $(distdir)).tar.gz: $(abspath $(distdir))

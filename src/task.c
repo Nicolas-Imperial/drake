@@ -18,14 +18,27 @@
 
 */
 
-
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 #include <drake/link.h>
 #include <drake/task.h>
+#include <pelib/string.h>
+#include <pelib/integer.h>
 #include <drake/platform.h>
+
+#if 1 
+#define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:CORE %zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#else
+#define debug(var)
+#define debug_addr(var)
+#define debug_int(var)
+#define debug_size_t(var)
+#endif
 
 FILE*
 pelib_printf(task_tp)(FILE* stream, task_tp task)
@@ -92,7 +105,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		simple_str = pelib_string(task_tp)(task);
 		if(task->pred != NULL)
 		{
-			pred_str = pelib_string_detail(array_t(link_tp))(*task->pred, level - 1);
+			pred_str = pelib_string_detail(map_t(string, link_tp))(*task->pred, level - 1);
 		}
 		else
 		{
@@ -102,7 +115,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		
 		if(task->pred != NULL)
 		{
-			succ_str = pelib_string_detail(array_t(link_tp))(*task->succ, level - 1);
+			succ_str = pelib_string_detail(map_t(string, link_tp))(*task->succ, level - 1);
 		}
 		else
 		{
@@ -177,25 +190,24 @@ pelib_fread(task_tp)(task_tp* ptr, FILE* stream)
 int
 pelib_copy(task_tp)(task_tp source, task_tp* dest)
 {
-/*	task_t src, *dst;
-	src = *source;
-	dst = *dest;
-
-	dst->pred = pelib_array_task_tp_t_alloc(pelib_array_task_tp_capacity(src.pred));
-	dst->succ = pelib_array_task_tp_t_alloc(pelib_array_task_tp_capacity(src.succ));
-	pelib_array_task_tp_t_copy(*src.pred, dst->pred);
-	pelib_array_task_tp_t_copy(*src.succ, dst->succ);
-*/
 	*dest = source;
-//	printf("%s: task %d, src->pred=%X, dst->pred=%X\n", __FUNCTION__, source->id, source->pred, (*dest)->pred);
 	
 	return 0;
 }
 
 int
+pelib_destroy(task_tp)(task_tp task)
+{
+	if(task->core != NULL)
+	{
+		free(task->core);
+	}
+	return 1;
+}
+
+int
 drake_task_depleted(task_tp task)
 {
-	size_t i;
 	int all_killed = 1;
 	int all_empty = 1;
 
@@ -204,15 +216,27 @@ drake_task_depleted(task_tp task)
 		return 1;
 	}
 
-	for(i = 0; i < pelib_array_length(link_tp)(task->pred); i++)
+	map_iterator_t(string, link_tp)* i;
+	for(i = pelib_map_begin(string, link_tp)(task->pred); i != pelib_map_end(string, link_tp)(task->pred); i = pelib_map_next(string, link_tp)(i))
 	{
-		link_tp link = pelib_array_read(link_tp)(task->pred, i);
+		link_tp link = pelib_map_read(string, link_tp)(i).value;
 		all_killed = all_killed && ((link->prod == NULL) ? 1 : link->prod->status >= TASK_KILLED);
 		all_empty = all_empty && (pelib_cfifo_length(int)(link->buffer) == 0);
 	}
 
-	return all_killed && all_empty;
+	return all_killed && all_empty || task->status >= TASK_KILLED;
 }
+
+#define PAIR_KEY_T string
+#define PAIR_VALUE_T task_tp
+#include <pelib/pair.c>
+
+#define ITERATOR_T pair_t(string, task_tp)
+#include <pelib/iterator.c>
+
+#define MAP_KEY_T string
+#define MAP_VALUE_T task_tp
+#include <pelib/map.c>
 
 #define ARRAY_T task_tp
 #include <pelib/array.c>

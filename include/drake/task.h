@@ -18,7 +18,8 @@
 
 */
 
-
+#include <pelib/string.h>
+#include <pelib/integer.h>
 #include <stddef.h>
 
 #ifndef TASK_H
@@ -48,7 +49,21 @@ typedef link_t* link_tp;
 #include <pelib/structure.h>
 #define DONE_link_tp 1
 
+#define PAIR_KEY_T string
+#define PAIR_VALUE_T link_tp
+#include <pelib/pair.h>
+#define DONE_pair_string_link_tp 1
+
+#define ITERATOR_T pair_t(string, link_tp)
+#include <pelib/iterator.h>
+#define DONE_iterator_pair_string_link_tp 1
+
 /** Defines arrays for pointers to link **/
+#define MAP_KEY_T string
+#define MAP_VALUE_T link_tp
+#include <pelib/map.h>
+#define DONE_map_string_link_tp 1
+
 #define ARRAY_T link_tp
 #include <pelib/array.h>
 #define DONE_array_link_tp 1
@@ -70,7 +85,21 @@ typedef cross_link_t* cross_link_tp;
 #include <pelib/structure.h>
 #define DONE_cross_link_tp 1
 
+#define PAIR_KEY_T string
+#define PAIR_VALUE_T cross_link_tp
+#include <pelib/pair.h>
+#define DONE_pair_string_cross_link_tp 1
+
+#define ITERATOR_T pair_t(string, cross_link_tp)
+#include <pelib/iterator.h>
+#define DONE_iterator_pair_string_cross_link_tp 1
+
 /** Defines arrays for pointers to cross link **/
+#define MAP_KEY_T string
+#define MAP_VALUE_T cross_link_tp
+#include <pelib/map.h>
+#define DONE_map_string_cross_link_tp 1
+
 #define ARRAY_T cross_link_tp
 #include <pelib/array.h>
 #define DONE_array_cross_link_tp 1
@@ -86,17 +115,21 @@ struct task
 	/// Identification of the task. All tasks (say n tasks) should be numbered continuously from 1 to n to be friendly with files generated to ILP solver and task graph graphic generator. 
 	task_id id;
  	/// Pointer to the processor structure this task is mapped to
- 	processor_t* core;
+ 	processor_t **core;
+	size_t width;
 	/// List of link pointers that consume data produced by this task
-	array_t(link_tp) *succ;
+	map_t(string, link_tp) *succ;
  	/// List of link pointers that produce data this task consumes
- 	array_t(link_tp) *pred;
+ 	map_t(string, link_tp) *pred;
 	/// List of links toward consumer tasks mapped to another core
+	//map_t(string, cross_link_tp) *sink;
 	array_t(cross_link_tp) *sink;
  	/// List of links toward producer tasks mapped to another cores
+ 	//map_t(string, cross_link_tp) *source;
  	array_t(cross_link_tp) *source;
 	/// Frequency in KHz this task should run at
 	int frequency;
+	double workload;
  	/// State of the task: initialized, running, killed, etc.
  	task_status_t status;
 	/// Human-readable identifier for the task
@@ -130,6 +163,20 @@ typedef struct task* task_tp;
 #define STRUCT_T task_tp
 #include <pelib/structure.h>
 #define DONE_task_tp 1
+
+#define PAIR_KEY_T string
+#define PAIR_VALUE_T task_tp
+#include <pelib/pair.h>
+#define DONE_pair_string_task_tp 1
+
+#define ITERATOR_T pair_t(string, task_tp)
+#include <pelib/iterator.h>
+#define DONE_iterator_string_task_tp 1
+
+#define MAP_KEY_T string
+#define MAP_VALUE_T task_tp
+#include <pelib/map.h>
+#define DONE_map_string_task_tp 1
 
 /** Defines arrays for pointers to tasks **/
 #define ARRAY_T task_tp

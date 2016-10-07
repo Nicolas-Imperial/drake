@@ -193,5 +193,22 @@ link_str_chk
 	return str;
 }
 
+int
+pelib_destroy(link_tp)(link_tp link)
+{
+	return 1;
+}
+
+#define PAIR_KEY_T string
+#define PAIR_VALUE_T link_tp
+#include <pelib/pair.c>
+
+#define ITERATOR_T pair_t(string, link_tp)
+#include <pelib/iterator.c>
+
+#define MAP_KEY_T string
+#define MAP_VALUE_T link_tp
+#include <pelib/map.c>
+
 #define ARRAY_T link_tp
 #include <pelib/array.c>

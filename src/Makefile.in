@@ -34,9 +34,11 @@ POWER_OUTPUT=\"/tmp/power-\"
 ## Time output file prefix
 TIME_OUTPUT=\"/tmp/time-\"
 
+MONITOR_EXCEPTIONS=1
+
 ## C global parameters
-CFLAGS_BASE = 
-CFLAGS_PRIVATE = -isystem ../include 
+#CFLAGS_BASE = -DMONITOR_EXCEPTIONS=$(MONITOR_EXCEPTIONS)
+CFLAGS_PRIVATE = -isystem ../include
 CFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
 CC_LDFLAGS_PRIVATE = -L.
@@ -74,6 +76,8 @@ CXX_TEST_LDFLAGS = -L.
 LIBS_TEST = 
 PKG_TEST = 
 
+attach = drake-eval-build
+
 ## Cross-package flags for individual c/c++ source files
 #CFLAGS_foo.c = -DFOO_CROSS=foo_cross
 #CXXFLAGS_bar.cpp = -DBAR_CROSS=bar_cross
@@ -85,7 +89,7 @@ bincxx_drake_src = drake.cpp
 bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)
 bin_drake_deps =  
 bin_drake_libs = 
-bin_drake_pkg = pelib crown
+bin_drake_pkg = pelib-core++ crown
 bin_drake_ldflags = 
 bin_drake_static = 0
 
@@ -158,7 +162,7 @@ libcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c draw
 libcxx_drake_src = 
 lib_drake_cflags = 
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) drawgraph-2.h eval.c
-lib_drake_pkg = pelib
+lib_drake_pkg = pelib-core
 
 sharedcc_package = drake
 
@@ -166,7 +170,7 @@ sharedcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c d
 sharedcxx_drake_src = 
 shared_drake_cflags = -fPIC
 shared_drake_export = $(sharedcc_drake_src) $(sharedcxx_drake_src) drawgraph-2.h eval.c
-shared_drake_pkg = pelib
+shared_drake_pkg = pelib-core
 
 libcc__src = 
 libcxx__src = 
@@ -224,6 +228,10 @@ subdirs =
 
 ## Additional settings
 clean = *.o *.txt *.fig *.bin *.e *.d *.obj
+
+post-install:
+	chmod 755 $(DESTDIR)$(final_sharedir)/drake-eval-build 
+	ln -sf $(DESTDIR)$(final_sharedir)/drake-eval-build $(DESTDIR)$(final_bindir)
 
 ## Targets to run before any other target runs
 ## Can be a custom target

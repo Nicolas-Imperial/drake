@@ -1,0 +1,188 @@
+#!/bin/bash
+
+#echo '['$0:$LINENO']' Done
+
+usage()
+{
+	echo >&2
+	echo Usage: `basename $0` '--drake --backend BACKEND --src DRAKE_PATH --app --lib LIB --src LIB_PATH [ --platform PLATFORM ] [ --taskgraph TASKGRAPH ] [ --schedule SCHEDULE ] [ --cflags CFLAGS ] [ --variant VARIANT ]' >&2
+	echo >&2
+	echo 'BACKEND		Drake backend library name (ex. drake-intel-ia).' >&2
+	echo 'DRAKE_PATH	Path to drake source package, excluding "src" subdir.' >&2
+	echo 'LIB		Library name of Drake streaming application, excluding any variant prefix.' >&2
+	echo 'LIB_PATH	Path to drake applicaltion library source package, excluding "src" subdir.' >&2
+	echo 'PLATFORM	Platform description file in AMPL input dat format.' >&2
+	echo 'TASKGRAPH	Taskgraph description file in Graphml format.' >&2
+	echo 'SCHEDULE	Schedule in XML format to apply to streaming application.' >&2
+	echo 'CFLAGS		Flags to forward to C compiler of Drake streaming application.' >&2
+	echo 'VARIANT		Prefix to Drake application library name to distinguish several variants of the same streaming application.' >&2
+	echo >&2
+}
+
+make_drake_capp()
+{
+	local app=$1
+	local var=$2
+	local platform=$3
+	local taskgraph=$4
+	local schedule=$5
+	local src=$6
+	shift 6
+	local CFLAGS="$@"
+
+	rm ${src}/src/drake{cc,cxx}_${app}_*.{o,d,e,a,pc} > /dev/null 2>&1
+	rm ${src}/src/${app}.schedule.c > /dev/null 2>&1
+	if [ "$schedule" != "${src}/src/${app}.schedule.xml" ] && [ -f ${src}/src/${app}.schedule.xml ]
+	then
+		rm ${src}/src/${app}.schedule.xml
+	fi
+	eval make -C \"$src\" VARIANT_lib${app}.a=${var} ${app}_platform=${platform} ${app}cc_taskgraph=${taskgraph} ${app}_schedule=${schedule} CFLAGS=\"${CFLAGS}\" $args
+}
+
+make_drake_eval()
+{
+	local app=$1
+	local var=$2
+	local app_src=$3
+	local backend=$4
+	local drake_src=$5
+
+	rm ${drake_src}/src/${var}drake-eval ${drake_src}/src/bincc_drake-eval_eval.{o,d,e} > /dev/null 2>&1
+	eval PKG_CONFIG_PATH=\"${app_src}/src:$PKG_CONFIG_PATH\" make -C \"$drake_src\" APPLICATION=${var}${app} BACKEND=${backend} VARIANT_drake-eval=${var}${app}- CC_LDFLAGS=-L${app_src}/src $args
+}
+
+read_drake_args()
+{
+	local counter=0
+	while [[ $# > 0 ]]
+	do
+		case "$1" in
+			"--backend")
+				shift;
+				backend="$1"
+				counter=$(($counter + 2))
+			;;
+			"--src")
+				shift
+				drake_src="$1"
+				counter=$(($counter + 2))
+			;;
+			*)
+				break;
+			;;
+		esac
+		shift
+	done
+
+	return $(($counter - 1))
+}
+
+read_app_args()
+{
+	local counter=0
+	while [[ $# > 0 ]]
+	do
+		case "$1" in
+			"--lib")
+				shift
+				app_lib="$1"
+				counter=$(($counter + 2))
+			;;
+			"--platform")
+				shift;
+				platform="$1"
+				counter=$(($counter + 2))
+			;;
+			"--taskgraph")
+				shift
+				taskgraph="$1"
+				counter=$(($counter + 2))
+			;;
+			"--schedule")
+				shift
+				schedule="$1"
+				counter=$(($counter + 2))
+			;;
+			"--src")
+				shift
+				app_src="$1"
+				counter=$(($counter + 2))
+			;;
+			"--cflags")
+				shift
+				app_cflags="$1"
+				counter=$(($counter + 2))
+			;;
+			"--variant")
+				shift
+				app_var="$1"
+				counter=$(($counter + 2))
+			;;
+			*)
+				break;
+			;;
+		esac
+		shift
+	done
+
+	return $(( $counter - 1 ))
+}
+
+read_args()
+{
+	while [[ $# > 0 ]]
+	do
+		case "$1" in
+			"--app")
+				## App options
+				shift;
+				eval read_app_args `for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`
+				shift $?
+			;;
+			"--drake")
+				shift;
+				eval read_drake_args `for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`
+				shift $?
+			;;
+			"--out")
+				shift
+				dest="$1"
+			;;
+			"--")
+				shift
+				eval args=\'`for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`\'
+			;;
+			*)
+				break;
+			;;
+		esac	
+		shift
+	done
+}
+
+eval read_args `for i in "$@"; do printf "\"%s\" " "$(echo $i|sed 's/"/\\\"/g')"; done; echo`
+
+if [ "$app_lib" != "" ] && [ "$app_src" != "" ] && [ "$backend" != "" ] && [ "$drake_src" != "" ]
+then
+	make_drake_capp "$app_lib" "$app_var" "$platform" "$taskgraph" "$schedule" "$app_src" $app_cflags
+	make_drake_eval "$app_lib" "$app_var" "$app_src" "$backend" "$drake_src"
+
+	if [ "$dest" != "" ]
+	then
+		cp ${drake_src}/src/${app_var}${app_lib}-drake-eval $dest
+	fi
+else
+	echo Missing required arguments. >&2
+	usage
+	echo Current value of mandatory arguments:
+	echo backend = \"$backend\" '(--drake --backend <backend>)' >&2
+	echo drake_src = \"$drake_src\" '(--drake --src <path>)' >&2
+	echo app_lib = \"$app_lib\" '(--app --lib <library name>)' >&2
+	#echo platform = \"$platform\" '(--app --platform <platform>)' >&2
+	#echo taskgraph = \"$taskgraph\" '(--app --taskgraph <taskgraph>)' >&2
+	#echo schedule = \"$schedule\" '(--app --schedule <schedule>)' >&2
+	echo app_src = \"$app_src\" '(--app --src <path>)' >&2
+	#echo app_cflags = \"$app_cflags\" '(--app --cflags "<cflags>")' >&2
+	#echo app_var = \"$app_var\" '(--app --variant <variant>)' >&2
+fi
+

@@ -33,7 +33,8 @@ typedef struct args
 
 // pthread *hates* when a pointer is named "kill".
 /** Pointers to time structures recording time when the corresponding task function runs **/
-drake_time_t *init, *start, *run, *killed, *destroy;
+drake_time_t *init, *start, *run, *killed;
+size_t *core;
 
 /** Array of boolean private for each processor. Takes value 1 if the processor runs the task at all and 0 otherwise **/
 int *execute;

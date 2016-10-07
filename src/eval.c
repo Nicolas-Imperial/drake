@@ -24,10 +24,11 @@
 #include <string.h>
 #include <stddef.h>
 
+#include <rapl.h>
 #include <drake.h>
 #include <drake/eval.h>
 
-#if 0 
+#if 1 
 #define debug(var) printf("[%s:%s:%d:CORE %zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_addr(var) printf("[%s:%s:%d:CORE %zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #define debug_int(var) printf("[%s:%s:%d:CORE %zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
@@ -174,15 +175,14 @@ main(size_t argc, char **argv)
 	start = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
 	run = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
 	killed = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
-	destroy = malloc(sizeof(drake_time_t) * drake_task_number(PIPELINE)());
 	execute = malloc(sizeof(int) * drake_task_number(PIPELINE)());
+	core = malloc(sizeof(size_t) * drake_task_number(PIPELINE)());
 	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
 		init[i] = drake_platform_time_alloc();
 		start[i] = drake_platform_time_alloc();
 		run[i] = drake_platform_time_alloc();
 		killed[i] = drake_platform_time_alloc();
-		destroy[i] = drake_platform_time_alloc();
 		execute[i] = 0;
 	}
 
@@ -194,7 +194,7 @@ main(size_t argc, char **argv)
 	drake_time_t global_end = drake_platform_time_alloc();
 
 	// Measure power consumption
-	drake_power_t power = drake_platform_power_init(SAMPLES, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER));
+	drake_power_t power = drake_platform_power_init(stream, SAMPLES, (1 << DRAKE_POWER_CHIP) | (1 << DRAKE_POWER_MEMORY_CONTROLLER));
 
 	// Begin power measurement
 	drake_platform_power_begin(power);
@@ -232,12 +232,12 @@ main(size_t argc, char **argv)
 	{
 		out = stdout;
 	}
-	fprintf(out, "core__task__task_name__init__start__run__kill__destroy__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t8\t:=\n");
+	fprintf(out, "task__core__task_name__init__start__run__kill__global [*,*]\n:\t0\t1\t2\t3\t4\t5\t6\t7\t:=\n");
 	for(i = 0; i < drake_task_number(PIPELINE)(); i++)
 	{
 		if(execute[i] != 0)
 		{
-			fprintf(out, "%zu %zu %s ", i + 1, drake_platform_core_id(), drake_task_name(PIPELINE)(i + 1));
+			fprintf(out, "%zu %zu %zu %s ", i + 1, i + 1, core[i] + 1, drake_task_name(PIPELINE)(i + 1));
 			drake_platform_time_printf(out, init[i]);
 			fprintf(out, " ");
 			drake_platform_time_printf(out, start[i]);
@@ -245,8 +245,6 @@ main(size_t argc, char **argv)
 			drake_platform_time_printf(out, run[i]);
 			fprintf(out, " ");
 			drake_platform_time_printf(out, killed[i]);
-			fprintf(out, " ");
-			drake_platform_time_printf(out, destroy[i]);
 			fprintf(out, " ");
 			drake_platform_time_printf(out, global);
 			fprintf(out, "\n");
@@ -257,6 +255,12 @@ main(size_t argc, char **argv)
 	{
 		fclose(out);
 	}
+	free(init);
+	free(start);
+	free(run);
+	free(killed);
+	free(execute);
+	free(core);
 
 	// Output power data
 	if(args.power_output_file[drake_platform_core_id()] != NULL)

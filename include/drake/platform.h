@@ -23,6 +23,7 @@
 
 #include <drake/task.h>
 #include <drake/schedule.h>
+
 #ifndef DRAKE_PLATFORM_H
 #define DRAKE_PLATFORM_H
 
@@ -108,9 +109,9 @@ int drake_platform_set_voltage(float voltage);
 	@param frequency Frequency in KHz
 	@return 0 if frequency switching could not be performed
 **/
-int drake_platform_set_voltage_frequency(int frequency);
+int drake_platform_set_voltage_frequency(drake_platform_t, size_t frequency);
 /** Returns the current frequency in KHz **/
-int drake_platform_get_frequency();
+size_t drake_platform_get_frequency(drake_platform_t);
 /** Returns the current voltage in Volts **/
 float drake_platform_get_voltage();
 /** Gives the current time in millisecond
@@ -157,7 +158,7 @@ enum drake_power_monitor {DRAKE_POWER_CHIP, DRAKE_POWER_MEMORY_CONTROLLER, DRAKE
 	@param measurement binary combination of power quantities to measure. For instance, 1 << DRAKE_POWER_CHIP | 1 << DRAKE_POWER_CORE
 	@return 0 if the power structure could not be allocated
 **/
-drake_power_t drake_platform_power_init(size_t samples, int measurement);
+drake_power_t drake_platform_power_init(drake_platform_t pt, size_t samples, int measurement);
 /** Begins power consumption measurement
 	@param pwr Power data structure that holds power data measured and well as all pwoer measurement settings
 **/
@@ -199,5 +200,10 @@ int drake_platform_stream_create_explicit(drake_platform_t stream, void (*schedu
 int drake_platform_stream_init(drake_platform_t stream, void* arg);
 int drake_platform_stream_run(drake_platform_t);
 int drake_platform_stream_destroy(drake_platform_t);
+
+void drake_platform_core_disable(drake_platform_t pt, size_t core);
+void drake_platform_core_enable(drake_platform_t pt, size_t core);
+void drake_platform_sleep_disable(drake_platform_t pt, size_t core);
+void drake_platform_sleep_enable(drake_platform_t pt, size_t core);
 
 #endif // DRAKE_PLATFORM_H
