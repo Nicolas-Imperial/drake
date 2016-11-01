@@ -206,6 +206,12 @@ pelib_destroy(task_tp)(task_tp task)
 }
 
 int
+drake_task_killed(task_tp task)
+{
+	return task->status >= TASK_KILLED;
+}
+
+int
 drake_task_depleted(task_tp task)
 {
 	int all_killed = 1;
@@ -224,7 +230,7 @@ drake_task_depleted(task_tp task)
 		all_empty = all_empty && (pelib_cfifo_length(int)(link->buffer) == 0);
 	}
 
-	return all_killed && all_empty || task->status >= TASK_KILLED;
+	return (all_killed && all_empty) || (task->status >= TASK_KILLED);
 }
 
 #define PAIR_KEY_T string

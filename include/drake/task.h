@@ -187,4 +187,6 @@ typedef struct task* task_tp;
 int
 drake_task_depleted(task_tp task);
 
+int
+drake_task_killed(task_tp task);
 #endif
