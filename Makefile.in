@@ -32,8 +32,6 @@ CONFIG = RELEASE
 
 subdirs = src include
 
-install: post-install
-
 post-install: dist
 	mkdir -p $(DESTDIR)$(prefix)/$(subdir)/share/drake/
 	install -m 644 $(package)-$(version).$(minor).$(release).tar.gz $(DESTDIR)$(prefix)/$(subdir)/share/drake/
