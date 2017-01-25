@@ -1225,10 +1225,10 @@ drake_stream_run(drake_stream_t* stream)
 		if(drake_platform_time_greater(stream->stage_time, stream->zero))
 		{
 			drake_platform_time_get(stream->stage_stop_time);
-			drake_platform_time_substract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
+			drake_platform_time_subtract(stream->stage_sleep_time, stream->stage_stop_time, stream->stage_start_time);
 			if(!drake_platform_time_greater(stream->stage_sleep_time, stream->stage_time))
 			{
-				drake_platform_time_substract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
+				drake_platform_time_subtract(stream->stage_sleep_time, stream->stage_time, stream->stage_sleep_time);
 				drake_platform_sleep(stream->stage_sleep_time);
 			}
 		}

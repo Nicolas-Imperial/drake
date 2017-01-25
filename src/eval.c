@@ -215,7 +215,7 @@ main(size_t argc, char **argv)
 	// Compute and output statistics
 	// Time
 	drake_time_t global = drake_platform_time_alloc();
-	drake_platform_time_substract(global, global_end, global_begin);
+	drake_platform_time_subtract(global, global_end, global_begin);
 	
 	if(collected > SAMPLES)
 	{

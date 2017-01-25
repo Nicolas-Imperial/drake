@@ -121,11 +121,11 @@ float drake_platform_get_voltage();
 int drake_platform_time_get(drake_time_t);
 /** Substract two time quantities and stores the result in a time structure
 	@param res Time structure containing the result of t1 - t2
-	@param t1 First operand of time susbtraction
-	@param t2 Second operation of time substraction
-	@return 0 if substraction could not be performed
+	@param t1 First operand of time subtraction
+	@param t2 Second operation of time subtraction
+	@return 0 if subtraction could not be performed
 **/
-int drake_platform_time_substract(drake_time_t res, drake_time_t t1, drake_time_t t2);
+int drake_platform_time_subtract(drake_time_t res, drake_time_t t1, drake_time_t t2);
 /** Adds two time quantities and stores the resutl in a time structure
 	@param res Time struction containing the result of t1 + t2
 	@param t1 First operand of the time addition
