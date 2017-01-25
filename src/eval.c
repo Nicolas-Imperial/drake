@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stddef.h>
 
-#include <rapl.h>
 #include <drake.h>
 #include <drake/eval.h>
 

@@ -992,7 +992,7 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 	schedule_init(&stream.schedule);
 	if(stream.schedule.core_number != drake_platform_core_size())
 	{
-		fprintf(stderr, "Application compiled for different number of cores than available on this platform. Please recompile drake application with a correct platform description\n");
+		fprintf(stderr, "Application compiled for different number of cores (%zu) than available on this platform (%zu). Please recompile drake application with a correct platform description\n", stream.schedule.core_number, drake_platform_core_size());
 		abort();
 	}
 	drake_schedule_t *schedule = &stream.schedule;
