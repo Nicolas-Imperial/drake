@@ -5,7 +5,7 @@
 usage()
 {
 	echo >&2
-	echo Usage: `basename $0` '--drake --backend BACKEND --src DRAKE_PATH --app --lib LIB --src LIB_PATH [ --platform PLATFORM ] [ --taskgraph TASKGRAPH ] [ --schedule SCHEDULE ] [ --cflags CFLAGS ] [ --variant VARIANT ]' >&2
+	echo Usage: `basename $0` '--drake --backend BACKEND --src DRAKE_PATH --app --lib LIB --src LIB_PATH [ --platform PLATFORM ] [ --taskgraph TASKGRAPH ] [ --schedule SCHEDULE ] [ --cflags CFLAGS ] [ --variant VARIANT ] [ --out OUTPUT ] [ -- ARGS ]' >&2
 	echo >&2
 	echo 'BACKEND		Drake backend library name (ex. drake-intel-ia).' >&2
 	echo 'DRAKE_PATH	Path to drake source package, excluding "src" subdir.' >&2
@@ -16,6 +16,8 @@ usage()
 	echo 'SCHEDULE	Schedule in XML format to apply to streaming application.' >&2
 	echo 'CFLAGS		Flags to forward to C compiler of Drake streaming application.' >&2
 	echo 'VARIANT		Prefix to Drake application library name to distinguish several variants of the same streaming application.' >&2
+	echo 'OUTPUT		File of the final binary generated.' >&2
+	echo 'ARGS		Additional arguments passed to build application library and final evaluation build.' >&2
 	echo >&2
 }
 
