@@ -3,7 +3,7 @@
 ## Show what commands are being run
 set -o xtrace
 
-username=nicme26
+username=chrke55
 host=remote.ida.liu.se
 dir=/info/www/labs/pelab/drake
 target=$username@$host:$dir

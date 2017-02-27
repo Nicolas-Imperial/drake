@@ -3,9 +3,9 @@
 ## Show what commands are being run
 set -o xtrace
 
-username=nicme26
+username=chrke55
 host=remote.ida.liu.se
-dir=/home/nicme26/www-pub/dev/drake
+dir=/home/chrke55/www-pub/dev/drake
 target=$username@$host:$dir
 
 echo Copying files to server. Append $HOME/.ssh/id_rsa.pub to $username@$host:'$'HOME/.ssh/authorized_keys to avoid password prompts. Use ssh-keygen to generate $HOME/.ssh/id_rsa.pub if it doesn\'t exist.

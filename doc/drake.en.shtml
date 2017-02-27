@@ -8,8 +8,8 @@
 <!--#include virtual="${absolute}../pelib/pelib-data.shtml" -->
 <!--#include virtual="${absolute}../crown/crown-data.shtml" -->
 <!--#include virtual="${absolute}../pelib/unit-data.shtml" -->
-<!--#include virtual="${absolute}../drake/merge-data.shtml" -->
 <!--#include virtual="${absolute}../drake/schedulers-data.shtml" -->
+<!--#include virtual="drake-data.shtml" -->
 
 <html>
 <head>
