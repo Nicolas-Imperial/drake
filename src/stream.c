@@ -98,7 +98,7 @@ static
 void
 build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, string prod_name, string cons_name)
 {
-	int i, j;
+	size_t i, j;
 	link_t *link = NULL;
 	cross_link_t *cross_link;
 	
@@ -106,8 +106,13 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, st
 	map_iterator_t(string, link_tp) *kk;
 	for(kk = pelib_map_begin(string, link_tp)(prod->succ); kk != pelib_map_end(string, link_tp)(prod->succ); kk = pelib_map_next(string, link_tp)(kk))
 	{
-		link = pelib_map_read(string, link_tp)(kk).value;
-		if(link->prod->id == prod->id && link->cons->id == cons->id)
+		pair_t(string, link_tp) string_link_pair = pelib_map_read(string, link_tp)(kk);
+		link = string_link_pair.value;
+		if(
+			link->prod->id == prod->id
+			&& link->cons->id == cons->id
+			&& pelib_compare(string)(string_link_pair.key, prod_name) == 0 // Must also check if the link we found is the proper link
+		)
 		{
 			break;
 		}
@@ -117,14 +122,39 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, st
 		}
 	}
 
-	// If a link between these two tasks does not exist
-	if(link == NULL)
+	// If a link between these two tasks does not exist but *should be* according to schedule
+	// Let us consider this link should not be created unless proven otherwise
+	// First let's see if any of the producer task's consumer has an input link with this name
+	int should_be_created = 0;
+	for(i = 0; i < mapping->schedule->consumers_in_task[prod->id - 1]; i++)
+	{
+		// If the producer task has an output link the consumer task sees as this consumer name
+		if(strcmp(mapping->schedule->consumers_name[prod->id - 1][i], cons_name) == 0)
+		{
+			// Alright, there is such a consumer. Let's see if this consumer has the
+			// expected task name and its input link points to this producer with this
+			// output link name
+			if(strcmp(mapping->schedule->output_name[prod->id - 1][i], prod_name) == 0)
+			{
+				should_be_created = 1;
+				break;
+			}
+		}
+	}
+
+	// Create the link only if the link does not already exist AND if the link is valid according to schedule.
+	if(
+		link == NULL
+		&& should_be_created != 0
+	)
 	{
 		// Create and initialize a new link
 		link = (link_t*)drake_platform_private_malloc(sizeof(link_t));
 		link->prod = prod;
 		link->cons = cons;
 		link->buffer = NULL;
+
+		//printf("[%s:%s:%d] Adding link from task \"%s\" with output port name \"%s\" to task \"%s\" with input port name \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, prod->name, prod_name, cons->name, cons_name);
 
 		// Add it as source and sink to both current and target tasks
 		pair_t(string, link_tp) link_prod_pair, link_cons_pair;
@@ -196,41 +226,47 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, st
 	}
 }
 
-static map_t(string, task_tp)*
+static map_t(pair_t(string, string), task_tp)*
 get_task_consumers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-	map_t(string, task_tp) *consumers;
-	consumers = pelib_alloc(map_t(string, task_tp))();
-	pelib_init(map_t(string, task_tp))(consumers);
+	map_t(pair_t(string, string), task_tp) *consumers;
+	consumers = pelib_alloc(map_t(pair_t(string, string), task_tp))();
+	pelib_init(map_t(pair_t(string, string), task_tp))(consumers);
 	for(i = 0; i < mapping->schedule->consumers_in_task[task->id - 1]; i++)
 	{
-		pair_t(string, task_tp) pair;
+		pair_t(pair_t(string, string), task_tp) pair;
 		string name = mapping->schedule->consumers_name[task->id - 1][i];
-		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
-		pelib_copy(string)(name, &pair.key);
+		string output = mapping->schedule->output_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key.value, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key.value);
+		pelib_alloc_buffer(string)(&pair.key.key, strlen(output) + 1);
+		pelib_copy(string)(output, &pair.key.key);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
-		pelib_map_insert(string, task_tp)(consumers, pair);
+		pelib_map_insert(pair_t(string, string), task_tp)(consumers, pair);
 	}
 
 	return consumers;	
 }
 
-static map_t(string, task_tp)*
+static map_t(pair_t(string, string), task_tp)*
 get_task_producers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-	map_t(string, task_tp) *producers;
-	producers = pelib_alloc(map_t(string, task_tp))();
-	pelib_init(map_t(string, task_tp))(producers);
+	map_t(pair_t(string, string), task_tp) *producers;
+	producers = pelib_alloc(map_t(pair_t(string, string), task_tp))();
+	pelib_init(map_t(pair_t(string, string), task_tp))(producers);
 	for(i = 0; i < mapping->schedule->producers_in_task[task->id - 1]; i++)
 	{
-		pair_t(string, task_tp) pair;
+		pair_t(pair_t(string, string), task_tp) pair;
 		string name = mapping->schedule->producers_name[task->id - 1][i];
-		pelib_alloc_buffer(string)(&pair.key, strlen(name) + 1);
-		pelib_copy(string)(name, &pair.key);
+		string input = mapping->schedule->input_name[task->id - 1][i];
+		pelib_alloc_buffer(string)(&pair.key.key, strlen(name) + 1);
+		pelib_copy(string)(name, &pair.key.key);
+		pelib_alloc_buffer(string)(&pair.key.value, strlen(input) + 1);
+		pelib_copy(string)(input, &pair.key.value);
 		pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
-		pelib_map_insert(string, task_tp)(producers, pair);
+		pelib_map_insert(pair_t(string, string), task_tp)(producers, pair);
 	}
 
 	return producers;	
@@ -255,23 +291,13 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
-			map_t(string, task_tp) *producers = get_task_producers(mapping, current_task);
-			map_iterator_t(string, task_tp)* kk;
-			for(kk = pelib_map_begin(string, task_tp)(producers); kk != pelib_map_end(string, task_tp)(producers); kk = pelib_map_next(string, task_tp)(kk))
+			map_t(pair_t(string, string), task_tp) *producers = get_task_producers(mapping, current_task);
+			map_iterator_t(pair_t(string, string), task_tp)* kk;
+			for(kk = pelib_map_begin(pair_t(string, string), task_tp)(producers); kk != pelib_map_end(pair_t(string, string), task_tp)(producers); kk = pelib_map_next(pair_t(string, string), task_tp)(kk))
 			{
-				target_task = pelib_map_read(string, task_tp)(kk).value;
-				string prod_name = pelib_map_read(string, task_tp)(kk).key;
-				// Get link name from the producer's point of view
-				string cons_name;
-				size_t l;
-				for(l = 0; l < mapping->schedule->consumers_in_task[target_task->id - 1]; l++)
-				{
-					if(mapping->schedule->consumers_id[target_task->id - 1][l] == current_task->id)
-					{
-						cons_name = mapping->schedule->consumers_name[target_task->id - 1][l];
-						break;
-					}
-				}
+				target_task = pelib_map_read(pair_t(string, string), task_tp)(kk).value;
+				string prod_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.key;
+				string cons_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.value;
 
 				if(target_task != NULL)
 				{
@@ -294,28 +320,17 @@ build_tree_network(mapping_t* mapping)
 				}
 			}
 			//pelib_destroy(map_t(string, task_tp))(*producers);
-			pelib_free(map_t(string, task_tp))(producers);
+			pelib_free(map_t(pair_t(string, string), task_tp))(producers);
 
-			map_t(string, task_tp) *consumers = get_task_consumers(mapping, current_task);
-			for(kk = pelib_map_begin(string, task_tp)(consumers); kk != pelib_map_end(string, task_tp)(consumers); kk = pelib_map_next(string, task_tp)(kk))
+			map_t(pair_t(string, string), task_tp) *consumers = get_task_consumers(mapping, current_task);
+			for(kk = pelib_map_begin(pair_t(string, string), task_tp)(consumers); kk != pelib_map_end(pair_t(string, string), task_tp)(consumers); kk = pelib_map_next(pair_t(string, string), task_tp)(kk))
 			{
-				target_task = pelib_map_read(string, task_tp)(kk).value;
-
-				string cons_name = pelib_map_read(string, task_tp)(kk).key;
-				// Get link name from the producer's point of view
-				string prod_name;
-				size_t l;
-				for(l = 0; l < mapping->schedule->producers_in_task[target_task->id - 1]; l++)
-				{
-					if(mapping->schedule->producers_id[target_task->id - 1][l] == current_task->id)
-					{
-						prod_name = mapping->schedule->producers_name[target_task->id - 1][l];
-						break;
-					}
-				}
+				target_task = pelib_map_read(pair_t(string, string), task_tp)(kk).value;
 
 				if(target_task != NULL)
 				{
+					string prod_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.key;
+					string cons_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.value;
 					build_link(mapping, proc, current_task, target_task, prod_name, cons_name);
 
 					size_t l;
@@ -334,7 +349,7 @@ build_tree_network(mapping_t* mapping)
 				}
 			}
 			//pelib_destroy(map_t(string, task_tp))(*consumers);
-			pelib_free(map_t(string, task_tp))(consumers);
+			pelib_free(map_t(pair_t(string, string), task_tp))(consumers);
 		}
 	}
 }
@@ -618,6 +633,14 @@ allocate_buffers(drake_stream_t* stream)
 					{
 						if(link->buffer == NULL)
 						{
+/*
+							debug("Allocate inner buffer");
+							debug(task->name);
+							debug(link->cons->name);
+							debug_size_t(drake_platform_shared_size());
+							debug_int(proc->inner_links);
+							debug("#########################");
+*/
 							size_t capacity = drake_platform_shared_size() / proc->inner_links / sizeof(int);
 							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
@@ -654,6 +677,14 @@ allocate_buffers(drake_stream_t* stream)
 						// If the task is mapped to another core: output link
 						if(link->buffer == NULL)
 						{
+/*
+							debug("Allocate inter-core buffer");
+							debug(task->name);
+							debug(link->cons->name);
+							debug_size_t(drake_platform_shared_size());
+							debug_int(proc->inner_links);
+							debug("#########################");
+*/
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 							int core = link->cons->core[l]->id;
@@ -680,6 +711,12 @@ allocate_buffers(drake_stream_t* stream)
 					{
 						if(link->buffer == NULL)
 						{
+/*
+							debug("Allocate inner buffer");
+							debug(link->prod->name);
+							debug(task->name);
+							debug("#########################");
+*/
 							size_t capacity = drake_platform_shared_size() / proc->inner_links / sizeof(int);
 							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
@@ -711,6 +748,12 @@ allocate_buffers(drake_stream_t* stream)
 						// If the task is mapped to another core: cross link
 						if(link->buffer == NULL)
 						{
+/*
+							debug("Allocate inter buffer");
+							debug(link->prod->name);
+							debug(task->name);
+							debug("#########################");
+*/
 							// Perform this allocation manually
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 
@@ -1196,6 +1239,7 @@ drake_stream_run(drake_stream_t* stream)
 						task->kill(task);
 						task->status = TASK_ZOMBIE;
 						active_tasks--;
+						//debug_int(active_tasks);
 
 						// Commit
 						task_commit(task);
@@ -1212,10 +1256,12 @@ drake_stream_run(drake_stream_t* stream)
 
 				// Should not happen. If it does happen, let the scheduler decide what to do
 				case TASK_INVALID:
+					printf("[%s:%s:%d][CORE %zu] Invalid state for task \"%s\".\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), task->name);
 					task->status = TASK_ZOMBIE;
 				break;
 
 				default:
+					printf("[%s:%s:%d][CORE %zu] Unknown state for task \"%s\": %i; switching to invalid state.\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), task->name, task->status);
 					task->status = TASK_INVALID;
 				break;
 			}

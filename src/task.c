@@ -234,6 +234,21 @@ drake_task_depleted(task_tp task)
 }
 
 #define PAIR_KEY_T string
+#define PAIR_VALUE_T string
+#include <pelib/pair.c>
+
+#define PAIR_KEY_T pair_t(string, string)
+#define PAIR_VALUE_T task_tp
+#include <pelib/pair.c>
+
+#define ITERATOR_T pair_t(pair_t(string, string), task_tp)
+#include <pelib/iterator.c>
+
+#define MAP_KEY_T pair_t(string, string)
+#define MAP_VALUE_T task_tp
+#include <pelib/map.c>
+
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T task_tp
 #include <pelib/pair.c>
 

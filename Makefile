@@ -32,6 +32,8 @@ export
 	
 include Makefile.in
 
+prefix := $(if $(prefix),$(prefix),$(call PREFIX_$(CONFIG)))
+
 tarname = $(package)
 distdir = $(abspath $(tarname)-$(version).$(minor).$(release))
 

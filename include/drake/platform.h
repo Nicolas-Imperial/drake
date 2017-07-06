@@ -18,6 +18,9 @@
 
 */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stddef.h>
 
@@ -29,11 +32,6 @@
 
 /** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
 #define drake_platform_stream_create(stream, application) \
-void* (drake_function(application))(size_t id, task_status_t state); \
-void (drake_schedule_init(application))(drake_schedule_t*); \
-void (drake_schedule_destroy(application))(drake_schedule_t*); \
-int (drake_task_number(application))(); \
-char* (drake_task_name(application))(size_t); \
 drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
 
 /** Abstract type for time measurement **/
@@ -206,4 +204,11 @@ void drake_platform_core_enable(drake_platform_t pt, size_t core);
 void drake_platform_sleep_disable(drake_platform_t pt, size_t core);
 void drake_platform_sleep_enable(drake_platform_t pt, size_t core);
 
+void drake_platform_stream_run_async(drake_platform_t);
+int drake_platform_stream_wait(drake_platform_t);
+
 #endif // DRAKE_PLATFORM_H
+
+#ifdef __cplusplus
+}
+#endif

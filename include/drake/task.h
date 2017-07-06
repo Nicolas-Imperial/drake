@@ -165,6 +165,11 @@ typedef struct task* task_tp;
 #define DONE_task_tp 1
 
 #define PAIR_KEY_T string
+#define PAIR_VALUE_T string
+#include <pelib/pair.h>
+#define DONE_pair_string_string 1
+
+#define PAIR_KEY_T string
 #define PAIR_VALUE_T task_tp
 #include <pelib/pair.h>
 #define DONE_pair_string_task_tp 1
@@ -177,6 +182,20 @@ typedef struct task* task_tp;
 #define MAP_VALUE_T task_tp
 #include <pelib/map.h>
 #define DONE_map_string_task_tp 1
+
+#define PAIR_KEY_T pair_t(string, string)
+#define PAIR_VALUE_T task_tp
+#include <pelib/pair.h>
+#define DONE_pair_pair_string_string 1
+
+#define ITERATOR_T pair_t(pair_t(string, string), task_tp)
+#include <pelib/iterator.h>
+#define DONE_iterator_pair_string_string_task_tp 1
+
+#define MAP_KEY_T pair_t(string, string)
+#define MAP_VALUE_T task_tp
+#include <pelib/map.h>
+#define DONE_map_pair_string_string_task_tp 1
 
 /** Defines arrays for pointers to tasks **/
 #define ARRAY_T task_tp

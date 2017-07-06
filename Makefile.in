@@ -22,13 +22,9 @@ version = 3
 minor = 0
 release = 0
 
-prefix = $(HOME)/.local
-exec_prefix = $(prefix)
-bindir = $(exec_prefix)/bin
-libdir = $(exec_prefix)/lib
-includedir = $(prefix)/include
-
 CONFIG = RELEASE
+PREFIX_RELEASE = $(HOME)/.local
+PREFIX_DEBUG = $(HOME)/.local/debug
 
 subdirs = src include
 

@@ -58,11 +58,19 @@ typedef struct {
 	size_t *producers_in_task;
 	/// For each core, list of task ids that consume data produced by tasks mapped to this core
 	size_t **consumers_id;
+	/// Name of output channels as seen by consumer task
 	char ***consumers_name;
-	/// For each core, list of task ids that procude data consumed by tasks mapped to this core
+	/// For each core, list of task ids that procure data consumed by tasks mapped to this core
 	size_t **producers_id;
+	/// Data production rate in SDF context
 	size_t **producers_rate;
+	/// Data consumption rate in SDF context
 	size_t **consumers_rate;
+	/// Name of output channels for a task
+	char ***output_name;
+	/// Name of input channels for a task
+	char ***input_name;
+	/// Name of input channels as seen by the producer task
 	char ***producers_name;
 	/// Number of consumers of a task that are mapped to another core than this task is mapped to
 	size_t *remote_consumers_in_task;

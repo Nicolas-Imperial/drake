@@ -36,16 +36,21 @@ TIME_OUTPUT=\"/tmp/time-\"
 
 MONITOR_EXCEPTIONS=1
 
+#asan_cflags=-fsanitize=address
+#asan_libs=-lasan
+asan_cflags=
+asan_libs=
+
 ## C global parameters
 #CFLAGS_BASE = -DMONITOR_EXCEPTIONS=$(MONITOR_EXCEPTIONS)
 CFLAGS_PRIVATE = -isystem ../include
 CFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
-CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
+CFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1 $(asan_cflags)
 CC_LDFLAGS_PRIVATE = -L.
 CC_LDFLAGS = 
 CC_DEPS =
 CC_PKG = 
-CC_LIBS =
+CC_LIBS = $(asan_libs)
 CC_TEST_PKG = $(CC_PKG) unit
 CC_TEST_LIBS = $(CC_LIBS)
 CC_TEST_DEPS = $(CC_DEPS)
@@ -55,12 +60,12 @@ CC_TEST_LDFLAGS = -L.
 CXXFLAGS_BASE = 
 CXXFLAGS_PRIVATE = -isystem ../include
 CXXFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
-CXXFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1
+CXXFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1 $(asan_cflags)
 CXX_LDFLAGS_PRIVATE = -L.
 CXX_LDFLAGS = 
 CXX_DEPS = 
 CXX_PKG = 
-CXX_LIBS = -lrt
+CXX_LIBS = -lrt $(asan_libs)
 CXX_TEST_PKG = $(CXX_PKG) unit
 CXX_TEST_LIBS = $(CXX_LIBS)
 CXX_TEST_DEPS = $(CXX_DEPS)
