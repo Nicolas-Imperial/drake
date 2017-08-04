@@ -433,11 +433,11 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 					fprintf(stderr, "[%s:%s:%d] task.id = %d\n", __FILE__, __FUNCTION__, __LINE__, i);
 
 					fprintf(stderr, "[%s:%s:%d] task.pred = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
-					task.pred = pelib_alloc(map_t(string, link_tp))();
-					pelib_init(map_t(string, link_tp))(task.pred);
+					task.pred = pelib_alloc(map_t(const_string, link_tp))();
+					pelib_init(map_t(const_string, link_tp))(task.pred);
 					fprintf(stderr, "[%s:%s:%d] task.succ = pelib_alloc_collection(array_t(link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
-					task.succ = pelib_alloc(map_t(string, link_tp))();
-					pelib_init(map_t(string, link_tp))(task.succ);
+					task.succ = pelib_alloc(map_t(const_string, link_tp))();
+					pelib_init(map_t(const_string, link_tp))(task.succ);
 					fprintf(stderr, "[%s:%s:%d] task.source = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);
 					task.source = pelib_alloc_collection(array_t(cross_link_tp))(num_tasks);
 					fprintf(stderr, "[%s:%s:%d] task.sink = pelib_alloc_collection(array_t(cross_link_tp))(%d);\n", __FILE__, __FUNCTION__, __LINE__, num_tasks);

@@ -18,7 +18,7 @@
 
 */
 
-#include <pelib/string.h>
+#include <pelib/const_string.h>
 #include <pelib/integer.h>
 #include <stddef.h>
 
@@ -49,20 +49,20 @@ typedef link_t* link_tp;
 #include <pelib/structure.h>
 #define DONE_link_tp 1
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T link_tp
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T link_tp
 #include <pelib/pair.h>
-#define DONE_pair_string_link_tp 1
+#define DONE_pelib_pair_const_string_link_tp 1
 
-#define ITERATOR_T pair_t(string, link_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(const_string, link_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_pair_string_link_tp 1
+#define DONE_pelib_iterator_pelib_pair_const_string_link_tp 1
 
 /** Defines arrays for pointers to link **/
-#define MAP_KEY_T string
+#define MAP_KEY_T const_string
 #define MAP_VALUE_T link_tp
 #include <pelib/map.h>
-#define DONE_map_string_link_tp 1
+#define DONE_map_const_string_link_tp 1
 
 #define ARRAY_T link_tp
 #include <pelib/array.h>
@@ -85,20 +85,20 @@ typedef cross_link_t* cross_link_tp;
 #include <pelib/structure.h>
 #define DONE_cross_link_tp 1
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T cross_link_tp
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T cross_link_tp
 #include <pelib/pair.h>
-#define DONE_pair_string_cross_link_tp 1
+#define DONE_pelib_pair_const_string_cross_link_tp 1
 
-#define ITERATOR_T pair_t(string, cross_link_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(const_string, cross_link_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_pair_string_cross_link_tp 1
+#define DONE_pelib_iterator_pelib_pair_const_string_cross_link_tp 1
 
 /** Defines arrays for pointers to cross link **/
-#define MAP_KEY_T string
+#define MAP_KEY_T const_string
 #define MAP_VALUE_T cross_link_tp
 #include <pelib/map.h>
-#define DONE_map_string_cross_link_tp 1
+#define DONE_map_const_string_cross_link_tp 1
 
 #define ARRAY_T cross_link_tp
 #include <pelib/array.h>
@@ -118,14 +118,14 @@ struct task
  	processor_t **core;
 	size_t width;
 	/// List of link pointers that consume data produced by this task
-	map_t(string, link_tp) *succ;
+	map_t(const_string, link_tp) *succ;
  	/// List of link pointers that produce data this task consumes
- 	map_t(string, link_tp) *pred;
+ 	map_t(const_string, link_tp) *pred;
 	/// List of links toward consumer tasks mapped to another core
-	//map_t(string, cross_link_tp) *sink;
+	//map_t(const_string, cross_link_tp) *sink;
 	array_t(cross_link_tp) *sink;
  	/// List of links toward producer tasks mapped to another cores
- 	//map_t(string, cross_link_tp) *source;
+ 	//map_t(const_string, cross_link_tp) *source;
  	array_t(cross_link_tp) *source;
 	/// Frequency in KHz this task should run at
 	int frequency;
@@ -133,7 +133,7 @@ struct task
  	/// State of the task: initialized, running, killed, etc.
  	task_status_t status;
 	/// Human-readable identifier for the task
-	char *name;
+	const char *name;
  	/// Pointer to initialisation function, run before the stream begins
  	int (*init)(struct task*, void*);
 	/// Pointer to function to run when tasks begins to work, run after the stream begins
@@ -164,38 +164,38 @@ typedef struct task* task_tp;
 #include <pelib/structure.h>
 #define DONE_task_tp 1
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T string
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T const_string
 #include <pelib/pair.h>
-#define DONE_pair_string_string 1
+#define DONE_pelib_pair_const_string_const_string 1
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T task_tp
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T task_tp
 #include <pelib/pair.h>
-#define DONE_pair_string_task_tp 1
+#define DONE_pelib_pair_const_string_task_tp 1
 
-#define ITERATOR_T pair_t(string, task_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(const_string, task_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_string_task_tp 1
+#define DONE_pelib_iterator_const_string_task_tp 1
 
-#define MAP_KEY_T string
+#define MAP_KEY_T const_string
 #define MAP_VALUE_T task_tp
 #include <pelib/map.h>
-#define DONE_map_string_task_tp 1
+#define DONE_map_const_string_task_tp 1
 
-#define PAIR_KEY_T pair_t(string, string)
-#define PAIR_VALUE_T task_tp
+#define PELIB_PAIR_KEY_T pelib_pair_t(const_string, const_string)
+#define PELIB_PAIR_VALUE_T task_tp
 #include <pelib/pair.h>
-#define DONE_pair_pair_string_string 1
+#define DONE_pelib_pair_pelib_pair_const_string_const_string 1
 
-#define ITERATOR_T pair_t(pair_t(string, string), task_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(pelib_pair_t(const_string, const_string), task_tp)
 #include <pelib/iterator.h>
-#define DONE_iterator_pair_string_string_task_tp 1
+#define DONE_pelib_iterator_pelib_pair_const_string_const_string_task_tp 1
 
-#define MAP_KEY_T pair_t(string, string)
+#define MAP_KEY_T pelib_pair_t(const_string, const_string)
 #define MAP_VALUE_T task_tp
 #include <pelib/map.h>
-#define DONE_map_pair_string_string_task_tp 1
+#define DONE_map_pelib_pair_const_string_const_string_task_tp 1
 
 /** Defines arrays for pointers to tasks **/
 #define ARRAY_T task_tp

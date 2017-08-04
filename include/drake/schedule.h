@@ -22,6 +22,11 @@
 #include <drake/task.h>
 
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #ifndef DRAKE_SCHEDULE_H
 #define DRAKE_SCHEDULE_H
 
@@ -42,7 +47,7 @@ typedef struct {
 	/// Number of tasks in the application
 	size_t task_number;
 	/// String id as in taskgraph and schedule of a task
-	char **task_name;
+	const char **task_name;
 	double *task_workload;
 	/// Time in millisecond of a pipeline stage
 	double stage_time;
@@ -59,7 +64,7 @@ typedef struct {
 	/// For each core, list of task ids that consume data produced by tasks mapped to this core
 	size_t **consumers_id;
 	/// Name of output channels as seen by consumer task
-	char ***consumers_name;
+	const char ***consumers_name;
 	/// For each core, list of task ids that procure data consumed by tasks mapped to this core
 	size_t **producers_id;
 	/// Data production rate in SDF context
@@ -67,11 +72,11 @@ typedef struct {
 	/// Data consumption rate in SDF context
 	size_t **consumers_rate;
 	/// Name of output channels for a task
-	char ***output_name;
+	const char ***output_name;
 	/// Name of input channels for a task
-	char ***input_name;
+	const char ***input_name;
 	/// Name of input channels as seen by the producer task
-	char ***producers_name;
+	const char ***producers_name;
 	/// Number of consumers of a task that are mapped to another core than this task is mapped to
 	size_t *remote_consumers_in_task;
 	/// Number of producers of a task that are mapped to another core than this task is mapped to
@@ -101,7 +106,7 @@ void drake_schedule_destroy(drake_schedule_t*);
 /** Returns the number of tasks in a streaming application **/
 int drake_task_number();
 /** Returns the string description of a task from its id defined in drake framework **/
-char* drake_task_name(size_t);
+const char* drake_task_name(size_t);
 #else
 #define drake_function(application) PELIB_##CONCAT_2(drake_function_, application)
 #define drake_schedule_init(application) PELIB_##CONCAT_2(drake_schedule_init_, application)
@@ -110,3 +115,6 @@ char* drake_task_name(size_t);
 #define drake_task_name(application) PELIB_##CONCAT_2(drake_task_name_, application)
 #endif
 
+#ifdef __cplusplus
+}
+#endif

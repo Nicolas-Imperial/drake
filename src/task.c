@@ -24,7 +24,7 @@
 
 #include <drake/link.h>
 #include <drake/task.h>
-#include <pelib/string.h>
+#include <pelib/const_string.h>
 #include <pelib/integer.h>
 #include <drake/platform.h>
 
@@ -105,7 +105,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		simple_str = pelib_string(task_tp)(task);
 		if(task->pred != NULL)
 		{
-			pred_str = pelib_string_detail(map_t(string, link_tp))(*task->pred, level - 1);
+			pred_str = pelib_string_detail(map_t(const_string, link_tp))(*task->pred, level - 1);
 		}
 		else
 		{
@@ -115,7 +115,7 @@ pelib_string_detail(task_tp)(task_tp task, int level)
 		
 		if(task->pred != NULL)
 		{
-			succ_str = pelib_string_detail(map_t(string, link_tp))(*task->succ, level - 1);
+			succ_str = pelib_string_detail(map_t(const_string, link_tp))(*task->succ, level - 1);
 		}
 		else
 		{
@@ -222,10 +222,10 @@ drake_task_depleted(task_tp task)
 		return 1;
 	}
 
-	map_iterator_t(string, link_tp)* i;
-	for(i = pelib_map_begin(string, link_tp)(task->pred); i != pelib_map_end(string, link_tp)(task->pred); i = pelib_map_next(string, link_tp)(i))
+	map_pelib_iterator_t(const_string, link_tp)* i;
+	for(i = pelib_map_begin(const_string, link_tp)(task->pred); i != pelib_map_end(const_string, link_tp)(task->pred); i = pelib_map_next(const_string, link_tp)(i))
 	{
-		link_tp link = pelib_map_read(string, link_tp)(i).value;
+		link_tp link = pelib_map_read(const_string, link_tp)(i).value;
 		all_killed = all_killed && ((link->prod == NULL) ? 1 : link->prod->status >= TASK_KILLED);
 		all_empty = all_empty && (pelib_cfifo_length(int)(link->buffer) == 0);
 	}
@@ -233,29 +233,29 @@ drake_task_depleted(task_tp task)
 	return (all_killed && all_empty) || (task->status >= TASK_KILLED);
 }
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T string
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T const_string
 #include <pelib/pair.c>
 
-#define PAIR_KEY_T pair_t(string, string)
-#define PAIR_VALUE_T task_tp
+#define PELIB_PAIR_KEY_T pelib_pair_t(const_string, const_string)
+#define PELIB_PAIR_VALUE_T task_tp
 #include <pelib/pair.c>
 
-#define ITERATOR_T pair_t(pair_t(string, string), task_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(pelib_pair_t(const_string, const_string), task_tp)
 #include <pelib/iterator.c>
 
-#define MAP_KEY_T pair_t(string, string)
+#define MAP_KEY_T pelib_pair_t(const_string, const_string)
 #define MAP_VALUE_T task_tp
 #include <pelib/map.c>
 
-#define PAIR_KEY_T string
-#define PAIR_VALUE_T task_tp
+#define PELIB_PAIR_KEY_T const_string
+#define PELIB_PAIR_VALUE_T task_tp
 #include <pelib/pair.c>
 
-#define ITERATOR_T pair_t(string, task_tp)
+#define PELIB_ITERATOR_T pelib_pair_t(const_string, task_tp)
 #include <pelib/iterator.c>
 
-#define MAP_KEY_T string
+#define MAP_KEY_T const_string
 #define MAP_VALUE_T task_tp
 #include <pelib/map.c>
 

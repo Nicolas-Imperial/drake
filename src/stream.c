@@ -45,6 +45,7 @@
 #include <execinfo.h>
 
 #include <pelib/integer.h>
+#include <pelib/string.h>
 
 #include <drake/task.h>
 #include <drake/link.h>
@@ -96,22 +97,22 @@ tasks_mapped_same_cores(task_tp t1, task_tp t2)
 
 static
 void
-build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, string prod_name, string cons_name)
+build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, const_string prod_name, const_string cons_name)
 {
 	size_t i, j;
 	link_t *link = NULL;
 	cross_link_t *cross_link;
 	
 	// Find in target task if this link doesn't already exist
-	map_iterator_t(string, link_tp) *kk;
-	for(kk = pelib_map_begin(string, link_tp)(prod->succ); kk != pelib_map_end(string, link_tp)(prod->succ); kk = pelib_map_next(string, link_tp)(kk))
+	map_pelib_iterator_t(const_string, link_tp) *kk;
+	for(kk = pelib_map_begin(const_string, link_tp)(prod->succ); kk != pelib_map_end(const_string, link_tp)(prod->succ); kk = pelib_map_next(const_string, link_tp)(kk))
 	{
-		pair_t(string, link_tp) string_link_pair = pelib_map_read(string, link_tp)(kk);
-		link = string_link_pair.value;
+		pelib_pair_t(const_string, link_tp) const_string_link_pelib_pair = pelib_map_read(const_string, link_tp)(kk);
+		link = const_string_link_pelib_pair.value;
 		if(
 			link->prod->id == prod->id
 			&& link->cons->id == cons->id
-			&& pelib_compare(string)(string_link_pair.key, prod_name) == 0 // Must also check if the link we found is the proper link
+			&& pelib_compare(const_string)(const_string_link_pelib_pair.key, prod_name) == 0 // Must also check if the link we found is the proper link
 		)
 		{
 			break;
@@ -157,15 +158,15 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, st
 		//printf("[%s:%s:%d] Adding link from task \"%s\" with output port name \"%s\" to task \"%s\" with input port name \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, prod->name, prod_name, cons->name, cons_name);
 
 		// Add it as source and sink to both current and target tasks
-		pair_t(string, link_tp) link_prod_pair, link_cons_pair;
-		pelib_alloc_buffer(string)(&link_prod_pair.key, (strlen(prod_name) + 1) * sizeof(char));
-		pelib_alloc_buffer(string)(&link_cons_pair.key, (strlen(cons_name) + 1) * sizeof(char));
-		pelib_copy(string)(prod_name, &link_prod_pair.key);
-		pelib_copy(string)(cons_name, &link_cons_pair.key);
-		pelib_copy(link_tp)(link, &link_prod_pair.value);
-		pelib_copy(link_tp)(link, &link_cons_pair.value);
-		pelib_map_insert(string, link_tp)(prod->succ, link_prod_pair);
-		pelib_map_insert(string, link_tp)(cons->pred, link_cons_pair);
+		pelib_pair_t(const_string, link_tp) link_prod_pelib_pair, link_cons_pelib_pair;
+		pelib_alloc_buffer(const_string)(&link_prod_pelib_pair.key, (strlen(prod_name) + 1) * sizeof(char));
+		pelib_alloc_buffer(const_string)(&link_cons_pelib_pair.key, (strlen(cons_name) + 1) * sizeof(char));
+		pelib_copy(string)((string)prod_name, (string*)&link_prod_pelib_pair.key);
+		pelib_copy(string)((string)cons_name, (string*)&link_cons_pelib_pair.key);
+		pelib_copy(link_tp)(link, &link_prod_pelib_pair.value);
+		pelib_copy(link_tp)(link, &link_cons_pelib_pair.value);
+		pelib_map_insert(const_string, link_tp)(prod->succ, link_prod_pelib_pair);
+		pelib_map_insert(const_string, link_tp)(cons->pred, link_cons_pelib_pair);
 
 		// If tasks are mapped to different sets of cores
 		size_t i;
@@ -226,47 +227,47 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, st
 	}
 }
 
-static map_t(pair_t(string, string), task_tp)*
+static map_t(pelib_pair_t(const_string, const_string), task_tp)*
 get_task_consumers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-	map_t(pair_t(string, string), task_tp) *consumers;
-	consumers = pelib_alloc(map_t(pair_t(string, string), task_tp))();
-	pelib_init(map_t(pair_t(string, string), task_tp))(consumers);
+	map_t(pelib_pair_t(const_string, const_string), task_tp) *consumers;
+	consumers = pelib_alloc(map_t(pelib_pair_t(const_string, const_string), task_tp))();
+	pelib_init(map_t(pelib_pair_t(const_string, const_string), task_tp))(consumers);
 	for(i = 0; i < mapping->schedule->consumers_in_task[task->id - 1]; i++)
 	{
-		pair_t(pair_t(string, string), task_tp) pair;
-		string name = mapping->schedule->consumers_name[task->id - 1][i];
-		string output = mapping->schedule->output_name[task->id - 1][i];
-		pelib_alloc_buffer(string)(&pair.key.value, strlen(name) + 1);
-		pelib_copy(string)(name, &pair.key.value);
-		pelib_alloc_buffer(string)(&pair.key.key, strlen(output) + 1);
-		pelib_copy(string)(output, &pair.key.key);
-		pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
-		pelib_map_insert(pair_t(string, string), task_tp)(consumers, pair);
+		pelib_pair_t(pelib_pair_t(const_string, const_string), task_tp) pelib_pair;
+		const_string name = mapping->schedule->consumers_name[task->id - 1][i];
+		const_string output = mapping->schedule->output_name[task->id - 1][i];
+		pelib_alloc_buffer(const_string)(&pelib_pair.key.value, strlen(name) + 1);
+		pelib_copy(string)((string)name, (string*)&pelib_pair.key.value);
+		pelib_alloc_buffer(const_string)(&pelib_pair.key.key, strlen(output) + 1);
+		pelib_copy(string)((string)output, (string*)&pelib_pair.key.key);
+		pelib_pair.value = drake_mapping_find_task(mapping, mapping->schedule->consumers_id[task->id - 1][i]);
+		pelib_map_insert(pelib_pair_t(const_string, const_string), task_tp)(consumers, pelib_pair);
 	}
 
 	return consumers;	
 }
 
-static map_t(pair_t(string, string), task_tp)*
+static map_t(pelib_pair_t(const_string, const_string), task_tp)*
 get_task_producers(mapping_t *mapping, task_t *task)
 {
 	size_t i;
-	map_t(pair_t(string, string), task_tp) *producers;
-	producers = pelib_alloc(map_t(pair_t(string, string), task_tp))();
-	pelib_init(map_t(pair_t(string, string), task_tp))(producers);
+	map_t(pelib_pair_t(const_string, const_string), task_tp) *producers;
+	producers = pelib_alloc(map_t(pelib_pair_t(const_string, const_string), task_tp))();
+	pelib_init(map_t(pelib_pair_t(const_string, const_string), task_tp))(producers);
 	for(i = 0; i < mapping->schedule->producers_in_task[task->id - 1]; i++)
 	{
-		pair_t(pair_t(string, string), task_tp) pair;
-		string name = mapping->schedule->producers_name[task->id - 1][i];
-		string input = mapping->schedule->input_name[task->id - 1][i];
-		pelib_alloc_buffer(string)(&pair.key.key, strlen(name) + 1);
-		pelib_copy(string)(name, &pair.key.key);
-		pelib_alloc_buffer(string)(&pair.key.value, strlen(input) + 1);
-		pelib_copy(string)(input, &pair.key.value);
-		pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
-		pelib_map_insert(pair_t(string, string), task_tp)(producers, pair);
+		pelib_pair_t(pelib_pair_t(const_string, const_string), task_tp) pelib_pair;
+		const_string name = mapping->schedule->producers_name[task->id - 1][i];
+		const_string input = mapping->schedule->input_name[task->id - 1][i];
+		pelib_alloc_buffer(const_string)(&pelib_pair.key.key, strlen(name) + 1);
+		pelib_copy(string)((string)name, (string*)&pelib_pair.key.key);
+		pelib_alloc_buffer(const_string)(&pelib_pair.key.value, strlen(input) + 1);
+		pelib_copy(string)((string)input, (string*)&pelib_pair.key.value);
+		pelib_pair.value = drake_mapping_find_task(mapping, mapping->schedule->producers_id[task->id - 1][i]);
+		pelib_map_insert(pelib_pair_t(const_string, const_string), task_tp)(producers, pelib_pair);
 	}
 
 	return producers;	
@@ -291,13 +292,13 @@ build_tree_network(mapping_t* mapping)
 		{
 			current_task = mapping->proc[i]->task[j];
 
-			map_t(pair_t(string, string), task_tp) *producers = get_task_producers(mapping, current_task);
-			map_iterator_t(pair_t(string, string), task_tp)* kk;
-			for(kk = pelib_map_begin(pair_t(string, string), task_tp)(producers); kk != pelib_map_end(pair_t(string, string), task_tp)(producers); kk = pelib_map_next(pair_t(string, string), task_tp)(kk))
+			map_t(pelib_pair_t(const_string, const_string), task_tp) *producers = get_task_producers(mapping, current_task);
+			map_pelib_iterator_t(pelib_pair_t(const_string, const_string), task_tp)* kk;
+			for(kk = pelib_map_begin(pelib_pair_t(const_string, const_string), task_tp)(producers); kk != pelib_map_end(pelib_pair_t(const_string, const_string), task_tp)(producers); kk = pelib_map_next(pelib_pair_t(const_string, const_string), task_tp)(kk))
 			{
-				target_task = pelib_map_read(pair_t(string, string), task_tp)(kk).value;
-				string prod_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.key;
-				string cons_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.value;
+				target_task = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).value;
+				const_string prod_name = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).key.key;
+				const_string cons_name = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).key.value;
 
 				if(target_task != NULL)
 				{
@@ -319,18 +320,18 @@ build_tree_network(mapping_t* mapping)
 					}
 				}
 			}
-			//pelib_destroy(map_t(string, task_tp))(*producers);
-			pelib_free(map_t(pair_t(string, string), task_tp))(producers);
+			//pelib_destroy(map_t(const_string, task_tp))(*producers);
+			pelib_free(map_t(pelib_pair_t(const_string, const_string), task_tp))(producers);
 
-			map_t(pair_t(string, string), task_tp) *consumers = get_task_consumers(mapping, current_task);
-			for(kk = pelib_map_begin(pair_t(string, string), task_tp)(consumers); kk != pelib_map_end(pair_t(string, string), task_tp)(consumers); kk = pelib_map_next(pair_t(string, string), task_tp)(kk))
+			map_t(pelib_pair_t(const_string, const_string), task_tp) *consumers = get_task_consumers(mapping, current_task);
+			for(kk = pelib_map_begin(pelib_pair_t(const_string, const_string), task_tp)(consumers); kk != pelib_map_end(pelib_pair_t(const_string, const_string), task_tp)(consumers); kk = pelib_map_next(pelib_pair_t(const_string, const_string), task_tp)(kk))
 			{
-				target_task = pelib_map_read(pair_t(string, string), task_tp)(kk).value;
+				target_task = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).value;
 
 				if(target_task != NULL)
 				{
-					string prod_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.key;
-					string cons_name = pelib_map_read(pair_t(string, string), task_tp)(kk).key.value;
+					const_string prod_name = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).key.key;
+					const_string cons_name = pelib_map_read(pelib_pair_t(const_string, const_string), task_tp)(kk).key.value;
 					build_link(mapping, proc, current_task, target_task, prod_name, cons_name);
 
 					size_t l;
@@ -348,8 +349,8 @@ build_tree_network(mapping_t* mapping)
 					}
 				}
 			}
-			//pelib_destroy(map_t(string, task_tp))(*consumers);
-			pelib_free(map_t(pair_t(string, string), task_tp))(consumers);
+			//pelib_destroy(map_t(const_string, task_tp))(*consumers);
+			pelib_free(map_t(pelib_pair_t(const_string, const_string), task_tp))(consumers);
 		}
 	}
 }
@@ -621,10 +622,10 @@ allocate_buffers(drake_stream_t* stream)
 			task = proc->task[j];
 
 			// Take care of all successor links
-			map_iterator_t(string, link_tp)* kk;
-			for(kk = pelib_map_begin(string, link_tp)(task->succ); kk != pelib_map_end(string, link_tp)(task->succ); kk = pelib_map_next(string, link_tp)(kk))
+			map_pelib_iterator_t(const_string, link_tp)* kk;
+			for(kk = pelib_map_begin(const_string, link_tp)(task->succ); kk != pelib_map_end(const_string, link_tp)(task->succ); kk = pelib_map_next(const_string, link_tp)(kk))
 			{
-				link = pelib_map_read(string, link_tp)(kk).value;
+				link = pelib_map_read(const_string, link_tp)(kk).value;
 				// If this is not the root task
 				if(link->cons != NULL)
 				{
@@ -699,9 +700,9 @@ allocate_buffers(drake_stream_t* stream)
 			}
 
 			// Take care of all predecessor links
-			for(kk = pelib_map_begin(string, link_tp)(task->pred); kk != pelib_map_end(string, link_tp)(task->pred); kk = pelib_map_next(string, link_tp)(kk))
+			for(kk = pelib_map_begin(const_string, link_tp)(task->pred); kk != pelib_map_end(const_string, link_tp)(task->pred); kk = pelib_map_next(const_string, link_tp)(kk))
 			{
-				link = pelib_map_read(string, link_tp)(kk).value;
+				link = pelib_map_read(const_string, link_tp)(kk).value;
 
 				// If this is not the root task
 				if(link->prod != NULL)
@@ -866,11 +867,11 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	void *array[10];
 	size_t size;
-	char **strings;
+	char **const_strings;
 	size_t i;
 
 	size = backtrace (array, 10);
-	strings = backtrace_symbols (array, size);
+	const_strings = backtrace_symbols (array, size);
 
 	if(drake_platform_core_id() == 0)
 	{
@@ -899,7 +900,7 @@ bt_sighandler(int sig, siginfo_t *info, void *secret)
 
 	for (i = 0; i < size; i++)
 	{
-		printf("%s ", strings[i]);
+		printf("%s ", const_strings[i]);
 	}
 	printf("\n");
 	}
@@ -997,10 +998,10 @@ prepare_mapping(drake_schedule_t *schedule)
 			size_t consumers_in_task = schedule->consumers_in_task[task.id - 1];
 			size_t remote_producers_in_task = schedule->remote_producers_in_task[task.id - 1];
 			size_t remote_consumers_in_task = schedule->remote_consumers_in_task[task.id - 1];
-			task.pred = pelib_alloc(map_t(string, link_tp))();
-			task.succ = pelib_alloc(map_t(string, link_tp))();
-			pelib_init(map_t(string, link_tp))(task.pred);
-			pelib_init(map_t(string, link_tp))(task.succ);
+			task.pred = pelib_alloc(map_t(const_string, link_tp))();
+			task.succ = pelib_alloc(map_t(const_string, link_tp))();
+			pelib_init(map_t(const_string, link_tp))(task.pred);
+			pelib_init(map_t(const_string, link_tp))(task.succ);
 			task.source = pelib_alloc_collection(array_t(cross_link_tp))(remote_producers_in_task);
 			task.sink = pelib_alloc_collection(array_t(cross_link_tp))(remote_consumers_in_task);
 
@@ -1112,7 +1113,7 @@ drake_stream_destroy(drake_stream_t* stream)
 	// Run the destroy method for each task
 	task_t *task;
 	int i;
-	int success;
+	int success = 1;
 	mapping_t *mapping = stream->mapping;
 	processor_t *proc = stream->proc;
 	for(i = 0; proc != NULL && i < proc->handled_nodes; i++)
