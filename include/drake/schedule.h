@@ -51,7 +51,9 @@ typedef struct {
 	double *task_workload;
 	/// Time in millisecond of a pipeline stage
 	double stage_time;
-	/// Number of tasks mapped to a core
+	/// Number of unique tasks mapped to a core (i.e. ignoring task duplicates)
+	size_t *unique_tasks_in_core;
+	/// Number of tasks mapped to a core (including duplicates)
 	size_t *tasks_in_core;
 	/// Number of tasks mapped to a core that have at least one producer mapped to another core
 	size_t *consumers_in_core;

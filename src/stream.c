@@ -668,6 +668,7 @@ allocate_buffers(drake_stream_t* stream)
 						}
 						if(l == link->cons->width)
 						{
+							// The link was already built. Either something is really wrong, either there are several task instances
 							fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
 							abort();
 						}
@@ -922,7 +923,7 @@ prepare_mapping(drake_schedule_t *schedule)
 
 	for(j = 1; j <= schedule->core_number; j++)
 	{
-		size_t tasks_in_core = schedule->tasks_in_core[j - 1];
+		size_t tasks_in_core = schedule->unique_tasks_in_core[j - 1];
 		processor = pelib_alloc_collection(processor_t)(tasks_in_core);
 		processor->id = j - 1;
 		size_t producers_in_core = schedule->producers_in_core[j - 1];
@@ -933,10 +934,10 @@ prepare_mapping(drake_schedule_t *schedule)
 	}
 
 	size_t task_counter = 0;
-	task_t *tasks = malloc(sizeof(task_t) * schedule->task_number);	
+	task_t *tasks = malloc(sizeof(task_t) * schedule->task_number);
 	for(j = 1; j <= schedule->core_number; j++)
 	{
-		for(i = 1; i <= schedule->tasks_in_core[j - 1]; i++)
+		for(i = 1; i <= schedule->unique_tasks_in_core[j - 1]; i++)
 		{
 			// Check if this that has been already mapped or not
 			size_t k;
@@ -963,18 +964,37 @@ prepare_mapping(drake_schedule_t *schedule)
 			else
 			{
 				// We update an existing task
-				processor_t **list = tasks[k].core;
-				tasks[k].core = malloc(sizeof(processor_t*) * (tasks[k].width + 1));
-				memcpy(tasks[k].core, list, sizeof(processor_t*) * tasks[k].width);
-				tasks[k].core[tasks[k].width] = mapping->proc[j - 1];
-				tasks[k].width++;
-				free(list);
+				int l;
+				/*
+				for(l = 0; l < tasks[k].instances; l++)
+				{
+					if(tasks[k].instance[l] == schedule->schedule[j - 1][i - 1].instance)
+					{
+						break;
+					}
+				}
+
+				if(l == tasks[k].instances)
+				{
+					// This is a new instance of an existing task
+				}
+				else */
+				{
+					// This is a parallelization of an existing task
+					processor_t **list = tasks[k].core;
+					//tasks[k].core = malloc(sizeof(processor_t*) * (tasks[k][l].width + 1));
+					tasks[k].core = malloc(sizeof(processor_t*) * (tasks[k].width + 1));
+					memcpy(tasks[k].core, list, sizeof(processor_t*) * tasks[k].width);
+					tasks[k].core[tasks[k].width] = mapping->proc[j - 1];
+					tasks[k].width++;
+					free(list);
+				}
 			}
 		}
 	}
 	for(j = 1; j <= schedule->core_number; j++)
 	{
-		for(i = 1; i <= schedule->tasks_in_core[j - 1]; i++)
+		for(i = 1; i <= schedule->unique_tasks_in_core[j - 1]; i++)
 		{
 			size_t k;
 			task_t task;
