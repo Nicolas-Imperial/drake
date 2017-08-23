@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -430,3 +431,4 @@ drake_mapping_draw(mapping_t * mapping, FILE * file)
   return 1;
 }
 
+#endif

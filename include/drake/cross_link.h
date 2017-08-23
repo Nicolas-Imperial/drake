@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -64,4 +65,5 @@ typedef cross_link_t* cross_link_tp;
 #include <pelib/array.h>
 #define DONE_array_cross_link_tp 1
 
+#endif
 #endif

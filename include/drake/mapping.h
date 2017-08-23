@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -116,4 +117,5 @@ drake_mapping_loadfilterfile(mapping_t* mapping, FILE* ilp_mapping_file, int
 task_t*
 drake_mapping_find_task(mapping_t* mapping, task_id id);
 
+#endif
 #endif

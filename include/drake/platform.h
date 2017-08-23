@@ -33,7 +33,7 @@ extern "C"
 
 /** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
 #define drake_platform_stream_create(stream, application) \
-drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_schedule_init_, application), PELIB_##CONCAT_2(drake_schedule_destroy_, application), PELIB_CONCAT_2(drake_function_, application))
+drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_application_create_, application), PELIB_##CONCAT_2(drake_application_init_, application), PELIB_CONCAT_2(drake_application_run_, application), PELIB_CONCAT_2(drake_application_destroy_, application))
 
 /** Abstract type for time measurement **/
 typedef struct drake_time *drake_time_t;
@@ -41,12 +41,15 @@ typedef struct drake_time *drake_time_t;
 typedef struct drake_platform *drake_platform_t;
 /** Abstract type for power measurement and recording **/
 typedef struct drake_power *drake_power_t;
-/** Returns the size in byte of the calling core's allocatable communication on-chip memory **/
-size_t drake_platform_shared_size();
+/** Memory descriptor **/
+typedef enum drake_memory {DRAKE_MEMORY_PRIVATE = 1, DRAKE_MEMORY_SHARED = 2, DRAKE_MEMORY_DISTRIBUTED = 4, DRAKE_MEMORY_SMALL_CHEAP = 8, DRAKE_MEMORY_LARGE_COSTLY = 16} drake_memory_t;
+/** Returns the size in byte of the corresponding core's allocatable memory of a given type **/
+size_t drake_platform_memory_size(unsigned int core, drake_memory_t type, unsigned int level);
 /** Returns the size of a memory line in shared memory **/
-size_t drake_platform_shared_align();
+//size_t drake_platform_shared_align();
+size_t drake_platform_memory_alignment(unsigned int core, drake_memory_t type, unsigned int level);
 /** Returns the size in byte of the calling core's allocatable private on-chip memory **/
-size_t drake_platform_private_size();
+//size_t drake_platform_private_size();
 /** Initializes a drake stream execution platform. Runs before a streaming application is created **/
 drake_platform_t drake_platform_init(void*);
 /** Cleans up a drake stream execution platform. Runs after a streaming application is destroyed **/
@@ -56,18 +59,24 @@ int drake_platform_destroy(drake_platform_t);
 	@param core id of the core for which to allocate memory
 	@return A pointer to memory whose content is sent to corresponding core upon call to drake_platform_commit()
 **/
-volatile void* drake_platform_shared_malloc(size_t size, size_t core);
-volatile void* drake_platform_shared_malloc_mailbox(size_t size, size_t core);
+//volatile void* drake_platform_shared_malloc(size_t size, size_t core);
+//volatile void* drake_platform_shared_malloc_mailbox(size_t size, size_t core);
+
+void* drake_platform_malloc(size_t size, unsigned int core, drake_memory_t type, unsigned int level);
+void* drake_platform_calloc(size_t nmemb, size_t size, unsigned int core, drake_memory_t type, unsigned int level);
+void* drake_platform_aligned_alloc(size_t alignment, size_t size, unsigned int core, drake_memory_t type, unsigned int level);
+void drake_platform_free(void *ptr, unsigned int core, drake_memory_t type, unsigned int level);
+
 /** Deallocates the on-chip communication memory corresponding to the address given. Only the calling cores can see that the memory has been freed. Every core should run this function in the same order using the same parameter. Any implementation must be deterministic. **/
-void drake_platform_shared_free(volatile void* addr, size_t core);
+//void drake_platform_shared_free(volatile void* addr, size_t core);
 /** Allocates memory on on-chip private memory of the core that calls this function **/
-void* drake_platform_store_malloc(size_t size);
+//void* drake_platform_store_malloc(size_t size);
 /** Frees on-chip private memory of the core that call this function **/
-void drake_platform_store_free(void*);
+//void drake_platform_store_free(void*);
 /** Allocate memory in off-chip private memory of the caller core **/
-void* drake_platform_private_malloc(size_t size);
+//void* drake_platform_private_malloc(size_t size);
 /** Free memory in off-chip private memory of the caller core **/
-void drake_platform_private_free(void*);
+//void drake_platform_private_free(void*);
 /** Returns the memory address in a distant core, that corresponds to an address of the caller core's local communication memory and that can be used to send messages
 	@param addr Address of the caller core's local communication memory
 	@param core Core id that can directly read of write in the memory address returned
@@ -195,7 +204,7 @@ FILE* drake_platform_power_printf_line_cumulate(FILE* stream, drake_power_t, siz
 /** Clean up and deallocate the memory associated to a power measurement and recording structure **/
 void drake_platform_power_destroy(drake_power_t);
 
-int drake_platform_stream_create_explicit(drake_platform_t stream, void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status));
+int drake_platform_stream_create_explicit(drake_platform_t stream, int(*create)(), int(*init)(void*), int(*run)(), int(*destroy)());
 int drake_platform_stream_init(drake_platform_t stream, void* arg);
 int drake_platform_stream_run(drake_platform_t);
 int drake_platform_stream_destroy(drake_platform_t);

@@ -30,6 +30,7 @@ extern "C"
 #ifndef DRAKE_SCHEDULE_H
 #define DRAKE_SCHEDULE_H
 
+#if 0
 /** Scheduling information of a task in a pelib stream **/
 typedef struct {
 	/// Numeric id of a task within Drake framework
@@ -86,19 +87,25 @@ typedef struct {
 	/// Scheduling information for each task in the streaming application
 	drake_schedule_task_t **schedule;
 } drake_schedule_t;
+#endif
 
 #endif
 
 #if defined APPLICATION && PELIB_CONCAT_2(DONE_, APPLICATION) == 0
-
+#define drake_application_create PELIB_##CONCAT_2(drake_application_create_, APPLICATION)
+#define drake_application_init PELIB_##CONCAT_2(drake_application_init_, APPLICATION)
+#define drake_application_run PELIB_##CONCAT_2(drake_application_run_, APPLICATION)
+#define drake_application_destroy PELIB_##CONCAT_2(drake_application_destroy_, APPLICATION)
+/*
 #define drake_function PELIB_##CONCAT_2(drake_function_, APPLICATION)
 #define drake_schedule_init PELIB_##CONCAT_2(drake_schedule_init_, APPLICATION)
 #define drake_schedule_destroy PELIB_##CONCAT_2(drake_schedule_destroy_, APPLICATION)
-#define drake_task_number PELIB_##CONCAT_2(drake_task_number_, APPLICATION)
-#define drake_task_name PELIB_##CONCAT_2(drake_task_name_, APPLICATION)
+*/
+#define drake_application_number_of_tasks PELIB_##CONCAT_2(drake_application_number_of_tasks_, APPLICATION)
 /** Returns the core id of a core within a parallel task **/
-size_t drake_core_id(task_tp task);
-size_t drake_task_width(task_tp task);
+//size_t drake_core_id();
+unsigned int drake_application_number_of_tasks();
+#if 0
 /** Returns the function pointer that corresponds to a task in a certain state **/
 void* drake_function(size_t id, task_status_t state);
 /** Initialize scheduling information for the streaming application **/
@@ -109,12 +116,18 @@ void drake_schedule_destroy(drake_schedule_t*);
 int drake_task_number();
 /** Returns the string description of a task from its id defined in drake framework **/
 const char* drake_task_name(size_t);
+#endif
 #else
+#define drake_application_create(application) PELIB_##CONCAT_2(drake_application_create_, application)
+#define drake_application_init(application) PELIB_##CONCAT_2(drake_application_init_, application)
+#define drake_application_run(application) PELIB_##CONCAT_2(drake_application_run_, application)
+#define drake_application_destroy(application) PELIB_##CONCAT_2(drake_application_destroy_, application)
+/*
 #define drake_function(application) PELIB_##CONCAT_2(drake_function_, application)
 #define drake_schedule_init(application) PELIB_##CONCAT_2(drake_schedule_init_, application)
 #define drake_schedule_destroy(application) PELIB_##CONCAT_2(drake_schedule_destroy_, application)
-#define drake_task_number(application) PELIB_##CONCAT_2(drake_task_number_, application)
-#define drake_task_name(application) PELIB_##CONCAT_2(drake_task_name_, application)
+*/
+#define drake_application_number_of_tasks(application) PELIB_##CONCAT_2(drake_application_number_of_tasks_, application)
 #endif
 
 #ifdef __cplusplus

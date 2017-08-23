@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -213,4 +214,4 @@ size_t r = proc->handled_nodes;
 
   return proc->handled_nodes;
 }
-
+#endif

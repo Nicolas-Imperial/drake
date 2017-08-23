@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -66,3 +67,4 @@ size_t drake_processor_find_task(processor_t *proc, task_id task);
 #define DONE_processor_t 1
 
 #endif // PROCESSOR_H
+#endif

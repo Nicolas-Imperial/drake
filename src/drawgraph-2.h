@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -41,3 +42,4 @@ mapping_t*
 /** Reads a AMPL mapping matrix (task vs processor) and returns a corresponding instance if mapping_t **/
 pelib_drawgraph2_load(FILE*, mapping_t*, int(filter)(task_t*));
 #endif /* DRAWGRAPH2_H_ */
+#endif

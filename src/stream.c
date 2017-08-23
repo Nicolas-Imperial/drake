@@ -73,6 +73,7 @@
 
 #define link_name_to_int(name) strcmp((name), "left") == 0 || strcmp((name), "output") == 0 ? 0 : 1
 
+#if 0
 static
 int
 tasks_mapped_same_cores(task_tp t1, task_tp t2)
@@ -150,7 +151,8 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, co
 	)
 	{
 		// Create and initialize a new link
-		link = (link_t*)drake_platform_private_malloc(sizeof(link_t));
+		//link = (link_t*)drake_platform_private_malloc(sizeof(link_t));
+		link = (link_t*)drake_platform_malloc(sizeof(link_t), -1, DRAKE_MEMORY_PRIVATE | DRAKE_MEMORY_SMALL_CHEAP, 0);
 		link->prod = prod;
 		link->cons = cons;
 		link->buffer = NULL;
@@ -182,7 +184,8 @@ build_link(mapping_t *mapping, processor_t *proc, task_t *prod, task_t *cons, co
 		if(prod->width != cons->width || !tasks_mapped_same_cores(prod, cons))
 		//if(prod->width != cons->width || i < (prod->width < cons->width ? prod->width : cons->width))
 		{
-			cross_link = (cross_link_t*)drake_platform_private_malloc(sizeof(cross_link_t));
+			//cross_link = (cross_link_t*)drake_platform_private_malloc(sizeof(cross_link_t));
+			cross_link = (cross_link_t*)drake_platform_malloc(sizeof(cross_link_t), -1, DRAKE_MEMORY_PRIVATE | DRAKE_MEMORY_SMALL_CHEAP, 0);
 			cross_link->link = link;
 			cross_link->read = NULL;
 			cross_link->write = NULL;
@@ -642,8 +645,11 @@ allocate_buffers(drake_stream_t* stream)
 							debug_int(proc->inner_links);
 							debug("#########################");
 */
-							size_t capacity = drake_platform_shared_size() / proc->inner_links / sizeof(int);
-							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
+							size_t capacity = drake_platform_memory_size(-1, DRAKE_MEMORY_PRIVATE | DRAKE_MEMORY_SMALL_CHEAP, 0) / proc->inner_links / sizeof(int);
+							//link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
+							link->buffer = pelib_alloc_struct(cfifo_t(int))();
+							link->buffer->buffer = (int*)drake_platform_malloc(sizeof(int) * capacity, drake_platform_core_id(), DRAKE_MEMORY_PRIVATE | DRAKE_MEMORY_SMALL_CHEAP, 0);
+							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
 					}
@@ -691,8 +697,10 @@ allocate_buffers(drake_stream_t* stream)
 							link->buffer = pelib_alloc_struct(cfifo_t(int))();
 							int core = link->cons->core[l]->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in_succ, nb_out_succ) / sizeof(int);
-							capacity = capacity - (capacity % drake_platform_shared_align());
-							link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
+							//capacity = capacity - (capacity % drake_platform_shared_align());
+							capacity = capacity - (capacity % drake_platform_memory_alignment(core, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0));
+							//link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
+							link->buffer->buffer = (int*)drake_platform_malloc(sizeof(int) * capacity, core, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
@@ -719,7 +727,8 @@ allocate_buffers(drake_stream_t* stream)
 							debug(task->name);
 							debug("#########################");
 */
-							size_t capacity = drake_platform_shared_size() / proc->inner_links / sizeof(int);
+							//size_t capacity = drake_platform_shared_size() / proc->inner_links / sizeof(int);
+							size_t capacity = drake_platform_memory_size(-1, DRAKE_MEMORY_PRIVATE | DRAKE_MEMORY_SMALL_CHEAP, 0) / proc->inner_links / sizeof(int);
 							link->buffer = pelib_alloc_collection(cfifo_t(int))(capacity);
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
@@ -762,9 +771,11 @@ allocate_buffers(drake_stream_t* stream)
 							//int core = task->core[l]->id;
 							int core = link->cons->core[l]->id;
 							size_t capacity = buffer_size(stream->local_memory_size, nb_in, nb_out) / sizeof(int);
-							capacity = capacity - (capacity % drake_platform_shared_align());
+							//capacity = capacity - (capacity % drake_platform_shared_align());
 							//link->buffer->buffer = (int*)drake_remote_addr(stack_grow(stack, sizeof(int) * capacity, core), core);
-							link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
+							//link->buffer->buffer = (int*)drake_platform_shared_malloc(sizeof(int) * capacity, core);
+							capacity = capacity - (capacity % drake_platform_memory_alignment(core, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0));
+							link->buffer->buffer = (int*)drake_platform_aligned_alloc(drake_platform_memory_alignment(core, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0), sizeof(int) * capacity, core, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 							link->buffer->capacity = capacity;
 							pelib_init(cfifo_t(int))(link->buffer);
 						}
@@ -801,7 +812,8 @@ allocate_buffers(drake_stream_t* stream)
 						fprintf(stderr, "[%s:%d:P%zu] Something has gone terribly wrong here\n", __FILE__, __LINE__, drake_platform_core_id());
 						abort();
 					}
-					cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
+					//cross_link->read = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
+					cross_link->read = (volatile size_t*)drake_platform_malloc(sizeof(size_t), cross_link->link->cons->core[l]->id, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 					
 					*cross_link->read = 0;
 				}
@@ -837,13 +849,15 @@ allocate_buffers(drake_stream_t* stream)
 
 				if(cross_link->prod_state == NULL)
 				{
-					cross_link->prod_state = (task_status_t*)drake_platform_shared_malloc_mailbox(sizeof(enum task_status), cross_link->link->cons->core[l]->id);
+					//cross_link->prod_state = (task_status_t*)drake_platform_shared_malloc_mailbox(sizeof(enum task_status), cross_link->link->cons->core[l]->id);
+					cross_link->prod_state = (task_status_t*)drake_platform_malloc(sizeof(enum task_status), cross_link->link->cons->core[l]->id, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 					*cross_link->prod_state = TASK_START;
 				}
 
 				if(cross_link->write == NULL)
 				{
-					cross_link->write = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
+					//cross_link->write = (volatile size_t*)drake_platform_shared_malloc_mailbox(sizeof(size_t), cross_link->link->cons->core[l]->id);
+					cross_link->prod_state = (task_status_t*)drake_platform_malloc(sizeof(size_t), cross_link->link->cons->core[l]->id, DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 					*cross_link->write = 0;
 				}
 			}
@@ -1033,10 +1047,12 @@ prepare_mapping(drake_schedule_t *schedule)
 
 	return mapping;
 }
+#endif
 
 drake_stream_t
-drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*schedule_destroy)(drake_schedule_t*), void* (*task_function)(size_t id, task_status_t status), drake_platform_t pt)
+drake_stream_create_explicit(int(*create)(), int(*init)(void*), int(*run)(), int(*destroy)(), drake_platform_t pt)
 {
+#if 0
 	drake_stream_t stream;
 	int k;
 	char* outputfile;
@@ -1084,7 +1100,8 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 
 	stream.mapping = mapping;
 	stream.proc = proc;
-	stream.local_memory_size = drake_platform_shared_size();
+	//stream.local_memory_size = drake_platform_shared_size();
+	stream.local_memory_size = drake_platform_memory_size(drake_platform_core_id(), DRAKE_MEMORY_DISTRIBUTED | DRAKE_MEMORY_SMALL_CHEAP, 0);
 	stream.stage_start_time = drake_platform_time_alloc();
 	stream.stage_stop_time = drake_platform_time_alloc();
 	stream.stage_sleep_time = drake_platform_time_alloc();
@@ -1096,11 +1113,25 @@ drake_stream_create_explicit(void (*schedule_init)(drake_schedule_t*), void (*sc
 	stream.platform = pt;
 
 	return stream;
+#else
+	drake_stream_t stream;
+	stream.create = create;
+	stream.init = init;
+	stream.run = run;
+	stream.destroy = destroy;
+
+	// Do run init
+	create();
+
+	stream.platform = pt;
+	return stream;
+#endif
 }
 
 int
 drake_stream_init(drake_stream_t *stream, void *aux)
 {
+#if 0
 	int success = 1;
 	size_t i;
 
@@ -1125,11 +1156,17 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 	}
 
 	return success;
+#else
+	stream->init(aux);
+	drake_platform_barrier(NULL);
+	return 1;
+#endif
 }
 
 int
 drake_stream_destroy(drake_stream_t* stream)
 {
+#if 0
 	// Run the destroy method for each task
 	task_t *task;
 	int i;
@@ -1157,11 +1194,16 @@ drake_stream_destroy(drake_stream_t* stream)
 	// TODO: deallocate buffers, if core had any task to run
 
 	return success;
+#else
+	return stream->destroy();
+#endif
 }
 
 int
 drake_stream_run(drake_stream_t* stream)
 {
+	return stream->run();
+#if 0
 	unsigned long long int start, stop;
 	size_t i, j;
 	task_t *task;
@@ -1306,5 +1348,6 @@ drake_stream_run(drake_stream_t* stream)
 	//drake_platform_core_disable(stream->platform, drake_platform_core_id());
 
 	return 0;
+#endif
 }
 

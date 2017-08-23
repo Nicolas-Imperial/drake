@@ -24,6 +24,11 @@
 
 #ifndef TASK_H
 #define TASK_H
+
+struct drake_task;
+typedef struct drake_task *drake_task_tp;
+
+#if 0
 /**  Possible state of a task **/
 enum task_status {TASK_INVALID, TASK_INIT, TASK_START, TASK_RUN, TASK_KILLED, TASK_ZOMBIE, TASK_DESTROY};
 /** Space-less alias for enum_task_status **/
@@ -208,4 +213,5 @@ drake_task_depleted(task_tp task);
 
 int
 drake_task_killed(task_tp task);
+#endif
 #endif

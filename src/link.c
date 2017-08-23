@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -212,3 +213,4 @@ pelib_destroy(link_tp)(link_tp link)
 
 #define ARRAY_T link_tp
 #include <pelib/array.c>
+#endif

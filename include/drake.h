@@ -19,22 +19,24 @@
 */
 
 #include <drake/platform.h>
-#include <drake/schedule.h>
-#include <drake/stream.h>
+//#include <drake/schedule.h>
+//#include <drake/stream.h>
 #include <drake/node.h>
 
 #ifdef __cplusplus
 #define drake_declare(application) \
-extern "C" void* (drake_function(application))(size_t id, task_status_t state); \
-extern "C" void (drake_schedule_init(application))(drake_schedule_t*); \
-extern "C" void (drake_schedule_destroy(application))(drake_schedule_t*); \
-extern "C" int (drake_task_number(application))(); \
-extern "C" char* (drake_task_name(application))(size_t);
+extern "C" int drake_application_create(application)(); \
+extern "C" int drake_application_init(application)(void*); \
+extern "C" int drake_application_run(application)(); \
+extern "C" int drake_application_destroy(application)(); //\
+extern "C" int drake_task_number(application)(); \
+extern "C" char* drake_task_name(application)(size_t);
 #else
 #define drake_declare(application) \
-void* (drake_function(application))(size_t id, task_status_t state); \
-void (drake_schedule_init(application))(drake_schedule_t*); \
-void (drake_schedule_destroy(application))(drake_schedule_t*); \
-int (drake_task_number(application))(); \
-char* (drake_task_name(application))(size_t);
+int drake_application_create(application)(); \
+int drake_application_init(application)(void*); \
+int drake_application_run(application)(); \
+int drake_application_destroy(application)(); //\
+int drake_task_number(application)(); \
+char* drake_task_name(application)(size_t);
 #endif

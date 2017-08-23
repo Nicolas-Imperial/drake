@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -69,3 +70,4 @@ typedef link_t* link_tp;
 #define DONE_array_link_tp 1
 
 #endif // LINK_T
+#endif

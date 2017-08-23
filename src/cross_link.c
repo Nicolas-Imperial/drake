@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot
 
@@ -143,3 +144,4 @@ pelib_string_detail(cross_link_tp)(cross_link_tp link, int level)
 
 #define ARRAY_T cross_link_tp
 #include <pelib/array.c>
+#endif

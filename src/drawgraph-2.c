@@ -1,3 +1,4 @@
+#if 0
 /*
  Copyright 2015 Nicolas Melot, Christoph Kessler
 
@@ -464,4 +465,4 @@ pelib_drawgraph2_load(FILE* read_from, mapping_t* mapping, int
 
 	return mapping;
 }
-
+#endif

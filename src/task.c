@@ -18,6 +18,21 @@
 
 */
 
+#include <drake/node.h>
+
+int
+drake_task_kill(int condition)
+{
+	return (condition != 0) << (DRAKE_TASK_CONDITION_KILL >> 1);
+}
+
+int
+drake_task_sleep(int condition)
+{
+	return (condition != 0) << (DRAKE_TASK_CONDITION_SLEEP >> 1);
+}
+
+#if 0
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -261,3 +276,5 @@ drake_task_depleted(task_tp task)
 
 #define ARRAY_T task_tp
 #include <pelib/array.c>
+
+#endif
