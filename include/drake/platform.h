@@ -18,22 +18,22 @@
 
 */
 
+#include <stddef.h>
+#include <drake/task.h>
+
+#ifndef DRAKE_PLATFORM_H
+#define DRAKE_PLATFORM_H
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#include <stddef.h>
-
-#include <drake/task.h>
-#include <drake/schedule.h>
-
-#ifndef DRAKE_PLATFORM_H
-#define DRAKE_PLATFORM_H
+struct drake_application;
 
 /** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
 #define drake_platform_stream_create(stream, application) \
-drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_application_create_, application), PELIB_##CONCAT_2(drake_application_init_, application), PELIB_CONCAT_2(drake_application_run_, application), PELIB_CONCAT_2(drake_application_destroy_, application))
+drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_application_get_, application))
 
 /** Abstract type for time measurement **/
 typedef struct drake_time *drake_time_t;
@@ -204,7 +204,7 @@ FILE* drake_platform_power_printf_line_cumulate(FILE* stream, drake_power_t, siz
 /** Clean up and deallocate the memory associated to a power measurement and recording structure **/
 void drake_platform_power_destroy(drake_power_t);
 
-int drake_platform_stream_create_explicit(drake_platform_t stream, int(*create)(), int(*init)(void*), int(*run)(), int(*destroy)());
+int drake_platform_stream_create_explicit(drake_platform_t stream, struct drake_application*(*get_app)());
 int drake_platform_stream_init(drake_platform_t stream, void* arg);
 int drake_platform_stream_run(drake_platform_t);
 int drake_platform_stream_destroy(drake_platform_t);
@@ -217,8 +217,8 @@ void drake_platform_sleep_enable(drake_platform_t pt, size_t core);
 void drake_platform_stream_run_async(drake_platform_t);
 int drake_platform_stream_wait(drake_platform_t);
 
-#endif // DRAKE_PLATFORM_H
-
 #ifdef __cplusplus
 }
 #endif
+#endif // DRAKE_PLATFORM_H
+

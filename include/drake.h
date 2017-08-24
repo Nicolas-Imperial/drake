@@ -19,24 +19,14 @@
 */
 
 #include <drake/platform.h>
-//#include <drake/schedule.h>
-//#include <drake/stream.h>
+#include <drake/application.h>
 #include <drake/node.h>
 
 #ifdef __cplusplus
 #define drake_declare(application) \
-extern "C" int drake_application_create(application)(); \
-extern "C" int drake_application_init(application)(void*); \
-extern "C" int drake_application_run(application)(); \
-extern "C" int drake_application_destroy(application)(); //\
-extern "C" int drake_task_number(application)(); \
-extern "C" char* drake_task_name(application)(size_t);
+extern "C" struct drake_application* drake_application_get(application)();
 #else
 #define drake_declare(application) \
-int drake_application_create(application)(); \
-int drake_application_init(application)(void*); \
-int drake_application_run(application)(); \
-int drake_application_destroy(application)(); //\
-int drake_task_number(application)(); \
-char* drake_task_name(application)(size_t);
+struct drake_application* drake_application_get(application)();
 #endif
+

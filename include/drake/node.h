@@ -24,9 +24,7 @@
 
 // Drake includes
 #include <pelib/template.h>
-
-// Drake includes
-#include <drake/task.h>
+#include <drake/application.h>
 
 #if PELIB_CONCAT_3(DONE_, TASK_MODULE, TASK_NAME) == 0
 
@@ -148,24 +146,6 @@ drake_task_tp drake_task(TASK_MODULE, TASK_NAME)();
 #undef TASK_NAME
 #endif
 
-size_t drake_task_get_width(drake_task_tp);
-const char* drake_task_get_name(drake_task_tp);
-int drake_autokill_task(drake_task_tp);
-int drake_autosleep_task(drake_task_tp);
-int drake_autoexit_task(drake_task_tp);
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif 
-
-#define DRAKE_TASK_CONDITION_KILL 1
-#define DRAKE_TASK_CONDITION_SLEEP 2
-int drake_task_kill(int condition);
-int drake_task_sleep(int condition);
 
 #endif
 
-#ifdef __cplusplus
-}
-#endif

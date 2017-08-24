@@ -25,8 +25,6 @@
 #ifndef TASK_H
 #define TASK_H
 
-struct drake_task;
-typedef struct drake_task *drake_task_tp;
 
 #if 0
 /**  Possible state of a task **/

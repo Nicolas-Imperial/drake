@@ -161,21 +161,27 @@ bin__embed =
 # bincc_bar_export = $(bincc_bar_src)
 
 ## Static C library packages and their sources
-lib_package = drake
+lib_package = drake drake-scheduler
 
-libcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
+libcc_drake_src = stream.c task.c application.c
 libcxx_drake_src = 
 lib_drake_cflags = 
-lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) drawgraph-2.h eval.c
+lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) eval.c
 lib_drake_pkg = pelib-core
 
-sharedcc_package = drake
+libcc_drake-scheduler_src = scheduler.c
+libcxx_drake-scheduler_src = 
+lib_drake-scheduler_cflags = 
+lib_drake-scheduler_export = $(libcc_drake-scheduler_src) $(libcxx_drake-scheduler_src) eval.c
+lib_drake-scheduler_pkg = 
+
+sharedcc_package = drake drake-scheduler
 sharedcxx_package = pelib-drake-app
 
-sharedcc_drake_src = stream.c task.c link.c cross_link.c processor.c mapping.c drawgraph-2.c
+sharedcc_drake_src = stream.c task.c application.c
 sharedcxx_drake_src = 
 shared_drake_cflags = -fPIC
-shared_drake_export = $(sharedcc_drake_src) $(sharedcxx_drake_src) drawgraph-2.h eval.c
+shared_drake_export = $(sharedcc_drake_src) $(sharedcxx_drake_src) eval.c
 shared_drake_pkg = pelib-core
 
 EXPERIMENTAL_CODE=0
@@ -187,6 +193,12 @@ shared_pelib-drake-app_embed = drake_app.c
 shared_pelib-drake-app_cflags = -fPIC
 shared_pelib-drake-app_cxxflags = 
 shared_pelib-drake-app_cxxflags_private = -DEXPERIMENTAL_CODE=$(EXPERIMENTAL_CODE)
+
+sharedcc_drake-scheduler_src = scheduler.c
+sharedcxx_drake-scheduler_src = 
+shared_drake-scheduler_cflags = -fPIC
+shared_drake-scheduler_export = $(sharedcc_drake-scheduler_src) $(sharedcxx_drake-scheduler_src) eval.c
+shared_drake-scheduler_pkg = 
 
 libcc__src = 
 libcxx__src = 

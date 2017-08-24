@@ -18,19 +18,8 @@
 
 */
 
+#include <pelib/char.h>
 #include <drake/node.h>
-
-int
-drake_task_kill(int condition)
-{
-	return (condition != 0) << (DRAKE_TASK_CONDITION_KILL >> 1);
-}
-
-int
-drake_task_sleep(int condition)
-{
-	return (condition != 0) << (DRAKE_TASK_CONDITION_SLEEP >> 1);
-}
 
 #if 0
 #include <stdlib.h>

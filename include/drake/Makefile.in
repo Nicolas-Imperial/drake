@@ -18,7 +18,7 @@
 
 
 ## All files to include in a distribution package
-attach = schedule.h cross_link.h link.h mapping.h platform.h processor.h task.h stream.h node.h eval.h
+attach = application.h cross_link.h link.h mapping.h platform.h processor.h task.h stream.h node.h eval.h
 
 ## Further directories to follow
 subdirs = 

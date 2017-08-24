@@ -20,10 +20,7 @@
 
 
 #include <stddef.h>
-#include <drake/mapping.h>
-#include <drake/processor.h>
-#include <drake/platform.h>
-#include <drake/schedule.h>
+#include <drake/application.h>
 
 #ifndef DRAKE_STREAM_H
 #define DRAKE_STREAM_H
@@ -47,14 +44,11 @@ typedef struct {
 	drake_time_t stage_sleep_time;
 	/// Function pointer to cleanup and free the memory associated to the scheduling information of the application
 #endif
-	int (*create)();
-	int (*init)(void*);
-	int (*run)();
-	int (*destroy)();
 	/// Schedule of the streaming application
 	//drake_schedule_t schedule;
 	/// Function pointer to the function that returns the function pointer corresponding to a task and its state
 	//void* (*func)(size_t id, task_status_t status);
+	struct drake_application *application;
 	/// Contains all management data relative to the platform that runs the stream
 	drake_platform_t platform;
 	/// Representation of time 0 depending on platform implementation
@@ -66,7 +60,7 @@ typedef struct {
 	@param schedule_destroy Function that cleans up a schedule and frees the associated memory
 	@param task_function Function that returns the function pointer corresponding to a task and its state
 **/
-drake_stream_t drake_stream_create_explicit(int(*create)(), int(*init)(void*), int(*run)(), int(*destroy)(), drake_platform_t pt);
+drake_stream_t drake_stream_create_explicit(struct drake_application*(*get_app)(), drake_platform_t pt);
 /** Initialises a stream already created. Runs the init() method of each of its tasks
 	@param stream Stream to be initialized
 	@param arg Memory address that holds arguments to transmit to task initialization function
