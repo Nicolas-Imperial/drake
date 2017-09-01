@@ -52,6 +52,8 @@ struct drake_task
 	struct drake_exec_task *instance;
 	size_t number_of_input_links;
 	size_t number_of_output_links;
+	size_t number_of_input_distributed_links;
+	size_t number_of_output_distributed_links;
 	struct drake_abstract_link **input_link, **output_link;
 	struct drake_input_distributed_link *input_distributed_link;
 	struct drake_output_distributed_link *output_distributed_link;
@@ -66,8 +68,8 @@ struct drake_abstract_link
 	cfifo_t(char) *queue;
 	size_t token_size;
 	// Allocation details
+	unsigned int core;
 	drake_memory_t type;
-	unsigned int core_or_island;
 	unsigned int level;
 };
 typedef struct drake_abstract_link drake_abstract_link_t;
@@ -75,7 +77,7 @@ typedef struct drake_abstract_link drake_abstract_link_t;
 struct drake_core_private_link
 {
 	unsigned int number_of_links;
-	struct drake_abstract_link **link;
+	struct drake_abstract_link *link;
 };
 typedef struct drake_core_private_link drake_core_private_link_t;
 
@@ -84,13 +86,16 @@ struct drake_input_distributed_link
 	struct drake_abstract_link *link;
 	size_t *read;
 	drake_task_state_t *state;
+	unsigned int core;
+	drake_memory_t type;
+	unsigned int level;
 };
 typedef struct drake_input_distributed_link drake_input_distributed_link_t;
 
 struct drake_core_input_distributed_link
 {
 	unsigned int number_of_links;
-	struct drake_input_distributed_link **link;
+	struct drake_input_distributed_link *link;
 };
 typedef struct drake_core_input_distributed_link drake_core_input_distributed_link_t;
 
@@ -98,56 +103,39 @@ struct drake_output_distributed_link
 {
 	struct drake_abstract_link *link;
 	size_t *write;
+	unsigned int core;
+	drake_memory_t type;
+	unsigned int level;
 };
 typedef struct drake_output_distributed_link drake_output_distributed_link_t;
 
 struct drake_core_output_distributed_link
 {
 	unsigned int number_of_links;
-	struct drake_output_distributed_link **link;
+	struct drake_output_distributed_link *link;
 };
 typedef struct drake_core_output_distributed_link drake_core_output_distributed_link_t;
-
-struct drake_shared_queue_allocation
-{
-	size_t capacity;
-	struct drake_abstract_link *link;
-};
-typedef struct drake_shared_queue_allocation drake_shared_queue_allocation_t;
-
-struct drake_core_shared_link
-{
-	unsigned int number_of_links;
-	struct drake_shared_queue_allocation *allocation;
-};
-typedef struct drake_core_shared_link drake_core_shared_link_t;
 
 struct drake_exec_task
 {
 	drake_task_t *task;
 	double start_time;
 	unsigned int width;
+	unsigned int frequency;
 	struct drake_exec_task *next, *round_next;
 };
 typedef struct drake_exec_task drake_exec_task_t;
 
-struct schedule
-{
-	unsigned int number_of_tasks;
-	unsigned int number_of_unique_tasks;
-	struct drake_exec_task *task;
-};
-typedef struct schedule schedule_t;
-
 struct drake_application
 {
-	drake_exec_task_t **schedule_start;
 	unsigned int number_of_cores;
-	drake_core_shared_link_t *core_shared_queue;
-	drake_core_private_link_t *core_private_link;
-	drake_core_input_distributed_link_t *core_input_link;
-	drake_core_output_distributed_link_t *core_output_link;
+	unsigned int number_of_tasks;
 	unsigned int *number_of_task_instances;
+	drake_task_t *task;
+	drake_core_private_link_t *core_private_link;
+	drake_core_input_distributed_link_t *core_input_distributed_link;
+	drake_core_output_distributed_link_t *core_output_distributed_link;
+	drake_exec_task_t **schedule;
 };
 typedef struct drake_application drake_application_t;
 
@@ -176,21 +164,22 @@ void drake_buffer_discard(drake_abstract_link_t *link, size_t size);
 #define drake_application_init PELIB_##CONCAT_2(drake_application_init_, APPLICATION)
 #define drake_application_run PELIB_##CONCAT_2(drake_application_run_, APPLICATION)
 #define drake_application_destroy PELIB_##CONCAT_2(drake_application_destroy_, APPLICATION)
-#define drake_application_get PELIB_##CONCAT_2(drake_application_get_, APPLICATION)
+#define drake_application_build PELIB_##CONCAT_2(drake_application_build_, APPLICATION)
 #define drake_application_number_of_tasks PELIB_##CONCAT_2(drake_application_number_of_tasks_, APPLICATION)
 /** Returns the core id of a core within a parallel task **/
 unsigned int drake_application_number_of_tasks();
-struct drake_application* drake_application_get();
+struct drake_application* drake_application_build();
 #else
 #define drake_application_create(application) PELIB_##CONCAT_2(drake_application_create_, application)
 #define drake_application_init(application) PELIB_##CONCAT_2(drake_application_init_, application)
 #define drake_application_run(application) PELIB_##CONCAT_2(drake_application_run_, application)
 #define drake_application_destroy(application) PELIB_##CONCAT_2(drake_application_destroy_, application)
-#define drake_application_get(application) PELIB_##CONCAT_2(drake_application_get_, application)
+#define drake_application_build(application) PELIB_##CONCAT_2(drake_application_build_, application)
 #define drake_application_number_of_tasks(application) PELIB_##CONCAT_2(drake_application_number_of_tasks_, application)
-struct drake_application* drake_application_get(application)();
+struct drake_application* drake_application_build(application)();
 #endif
 
 #ifdef __cplusplus
 }
 #endif
+

@@ -24,9 +24,9 @@
 
 #ifdef __cplusplus
 #define drake_declare(application) \
-extern "C" struct drake_application* drake_application_get(application)();
+extern "C" struct drake_application* drake_application_build(application)();
 #else
 #define drake_declare(application) \
-struct drake_application* drake_application_get(application)();
+struct drake_application* drake_application_build(application)();
 #endif
 

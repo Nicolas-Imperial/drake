@@ -166,6 +166,7 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 // Private memory allocated queues between tasks running on at least 2 cores
 
 	// First allocate all shared queues
+#if 0
 	for(i = 0; i < stream.application->number_of_cores; i++)
 	{
 		drake_core_shared_link_t ii = stream.application->core_shared_queue[i];
@@ -182,6 +183,7 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 			debug("Initializing shared queue");
 		}
 	}
+#endif
 	
 	// Allocate all private link buffers
 	// Actual link already statically allocated; just need to allocate their buffer
@@ -193,8 +195,8 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 		unsigned int j;
 		for(j = 0; j < ii.number_of_links; j++)
 		{
-			drake_abstract_link_t *jj = ii.link[j];
-			jj->queue->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(jj->core_or_island, jj->type, jj->level), jj->queue->capacity, jj->core_or_island, jj->type, jj->level);
+			drake_abstract_link_t *jj = &ii.link[j];
+			jj->queue->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(jj->core, jj->type, jj->level), jj->queue->capacity, jj->core, jj->type, jj->level);
 			pelib_init(cfifo_t(char))(jj->queue);
 			debug("Initializing private queue");
 		}
@@ -203,12 +205,12 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 	// Allocating distributed input queues
 	for(i = 0; i < stream.application->number_of_cores; i++)
 	{
-		drake_core_input_distributed_link_t ii = stream.application->core_input_link[i];
+		drake_core_input_distributed_link_t ii = stream.application->core_input_distributed_link[i];
 
 		unsigned int j;
 		for(j = 0; j < ii.number_of_links; j++)
 		{
-			drake_input_distributed_link_t *jj = ii.link[j];
+			drake_input_distributed_link_t *jj = &ii.link[j];
 			cfifo_t(char) *fifo = jj->link->queue;
 			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity, i, jj->link->type, jj->link->level);
 			jj->read = (size_t*)drake_platform_malloc(sizeof(size_t), i, jj->link->type, jj->link->level);
@@ -221,12 +223,12 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 	// Allocating distributed output queues
 	for(i = 0; i < stream.application->number_of_cores; i++)
 	{
-		drake_core_output_distributed_link_t ii = stream.application->core_output_link[i];
+		drake_core_output_distributed_link_t ii = stream.application->core_output_distributed_link[i];
 
 		unsigned int j;
 		for(j = 0; j < ii.number_of_links; j++)
 		{
-			drake_output_distributed_link_t *jj = ii.link[j];
+			drake_output_distributed_link_t *jj = &ii.link[j];
 			cfifo_t(char) *fifo = jj->link->queue;
 			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity, i, jj->link->type, jj->link->level);
 			jj->write = (size_t*)drake_platform_malloc(sizeof(size_t), i, jj->link->type, jj->link->level);
@@ -243,13 +245,13 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 {
 	int success;
 
-	init_schedule(stream->application->schedule_start[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
+	init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
 
 	// This will come when the application is initialized
 	// By now it should be possible to initialize all tasks
 	unsigned int core = drake_platform_core_id();
 	drake_exec_task_t *exec_task;
-	for(exec_task = stream->application->schedule_start[0]; exec_task != NULL; exec_task = exec_task->next) 
+	for(exec_task = stream->application->schedule[0]; exec_task != NULL; exec_task = exec_task->next) 
 	{
 		drake_task_t *task = exec_task->task;
 		if(task->state == DRAKE_TASK_STATE_INIT)
@@ -267,13 +269,13 @@ int
 drake_stream_destroy(drake_stream_t* stream)
 {
 	int success;
-	init_schedule(stream->application->schedule_start[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
+	init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
 
 	// This will come when the application is initialized
 	// By now it should be possible to initialize all tasks
 	unsigned int core = drake_platform_core_id();
 	drake_exec_task_t *exec_task;
-	for(exec_task = stream->application->schedule_start[0]; exec_task != NULL; exec_task = exec_task->next) 
+	for(exec_task = stream->application->schedule[drake_platform_core_id()]; exec_task != NULL; exec_task = exec_task->next) 
 	{
 		drake_task_t *task = exec_task->task;
 		if(task->state < DRAKE_TASK_STATE_DESTROY)

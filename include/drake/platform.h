@@ -33,7 +33,7 @@ struct drake_application;
 
 /** Provides a frontend to create a stream for an application. Generates a call to drake_stream_create_explicit with a pointer to the function to schedule initialization function that corresponds to the application **/
 #define drake_platform_stream_create(stream, application) \
-drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_application_get_, application))
+drake_platform_stream_create_explicit(stream, PELIB_##CONCAT_2(drake_application_build_, application))
 
 /** Abstract type for time measurement **/
 typedef struct drake_time *drake_time_t;
@@ -42,7 +42,7 @@ typedef struct drake_platform *drake_platform_t;
 /** Abstract type for power measurement and recording **/
 typedef struct drake_power *drake_power_t;
 /** Memory descriptor **/
-typedef enum drake_memory {DRAKE_MEMORY_PRIVATE = 1, DRAKE_MEMORY_SHARED = 2, DRAKE_MEMORY_DISTRIBUTED = 4, DRAKE_MEMORY_SMALL_CHEAP = 8, DRAKE_MEMORY_LARGE_COSTLY = 16} drake_memory_t;
+typedef enum drake_memory {DRAKE_MEMORY_UNDEFINED = 0, DRAKE_MEMORY_PRIVATE = 1, DRAKE_MEMORY_SHARED = 2, DRAKE_MEMORY_DISTRIBUTED = 3, DRAKE_MEMORY_SMALL_CHEAP = 4, DRAKE_MEMORY_LARGE_COSTLY = 8} drake_memory_t;
 /** Returns the size in byte of the corresponding core's allocatable memory of a given type **/
 size_t drake_platform_memory_size(unsigned int core, drake_memory_t type, unsigned int level);
 /** Returns the size of a memory line in shared memory **/
@@ -66,6 +66,8 @@ void* drake_platform_malloc(size_t size, unsigned int core, drake_memory_t type,
 void* drake_platform_calloc(size_t nmemb, size_t size, unsigned int core, drake_memory_t type, unsigned int level);
 void* drake_platform_aligned_alloc(size_t alignment, size_t size, unsigned int core, drake_memory_t type, unsigned int level);
 void drake_platform_free(void *ptr, unsigned int core, drake_memory_t type, unsigned int level);
+struct drake_application;
+struct drake_application* drake_platform_get_application_details();
 
 /** Deallocates the on-chip communication memory corresponding to the address given. Only the calling cores can see that the memory has been freed. Every core should run this function in the same order using the same parameter. Any implementation must be deterministic. **/
 //void drake_platform_shared_free(volatile void* addr, size_t core);
