@@ -40,26 +40,28 @@
 #define drake_task_autokill() drake_autokill_task(drake_task())
 #define drake_task_autosleep() drake_autosleep_task(drake_task())
 #define drake_task_autoexit() drake_autoexit_task(drake_task())
-#define drake_input_capacity(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_capacity_, link)
-#define drake_input_available(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_available_, link)
-#define drake_input_available_continuous(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_available_continuous_, link)
+#define drake_input_capacity(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_capacity_, link)()
+#define drake_input_available(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_available_, link)()
+#define drake_input_available_continuous(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_available_continuous_, link)()
 #define drake_input_buffer(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _input_buffer_, link)
 #define drake_input_discard(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _discard_, link)
+#define drake_input_depleted(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _depleted_, link)()
 #define drake_declare_input(name, type) \
-size_t drake_input_capacity(name)(); \
-size_t drake_input_available(name)(); \
-size_t drake_input_available_continuous(name)(); \
+size_t drake_input_capacity(name); \
+size_t drake_input_available(name); \
+size_t drake_input_available_continuous(name); \
 type* drake_input_buffer(name)(size_t skip, size_t *size, type **extra); \
-void drake_input_discard(name)(size_t size);
-#define drake_output_capacity(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_capacity_, link)
-#define drake_output_available(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_available_, link)
-#define drake_output_available_continuous(link) PELIB_CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_available_continuous_, link)
+void drake_input_discard(name)(size_t size); \
+int drake_input_depleted(name);
+#define drake_output_capacity(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_capacity_, link)()
+#define drake_output_available(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_available_, link)()
+#define drake_output_available_continuous(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_available_continuous_, link)()
 #define drake_output_buffer(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_buffer_, link)
-#define drake_output_commit(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _discard_, link)
+#define drake_output_commit(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _commit_, link)
 #define drake_declare_output(name, type) \
-size_t drake_output_capacity(name)(); \
-size_t drake_output_available(name)(); \
-size_t drake_output_available_continuous(name)(); \
+size_t drake_output_capacity(name); \
+size_t drake_output_available(name); \
+size_t drake_output_available_continuous(name); \
 type* drake_output_buffer(name)(size_t *size, type **extra); \
 void drake_output_commit(name)(size_t size);
 
@@ -108,11 +110,12 @@ drake_task_tp drake_task();
 #define drake_input_available_continuous(name, id, link) PELIB_CONCAT_5(name, _link_, id, _input_available_continuous_, link)
 #define drake_input_buffer(name, id, link) PELIB_CONCAT_5(name, _link_, id, _input_buffer_, link)
 #define drake_input_discard(name, id, link) PELIB_CONCAT_5(name, _link_, id, _discard_, link)
+#define drake_input_depleted(name, id, link) PELIB_CONCAT_5(name, _link_, id, _depleted_, link)
 #define drake_output_capacity(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_capacity_, link)
 #define drake_output_available(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_available_, link)
 #define drake_output_available_continuous(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_available_continuous_, link)
 #define drake_output_buffer(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_buffer_, link)
-#define drake_output_commit(name, id, link) PELIB_CONCAT_5(name, _link_, id, _discard_, link)
+#define drake_output_commit(name, id, link) PELIB_CONCAT_5(name, _link_, id, _commit_, link)
 
 /** Task initialization function (as viewed from the module compiler), suitable for optional memory allocation or other slow, but unique operations. Runs before the corresponding stream begins to run
 	@param task Task being initialized

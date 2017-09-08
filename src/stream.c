@@ -158,7 +158,6 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 	stream.platform = pt;
 
 	// Do run init
-	debug("Application create");
 	unsigned int i;
 
 // Potential inconsistency checks
@@ -189,16 +188,15 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 	// Actual link already statically allocated; just need to allocate their buffer
 	// for private memory
 	i = drake_platform_core_id();
-	//for(i = 0; i < sizeof(core_private_link) / sizeof(drake_abstract_link_t*); i++)
+	for(i = 0; i < stream.application->number_of_cores; i++)
 	{
 		drake_core_private_link_t ii = stream.application->core_private_link[i];
 		unsigned int j;
 		for(j = 0; j < ii.number_of_links; j++)
 		{
 			drake_abstract_link_t *jj = &ii.link[j];
-			jj->queue->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(jj->core, jj->type, jj->level), jj->queue->capacity, jj->core, jj->type, jj->level);
+			jj->queue->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(jj->core, jj->type, jj->level), jj->queue->capacity * jj->token_size, jj->core, jj->type, jj->level);
 			pelib_init(cfifo_t(char))(jj->queue);
-			debug("Initializing private queue");
 		}
 	}
 
@@ -212,11 +210,10 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 		{
 			drake_input_distributed_link_t *jj = &ii.link[j];
 			cfifo_t(char) *fifo = jj->link->queue;
-			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity, i, jj->link->type, jj->link->level);
+			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity * jj->link->token_size, i, jj->link->type, jj->link->level);
 			jj->read = (size_t*)drake_platform_malloc(sizeof(size_t), i, jj->link->type, jj->link->level);
 			jj->state = (drake_task_state_t*)drake_platform_malloc(sizeof(drake_task_state_t), i, jj->link->type, jj->link->level);
 			pelib_init(cfifo_t(char))(fifo);
-			debug("Initializing distributed input queue");
 		}
 	}
 	
@@ -230,12 +227,12 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 		{
 			drake_output_distributed_link_t *jj = &ii.link[j];
 			cfifo_t(char) *fifo = jj->link->queue;
-			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity, i, jj->link->type, jj->link->level);
+			fifo->buffer = (char*)drake_platform_aligned_alloc(drake_platform_memory_alignment(i, jj->link->type, jj->link->level), fifo->capacity * jj->link->token_size, i, jj->link->type, jj->link->level);
 			jj->write = (size_t*)drake_platform_malloc(sizeof(size_t), i, jj->link->type, jj->link->level);
 			pelib_init(cfifo_t(char))(fifo);
-			debug("Initializing distributed output queue");
 		}
 	}
+						//debug_addr(stream.application->core_private_link[0].link[14].queue->buffer);
 
 	return stream;
 }

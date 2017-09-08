@@ -30,9 +30,6 @@
 #include <algorithm>
 #include <string>
 
-
-
-
 #include <pelib/Scalar.hpp>
 #include <pelib/Vector.hpp>
 #include <pelib/Matrix.hpp>
@@ -72,11 +69,6 @@ uppercase(string str)
 void
 DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const Platform &pt) const
 {
-#if HARD_CODED_HELLO_WORLD
-	std::string drake_app_c = std::string(&_binary_drake_app_c_start).substr(0, (size_t)(&_binary_drake_app_c_size));
-
-	os << drake_app_c << endl;
-#else
 	// Get a list of links per core
 	map<unsigned int, set<const Link*> > core_link, core_input_distributed_link, core_output_distributed_link;
 	for(set<Link>::iterator i = schedule.getLinks().begin(); i != schedule.getLinks().end(); i++)
@@ -118,10 +110,21 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 		}
 	}
 
+	os << "#include <iostream>" << endl;
+	os << endl;
 	os << "#include <drake.h>" << endl;
 	os << "#include <pelib/char.h>" << endl;
 	os << "#include <drake/platform.h>" << endl;
 	os << endl;
+	os << "#ifndef debug" << endl;
+	os << "#if 10" << endl;
+	os << "#define debug(expr) std::cout << \"[\" << __FILE__ << \":\" << __FUNCTION__ << \":\" << __LINE__ << \"] \" << #expr << \" = \\\"\" << expr << \"\\\".\" << std::endl;" << endl;
+	os << "#else" << endl;
+	os << "#define debug(var)" << endl;
+	os << "#endif" << endl;
+	os << "#endif" << endl;
+	os << endl;
+
 	bool at_least_one_header = false;
 	for(set<Link>::iterator i = schedule.getLinks().begin(); i != schedule.getLinks().end(); i++)
 	{
@@ -163,10 +166,13 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 	os << "	drake_application_t *app = drake_platform_get_application_details();" << endl;
 	os << "	app->number_of_cores = " << pt.getCores().size() << ";" << endl;
 	os << "	app->core_private_link = (drake_core_private_link_t*)drake_platform_malloc(sizeof(drake_core_private_link_t) * app->number_of_cores, drake_platform_core_id(), type, level);" << endl;
-	os << "	app->core_private_link[0].number_of_links = 1;" << endl;
-	os << "	app->core_private_link[0].link = (drake_abstract_link_t*)drake_platform_malloc(sizeof(drake_abstract_link_t) * app->core_private_link[0].number_of_links, drake_platform_core_id(), type, level);" << endl;
+	for(map<unsigned int, set<const Link*> >::const_iterator i = core_link.begin(); i != core_link.end(); i++)
+	{
+		os << "	app->core_private_link[" << i->first << "].number_of_links = " << i->second.size() << ";" << endl;
+		os << "	app->core_private_link[" << i->first << "].link = (drake_abstract_link_t*)drake_platform_malloc(sizeof(drake_abstract_link_t) * app->core_private_link[0].number_of_links, drake_platform_core_id(), type, level);" << endl;
+	}
 	os << endl;
-	os << "	app->number_of_tasks = 2;" << endl;
+	os << "	app->number_of_tasks = " << tg.getTasks().size() << ";" << endl;
 	os << "	app->task = (drake_task_t*)drake_platform_malloc(sizeof(drake_task_t) * app->number_of_tasks, drake_platform_core_id(), type, level);" << endl;
 	for(set<Task>::iterator i = tg.getTasks().begin(); i != tg.getTasks().end(); i++)
 	{
@@ -193,13 +199,17 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].producer = &app->task[" << uppercase((*j)->getProducer()->getName()) << "];" << endl;
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].consumer = &app->task[" << uppercase((*j)->getConsumer()->getName()) << "];" << endl;
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue = (cfifo_t(char)*)drake_platform_malloc(sizeof(cfifo_t(char)), drake_platform_core_id(), type, level);" << endl;
-			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity = " << "app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity = " << (*j)->getQueueBuffer().getSize() << ";" << endl;
-			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer = (char*)drake_platform_malloc(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity * sizeof(" << (*j)->getQueueBuffer().getType() << "), drake_platform_core_id(), type, level);" << endl;
-			os << "	pelib_init(cfifo_t(char))(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue);" << endl;
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].token_size = sizeof(" << (*j)->getQueueBuffer().getType() << ");" << endl;
+			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity = " << (*j)->getQueueBuffer().getSize() << " * app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].token_size;" << endl;
+			//os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer = NULL;" << endl;
+			//os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer = (char*)drake_platform_malloc(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity, drake_platform_core_id(), (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getQueueBuffer().getMemoryType()) << "), " << (*j)->getQueueBuffer().getLevel() << ");" << endl;
+			//os << "	std::cout << \"(\\\"" << (*j)->getProducer()->getName() << "\\\" -> \\\"" << (*j)->getConsumer()->getName() << "\\\")(" << (*j)->getProducerName() << " -> " << (*j)->getConsumerName() << "): [\" << (size_t)(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer) << \", \" << app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity << \"]\" << std::endl;" << endl;
+			//os << "	pelib_init(cfifo_t(char))(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue);" << endl;
+			os << "	std::cout << \"(\\\"" << (*j)->getProducer()->getName() << "\\\" -> \\\"" << (*j)->getConsumer()->getName() << "\\\")(" << (*j)->getProducerName() << " -> " << (*j)->getConsumerName() << "):\" << pelib_cfifo_length(char)(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue) << std::endl;" << endl;
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].type = (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getQueueBuffer().getMemoryType()) << ");" << endl;
 			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].core = " << core << ";" << endl;
-			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].core = " << (*j)->getQueueBuffer().getLevel() << ";" << endl;
+			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].producer_name = (char*)\"" << (*j)->getProducerName() << "\";" << endl;
+			os << "	app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].consumer_name = (char*)\"" << (*j)->getConsumerName() << "\";" << endl;
 		}
 		os << endl;
 	}
@@ -243,6 +253,7 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			unsigned int core, link;
 			for(set<const Link*>::const_iterator j = i->getConsumers().begin(); j != i->getConsumers().end(); j++)
 			{
+				bool found = false;
 				for(map<unsigned int, set<const Link*> >::const_iterator k = core_link.begin(); k != core_link.end(); k++)
 				{
 					for(set<const Link*>::const_iterator l = k->second.begin(); l != k->second.end(); l++)
@@ -251,10 +262,28 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 						{
 							link = std::distance(k->second.begin(), l);
 							core = k->first;
+							found = true;
+							break;
 						}
 					}
+					if(found)
+					{
+						break;
+					}
 				}
-				os << "	app->task[" << uppercase(i->getName()) << "].output_link[" << std::distance(i->getConsumers().begin(), j) << "] = &app->core_private_link[" << core << "].link[" << link << "];" << endl;
+				if(found)
+				{
+					os << "	app->task[" << uppercase(i->getName()) << "].output_link[" << std::distance(i->getConsumers().begin(), j) << "] = &app->core_private_link[" << core << "].link[" << link << "];" << endl;
+				}
+				else
+				{
+					debug("Link in taskgraph was not found in schedule.");
+					debug(i->getName());
+					debug((*j)->getConsumer()->getName());
+					debug((*j)->getProducerName());
+					debug((*j)->getConsumerName());
+					abort();
+				}
 			}
 		}
 
@@ -269,6 +298,7 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			unsigned int core, link;
 			for(set<const Link*>::const_iterator j = i->getConsumers().begin(); j != i->getConsumers().end(); j++)
 			{
+				bool found = false;
 				for(map<unsigned int, set<const Link*> >::const_iterator k = core_link.begin(); k != core_link.end(); k++)
 				{
 					for(set<const Link*>::const_iterator l = k->second.begin(); l != k->second.end(); l++)
@@ -277,10 +307,24 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 						{
 							link = std::distance(k->second.begin(), l);
 							core = k->first;
+							found = true;
+							break;
 						}
 					}
+					if(found)
+					{
+						break;
+					}
 				}
-				os << "	app->task[" << uppercase(i->getName()) << "].input_distributed_link[" << std::distance(i->getConsumers().begin(), j) << "] = &app->core_input_distributed_link[" << core << "].link[" << link << "];" << endl;
+				if(found)
+				{
+					os << "	app->task[" << uppercase(i->getName()) << "].input_distributed_link[" << std::distance(i->getConsumers().begin(), j) << "] = &app->core_input_distributed_link[" << core << "].link[" << link << "];" << endl;
+				}
+				else
+				{
+					debug("Link in taskgraph was not found in schedule.");
+					abort();
+				}
 			}
 		}
 
@@ -295,6 +339,7 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			unsigned int core, link;
 			for(set<const Link*>::const_iterator j = i->getProducers().begin(); j != i->getProducers().end(); j++)
 			{
+				bool found = false;
 				for(map<unsigned int, set<const Link*> >::const_iterator k = core_link.begin(); k != core_link.end(); k++)
 				{
 					for(set<const Link*>::const_iterator l = k->second.begin(); l != k->second.end(); l++)
@@ -303,10 +348,24 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 						{
 							link = std::distance(k->second.begin(), l);
 							core = k->first;
+							found = true;
+							break;
 						}
 					}
+					if(found)
+					{
+						break;
+					}
 				}
-				os << "	app->task[" << uppercase(i->getName()) << "].output_distributed_link[" << std::distance(i->getProducers().begin(), j) << "] = &app->core_output_distributed_link[" << core << "].link[" << link << "];" << endl;
+				if(found)
+				{
+					os << "	app->task[" << uppercase(i->getName()) << "].output_distributed_link[" << std::distance(i->getProducers().begin(), j) << "] = &app->core_output_distributed_link[" << core << "].link[" << link << "];" << endl;
+				}
+				else
+				{
+					debug("Link in taskgraph was not found in schedule.");
+					abort();
+				}
 			}
 		}
 		os << endl;
@@ -326,17 +385,27 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			for(set<const Link*>::const_iterator j = core_input_distributed_link[i].begin(); j != core_input_distributed_link[i].end(); j++)
 			{
 				unsigned int link;
+				bool found = false;
 				for(set<const Link*>::const_iterator l = core_link[i].begin(); l != core_link[i].end(); l++)
 				{
 					if(**j == **l && (Buffer::MemoryType)((int)(*j)->getQueueBuffer().getMemoryType() & (int)Buffer::memoryAccessMask) == Buffer::MemoryType::distributed)
 					{
 						link = std::distance(core_link[i].begin(), l);
+						found = true;
 						break;
 					}
 				}
-				os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].link = &app->core_private_link[" << i << "].link[" << link << "];" << endl;
-				os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].read = (size_t*)drake_platform_malloc(sizeof(size_t), " << (*j)->getConsumerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getConsumerBuffer().getMemoryType()) << "), " << (*j)->getConsumerBuffer().getLevel() << ");" << endl;
-				os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].state = (drake_task_state_t*)drake_platform_malloc(sizeof(drake_task_state_t), " << (*j)->getConsumerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getConsumerBuffer().getMemoryType()) << "), " << (*j)->getConsumerBuffer().getLevel() << ");" << endl;
+				if(found)
+				{
+					os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].link = &app->core_private_link[" << i << "].link[" << link << "];" << endl;
+					os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].read = (size_t*)drake_platform_malloc(sizeof(size_t), " << (*j)->getConsumerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getConsumerBuffer().getMemoryType()) << "), " << (*j)->getConsumerBuffer().getLevel() << ");" << endl;
+					os << "	app->core_input_distributed_link[" << i << "].link[" << std::distance(core_input_distributed_link[i].begin(), j) << "].state = (drake_task_state_t*)drake_platform_malloc(sizeof(drake_task_state_t), " << (*j)->getConsumerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getConsumerBuffer().getMemoryType()) << "), " << (*j)->getConsumerBuffer().getLevel() << ");" << endl;
+				}
+				else
+				{
+					debug("Link in taskgraph was not found in schedule.");
+					abort();
+				}
 			}
 		}
 	}
@@ -356,16 +425,26 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			for(set<const Link*>::const_iterator j = core_output_distributed_link[i].begin(); j != core_output_distributed_link[i].end(); j++)
 			{
 				unsigned int link;
+				bool found = false;
 				for(set<const Link*>::const_iterator l = core_link[i].begin(); l != core_link[i].end(); l++)
 				{
 					if(**j == **l && (Buffer::MemoryType)((int)(*j)->getQueueBuffer().getMemoryType() & (int)Buffer::memoryAccessMask) == Buffer::MemoryType::distributed)
 					{
 						link = std::distance(core_link[i].begin(), l);
+						found = true;
 						break;
 					}
 				}
-				os << "	app->core_output_distributed_link[" << i << "].link[" << std::distance(core_output_distributed_link[i].begin(), j) << "].link = &app->core_private_link[" << i << "].link[" << link << "];" << endl;
-				os << "	app->core_output_distributed_link[" << i << "].link[" << std::distance(core_output_distributed_link[i].begin(), j) << "].write = (size_t*)drake_platform_malloc(sizeof(size_t), " << (*j)->getProducerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getProducerBuffer().getMemoryType()) << "), " << (*j)->getProducerBuffer().getLevel() << ");" << endl;
+				if(found)
+				{
+					os << "	app->core_output_distributed_link[" << i << "].link[" << std::distance(core_output_distributed_link[i].begin(), j) << "].link = &app->core_private_link[" << i << "].link[" << link << "];" << endl;
+					os << "	app->core_output_distributed_link[" << i << "].link[" << std::distance(core_output_distributed_link[i].begin(), j) << "].write = (size_t*)drake_platform_malloc(sizeof(size_t), " << (*j)->getProducerBuffer().getCore() << ", (drake_memory_t)(" << Buffer::memoryTypeToString((*j)->getProducerBuffer().getMemoryType()) << "), " << (*j)->getProducerBuffer().getLevel() << ");" << endl;
+				}
+				else
+				{
+					debug("Link in taskgraph was not found in schedule.");
+					abort();
+				}
 			}
 		}
 	}
@@ -382,7 +461,11 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 		for(Schedule::sequence::const_iterator j = schedule.getSchedule().find(i)->second.begin(); j != schedule.getSchedule().find(i)->second.end(); j++)
 		{
 			const Task *task = j->second.first;
-			os << "	app->schedule[" << i << "][" << std::distance(schedule.getSchedule().find(i)->second.begin(), j) << "].task = &app->task[" << std::distance(tg.getTasks().begin(), tg.getTasks().find(*task)) << "];" << endl;
+			size_t core_index = std::distance(schedule.getSchedule().find(i)->second.begin(), j);
+			size_t task_index = std::distance(tg.getTasks().begin(), tg.getTasks().find(*task));
+			
+			//os << "	app->schedule[" << i << "][" << core_index << "].task = &app->task[" << task_index << "];" << endl;
+			os << "	app->schedule[" << i << "][" << core_index << "].task = &app->task[" << uppercase(task->getName()) << "];" << endl;
 			os << "	app->schedule[" << i << "][" << std::distance(schedule.getSchedule().find(i)->second.begin(), j) << "].start_time = " << j->first << ";" << endl;
 			os << "	app->schedule[" << i << "][" << std::distance(schedule.getSchedule().find(i)->second.begin(), j) << "].width = " << j->second.first->getWidth() << ";" << endl;
 			os << "	app->schedule[" << i << "][" << std::distance(schedule.getSchedule().find(i)->second.begin(), j) << "].frequency = " << std::distance(pt.getCore(i)->getFrequencies().begin(), pt.getCore(i)->getFrequencies().find(j->second.first->getFrequency() / pt.getCore(i)->getFrequencyUnit())) + 1 << ";" << endl;
@@ -399,6 +482,18 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 		}
 	}
 
+	for(map<unsigned int, set<const Link*> >::const_iterator i = core_link.begin(); i != core_link.end(); i++)
+	{
+		const set<const Link*> &list = i->second;
+		unsigned int core = i->first;
+		for(set<const Link*>::const_iterator j = list.begin(); j != list.end(); j++)
+		{
+			//os << "	std::cout << \"(\\\"" << (*j)->getProducer()->getName() << "\\\" -> \\\"" << (*j)->getConsumer()->getName() << "\\\")(" << (*j)->getProducerName() << " -> " << (*j)->getConsumerName() << "): [\" << (size_t)(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer) << \", \" << app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->capacity << \"]\" << std::endl;" << endl;
+			//os << "	std::cout << \"(\\\"" << (*j)->getProducer()->getName() << "\\\" -> \\\"" << (*j)->getConsumer()->getName() << "\\\")(" << (*j)->getProducerName() << " -> " << (*j)->getConsumerName() << "):\" << pelib_cfifo_length(char)(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue) << std::endl;" << endl;
+			//os << "	debug((void*)(app->core_private_link[" << core << "].link[" << std::distance(list.begin(), j) << "].queue->buffer));" << endl;
+		}
+		os << endl;
+	}
 	os << endl;
 	os << "	return app;" << endl;
 	os << "}" << endl;
@@ -419,9 +514,9 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 		os << "}" << endl;
 		os << endl;
 
-		for(set<const Link*>::const_iterator j = i->getProducers().begin(); j != i->getProducers().end(); j++)
+		for(set<const Link*>::iterator j = i->getProducers().begin(); j != i->getProducers().end(); j++)
 		{
-			set<Link>::const_iterator link_iter = schedule.getLinks().find(**j);
+			set<Link>::iterator link_iter = schedule.getLinks().find(**j);
 			if(link_iter == schedule.getLinks().cend())
 			{
 				debug("Cannot find link in schedule");
@@ -431,42 +526,65 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			os << "size_t" << endl;
 			os << "drake_input_capacity(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_capacity(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].input_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_capacity(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "size_t" << endl;
 			os << "drake_input_available(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_available(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].input_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_available(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "size_t" << endl;
 			os << "drake_input_available_continuous(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_available_continuous(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].input_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_available_continuous(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << link.getQueueBuffer().getType() << "*" << endl;
 			os << "drake_input_buffer(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")(size_t skip, size_t *size, " << link.getQueueBuffer().getType() << " **extra)" << endl;
 			os << "{" << endl;
-			os << "	return (" << link.getQueueBuffer().getType() << "*)drake_buffer_availableaddr(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].input_link[" << 0 << "], skip, size, (void**)extra);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	" << link.getQueueBuffer().getType() << " *ret = (" << link.getQueueBuffer().getType() << "*)drake_buffer_availableaddr(link, skip, size, (void**)extra);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "void" << endl;
 			os << "drake_input_discard(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")(size_t size)" << endl;
 			os << "{" << endl;
-			os << "	drake_buffer_discard(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].input_link[" << 0 << "], size);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	drake_buffer_discard(link, size);" << endl;
+			os << "}" << endl;
+			os << endl;
+
+			os << "void" << endl;
+			os << "drake_input_depleted(" << i->getModule() << ", " << i->getName() << ", " << link.getConsumerName() << ")()" << endl;
+			os << "{" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->input_link[" << std::distance(i->getProducers().begin(), j) << "];" << endl;
+			os << "	drake_buffer_depleted(link);" << endl;
 			os << "}" << endl;
 			os << endl;
 		}
 
-		for(set<const Link*>::const_iterator j = i->getConsumers().begin(); j != i->getConsumers().end(); j++)
+		for(set<const Link*>::iterator j = i->getConsumers().begin(); j != i->getConsumers().end(); j++)
 		{
-			set<Link>::const_iterator link_iter = schedule.getLinks().find(**j);
+			set<Link>::iterator link_iter = schedule.getLinks().find(**j);
 			if(link_iter == schedule.getLinks().cend())
 			{
 				debug("Cannot find link in schedule");
@@ -476,183 +594,54 @@ DrakeApp::dump(ostream& os, const Schedule &schedule, const Taskgraph &tg, const
 			os << "size_t" << endl;
 			os << "drake_output_capacity(" << i->getModule() << ", " << i->getName() << ", " << link.getProducerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_capacity(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].output_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->output_link[" << std::distance(i->getConsumers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_capacity(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "size_t" << endl;
 			os << "drake_output_available(" << i->getModule() << ", " << i->getName() << ", " << link.getProducerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_free(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].output_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->output_link[" << std::distance(i->getConsumers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_free(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "size_t" << endl;
 			os << "drake_output_available_continuous(" << i->getModule() << ", " << i->getName() << ", " << link.getProducerName() << ")()" << endl;
 			os << "{" << endl;
-			os << "	return drake_buffer_free_continuous(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].output_link[" << 0 << "]);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->output_link[" << std::distance(i->getConsumers().begin(), j) << "];" << endl;
+			os << "	size_t ret = drake_buffer_free_continuous(link);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << link.getQueueBuffer().getType() << "*" << endl;
 			os << "drake_output_buffer(" << i->getModule() << ", " << i->getName() << ", " << link.getProducerName() << ")(size_t *size, " << link.getQueueBuffer().getType() << " **extra)" << endl;
 			os << "{" << endl;
-			os << "	return (" << link.getQueueBuffer().getType() << "*)drake_buffer_freeaddr(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].output_link[" << 0 << "], size, (void**)extra);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->output_link[" << std::distance(i->getConsumers().begin(), j) << "];" << endl;
+			os << "	" << link.getQueueBuffer().getType() << " *ret = (" << link.getQueueBuffer().getType() << "*)drake_buffer_freeaddr(link, size, (void**)extra);" << endl;
+			os << "	return ret;" << endl;
 			os << "}" << endl;
 			os << endl;
 
 			os << "void" << endl;
 			os << "drake_output_commit(" << i->getModule() << ", " << i->getName() << ", " << link.getProducerName() << ")(size_t size)" << endl;
 			os << "{" << endl;
-			os << "	drake_buffer_commit(drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "].output_link[" << 0 << "], size);" << endl;
+			os << "	drake_task_t *task = &drake_platform_get_application_details()->task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
+			os << "	drake_abstract_link_t *link = task->output_link[" << std::distance(i->getConsumers().begin(), j) << "];" << endl;
+			os << "	drake_buffer_commit(link, size);" << endl;
 			os << "}" << endl;
 			os << endl;
 		}
 	}
 
-#if 0
-	os << "extern drake_task_t task[" << tg.getTasks().size() << "];" << endl;
-	for(set<Task>::iterator i = tg.getTasks().begin(); i != tg.getTasks().end(); i++)
-	{
-		os << "drake_task_t *" << i->getName() << " = &task[" << std::distance(tg.getTasks().begin(), i) << "];" << endl;
-	}
-
-	os << endl;
-
-	for(set<Link>::iterator i = schedule.getLinks().begin(); i != schedule.getLinks().end(); i++)
-	{
-		os << "static cfifo_t(char) " << i->getProducer()->getName() << "_" << i->getProducerName() << "_" << i->getConsumer()->getName() << "_" << i->getConsumerName() << "_queue = { 0, 0, PELIB_CFIFO_POP, " << i->getSize() << " * sizeof(char), NULL };" << endl;
-	}
-
-	os << endl;
-
-	for(set<Link>::iterator i = schedule.getLinks().begin(); i != schedule.getLinks().end(); i++)
-	{
-		os << "drake_abstract_link_t " << i->getProducer()->getName() << "_" << i->getProducerName() << "_" << i->getConsumer()->getName() << "_" << i->getConsumerName() << "_link = { " << i->getProducer()->getName() << ", " << i->getConsumer()->getName() << ", &" << i->getProducer()->getName() << "_" << i->getProducerName() << "_" << i->getConsumer()->getName() << "_" << i->getConsumerName() << "_queue, sizeof(" << i->getType() << "), (drake_memory_t)(" << Link::memoryTypeToString(i->getMemoryType()) << "), " << i->getCore() << ", " << i->getLevel() << "};" << endl;
-		os << "static drake_abstract_link_t *" << i->getProducer()->getName() << "_" << i->getProducerName() << " = &" << i->getProducer()->getName() << "_" << i->getProducerName() << "_" << i->getConsumer()->getName() << "_" << i->getConsumerName() << "_link;" << endl;
-		os << "static drake_abstract_link_t *" << i->getConsumer()->getName() << "_" << i->getConsumerName() << " = &" << i->getProducer()->getName() << "_" << i->getProducerName() << "_" << i->getConsumer()->getName() << "_" << i->getConsumerName() << "_link;" << endl;
-	}
-
-	os << endl;
-
-	for(set<Task>::iterator i = schedule.getUniqueTasks().begin(); i != schedule.getUniqueTasks().end(); i++)
-	{
-		const Task &task = *i;
-		os << "static drake_abstract_link_t *" << task.getName() << "_input_link[] = {";
-		for(set<Link>::iterator j = schedule.getLinks().begin(); j != schedule.getLinks().end(); j++)
-		{
-			if(j->getConsumer()->getName().compare(task.getName()) == 0)
-			{
-				os << " &" << j->getProducer()->getName() << "_" << j->getProducerName() << "_" << j->getConsumer()->getName() << "_" << j->getConsumerName() << "_link";
-				set<Link>::iterator jj = j;
-				if(++jj != schedule.getLinks().end())
-				{
-					os << ",";
-				}
-				else
-				{
-					os << " ";
-				}
-			}
-		}
-		os << "};" << endl;
-
-		os << "static drake_abstract_link_t *" << task.getName() << "_output_link[] = {";
-		for(set<Link>::iterator j = schedule.getLinks().begin(); j != schedule.getLinks().end(); j++)
-		{
-			if(j->getProducer()->getName().compare(task.getName()) == 0)
-			{
-				os << " &" << j->getProducer()->getName() << "_" << j->getProducerName() << "_" << j->getConsumer()->getName() << "_" << j->getConsumerName() << "_link";
-
-				set<Link>::iterator jj = j;
-				if(++jj != schedule.getLinks().end())
-				{
-					os << ",";
-				}
-				else
-				{
-					os << " ";
-				}
-			}
-		}
-		os << "};" << endl;
-
-		os << "static drake_input_distributed_link_t " << task.getName() << "_input_distributed_link[] = {";
-		for(set<Link>::iterator j = schedule.getLinks().begin(); j != schedule.getLinks().end(); j++)
-		{
-			if(j->getConsumer()->getName().compare(task.getName()) == 0 && ((int)j->getMemoryType() & 3) == (int)Link::MemoryType::distributed)
-			{
-				os << " &" << j->getProducer()->getName() << "_" << j->getProducerName() << "_" << j->getConsumer()->getName() << "_" << j->getConsumerName() << "_link";
-
-				set<Link>::iterator jj = j;
-				if(++jj != schedule.getLinks().end())
-				{
-					os << ",";
-				}
-				else
-				{
-					os << " ";
-				}
-			}
-		}
-		os << "};" << endl;
-
-		os << "static drake_output_distributed_link_t " << task.getName() << "_output_distributed_link[] = {";
-		for(set<Link>::iterator j = schedule.getLinks().begin(); j != schedule.getLinks().end(); j++)
-		{
-			if(j->getProducer()->getName().compare(task.getName()) == 0 && ((int)j->getMemoryType() & 3) == (int)Link::MemoryType::distributed)
-			{
-				os << " &" << j->getProducer()->getName() << "_" << j->getProducerName() << "_" << j->getConsumer()->getName() << "_" << j->getConsumerName() << "_link";
-
-				set<Link>::iterator jj = j;
-				if(++jj != schedule.getLinks().end())
-				{
-					os << ",";
-				}
-				else
-				{
-					os << " ";
-				}
-			}
-		}
-		os << "};" << endl;
-
-		os << endl;
-	}
-
-	os << "drake_task_t task[] = {" << endl;
-	for(set<Task>::const_iterator i = schedule.getUniqueTasks().begin(); i != schedule.getUniqueTasks().end(); i++)
-	{
-		const Task *tgTask;
-		for(set<Task>::const_iterator ii = tg.getTasks().begin(); ii != tg.getTasks().end(); ii++)
-		{
-			if(i->getName().compare(ii->getName()) == 0)
-			{
-				tgTask = &*ii;
-			}
-		}
-		os << "\t{ &drake_init(" << tgTask->getModule() << ", " << i->getName() << "), &drake_start(" << tgTask->getModule() << ", " << i->getName() << "), &drake_run(" << tgTask->getModule() << ", " << i->getName() << "), &drake_kill(" << tgTask->getModule() << ", " << i->getName() << "), &drake_destroy(" << tgTask->getModule() << ", " << i->getName() << "), 0, DRAKE_TASK_STATE_INIT, \"" << i->getName() << "\", NULL, " << tgTask->getProducers().size() << ", " << tgTask->getConsumers().size() << ", " << tgTask->getName() << "_input_link, " << tgTask->getName() << "_output_link, " << tgTask->getName() << "_input_distributed_link, " << tgTask->getName() << "_output_distributed_link }";
-		set<Task>::iterator ii = i;
-		if(++ii != schedule.getUniqueTasks().end())
-		{
-			os << "," << endl;
-		}
-		else
-		{
-			os << endl;
-		}
-	}
-	os << "};" << endl;
-
-	os << endl;
-
-	for(set<const Core*>::iterator i = pt.getCores().begin(); i != pt.getCores().end(); i++)
-	{
-		os << "static drake_shared_queue_allocation_t core" << std::distance(pt.getCores().begin(), i) << "_shared_queue_allocation[] = { /* TODO: implement shared queue allocation in DrakeApp */ ";
-		os << "};" << endl;
-	}
-#endif
-#endif
 }
 
 void

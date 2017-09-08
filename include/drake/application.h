@@ -71,6 +71,7 @@ struct drake_abstract_link
 	unsigned int core;
 	drake_memory_t type;
 	unsigned int level;
+	char *producer_name, *consumer_name;
 };
 typedef struct drake_abstract_link drake_abstract_link_t;
 
@@ -156,6 +157,7 @@ void* drake_buffer_freeaddr(drake_abstract_link_t *link, size_t *size, void** ex
 void* drake_buffer_availableaddr(drake_abstract_link_t *link, size_t skip, size_t *size, void** extra);
 void drake_buffer_commit(drake_abstract_link_t *link, size_t size);
 void drake_buffer_discard(drake_abstract_link_t *link, size_t size);
+int drake_buffer_depleted(drake_abstract_link_t *link);
 
 #endif
 
