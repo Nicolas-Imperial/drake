@@ -38,12 +38,10 @@ extern "C" {
 
 // /!\ the content of argv is freed after this function is run
 void
-pelib_dump(std::ostream& cout, std::map<const char*, Record*> records, size_t argc, char **argv)
+pelib_dump(std::ostream& cout, const std::map<string, Record*> &records, size_t argc, char **argv)
 {
 	Schedule *sc = (Schedule*)records.find(typeid(Schedule).name())->second;
-	Taskgraph *tg = (Taskgraph*)records.find(typeid(Taskgraph).name())->second;
-	Platform *pt = (Platform*)records.find(typeid(Platform).name())->second;
-	DrakeApp().dump(cout, sc, tg, pt);
+	DrakeApp().dump(cout, sc);
 }
 
 void

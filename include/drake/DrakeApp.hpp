@@ -36,17 +36,13 @@ namespace drake
 			/** Generate C code to output stream, that holds all Taskgraph, Platform and Schedule information required for a drake application
 				@param os Output stream where generated C code is written
 				@param data Schedule of the Drake application
-				@param tg Taskgraph of the application
-				@param pt Platform description for which the Drake application is scheduled for
 			**/
-			virtual	void dump(std::ostream &os, const pelib::Schedule *data, const pelib::Taskgraph *tg, const pelib::Platform *pt) const;
+			virtual	void dump(std::ostream &os, const pelib::Schedule *data) const;
 			/** Generate C code to output stream, that holds all Taskgraph, Platform and Schedule information required for a drake application
 				@param os Output stream where generated C code is written
 				@param data Schedule of the Drake application
-				@param tg Taskgraph of the application
-				@param pt Platform description for which the Drake application is scheduled for
 			**/
-			virtual	void dump(std::ostream &os, const pelib::Schedule &data, const pelib::Taskgraph &tg, const pelib::Platform &pt) const;
+			virtual	void dump(std::ostream &os, const pelib::Schedule &data) const;
 			/** Returns a pointer to a copy of this instance **/
 			virtual DrakeApp* clone() const;
 	};

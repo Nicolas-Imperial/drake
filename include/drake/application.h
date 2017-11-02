@@ -21,6 +21,7 @@
 
 #include <pelib/char.h>
 #include <drake/platform.h>
+#include <drake/task.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -123,6 +124,10 @@ struct drake_exec_task
 	double start_time;
 	unsigned int width;
 	unsigned int frequency;
+	unsigned int instance;
+	unsigned int master_core;
+	int *return_value;
+	struct drake_task_pool *pool;
 	struct drake_exec_task *next, *round_next;
 };
 typedef struct drake_exec_task drake_exec_task_t;
@@ -140,7 +145,7 @@ struct drake_application
 };
 typedef struct drake_application drake_application_t;
 
-size_t drake_task_get_width(drake_task_tp task);
+unsigned int drake_task_get_width(drake_task_tp task);
 const char* drake_task_get_name(drake_task_tp task);
 int drake_autokill_task(drake_task_tp);
 int drake_autosleep_task(drake_task_tp);

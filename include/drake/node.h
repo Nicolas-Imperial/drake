@@ -58,6 +58,12 @@ int drake_input_depleted(name);
 #define drake_output_available_continuous(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_available_continuous_, link)()
 #define drake_output_buffer(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _output_buffer_, link)
 #define drake_output_commit(link) PELIB_##CONCAT_5(TASK_MODULE, _link_, TASK_NAME, _commit_, link)
+#define drake_task_core_id PELIB_##CONCAT_3(TASK_MODULE, _core_, TASK_NAME)
+#define drake_task_instance PELIB_##CONCAT_3(TASK_MODULE, _instance_, TASK_NAME)
+//#define drake_task_pool_create PELIB_##CONCAT_3(TASK_MODULE, _build_pool_, TASK_NAME)
+#define drake_task_pool_run PELIB_##CONCAT_3(TASK_MODULE, _run_pool_, TASK_NAME)
+#define drake_task_width() drake_task_get_width(drake_task())
+//#define drake_task_pool_destroy PELIB_##CONCAT_3(TASK_MODULE, _destroy_pool_, TASK_NAME)
 #define drake_declare_output(name, type) \
 size_t drake_output_capacity(name); \
 size_t drake_output_available(name); \
@@ -91,6 +97,16 @@ int drake_kill();
 int drake_destroy();
 /** Returns a task descriptor **/
 drake_task_tp drake_task();
+
+unsigned int
+drake_task_core_id();
+
+unsigned int
+drake_task_instance();
+
+int drake_task_pool_run(int (*func)(void*), void*);
+//int drake_task_pool_wait();
+
 #else
 #define drake_init(name,id) PELIB_CONCAT_3(name,_init_,id)
 #define drake_start(name,id) PELIB_CONCAT_3(name,_start_,id)
@@ -99,7 +115,7 @@ drake_task_tp drake_task();
 #define drake_destroy(name,id) PELIB_CONCAT_3(name,_destroy_,id)
 #define drake_task(name,id) PELIB_CONCAT_3(name,_task_,id)
 #define drake_task_name(name, id) drake_task_get_name(drake_task(name, id)())
-#define drake_task_width(name, id) drake_task_get_width(drake_task(name, id)())
+#define drake_task_width() drake_task_##get_width(drake_task())
 #define drake_task_autokill drake_autokill_task
 #define drake_task_autosleep drake_autosleep_task
 #define drake_task_autoexit drake_autoexit_task
@@ -116,6 +132,11 @@ drake_task_tp drake_task();
 #define drake_output_available_continuous(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_available_continuous_, link)
 #define drake_output_buffer(name, id, link) PELIB_CONCAT_5(name, _link_, id, _output_buffer_, link)
 #define drake_output_commit(name, id, link) PELIB_CONCAT_5(name, _link_, id, _commit_, link)
+#define drake_task_core_id(name, id) PELIB_##CONCAT_3(name, _core_, id)
+#define drake_task_instance(name, id) PELIB_##CONCAT_3(name, _instance_, id)
+//#define drake_task_pool_create(name, id) PELIB_##CONCAT_3(name, _build_pool_, id)
+#define drake_task_pool_run(name, id) PELIB_##CONCAT_3(name, _run_pool_, id)
+//#define drake_task_pool_destroy(name, id) PELIB_##CONCAT_3(name, _destroy_pool_, id)
 
 /** Task initialization function (as viewed from the module compiler), suitable for optional memory allocation or other slow, but unique operations. Runs before the corresponding stream begins to run
 	@param task Task being initialized
@@ -144,6 +165,15 @@ int drake_destroy(TASK_MODULE, TASK_NAME)();
 
 /** Returns a task descriptor **/
 drake_task_tp drake_task(TASK_MODULE, TASK_NAME)();
+
+unsigned int
+drake_task_core_id(name, id)();
+
+unsigned int
+drake_task_instance(name, id)();
+
+int drake_task_pool_run(name, id)(int (*func)(void*), void*);
+//int drake_task_pool_wait(name, id)();
 
 #undef TASK_MODULE
 #undef TASK_NAME

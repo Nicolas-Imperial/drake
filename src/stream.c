@@ -60,12 +60,12 @@
 
 // Debuggin options
 #if 1
-#define debug(var) printf("[%s:%s:%d:P%zu] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_addr(var) printf("[%s:%s:%d:P%zu] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_int(var) printf("[%s:%s:%d:P%zu] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_uint(var) printf("[%s:%s:%d:P%zu] %s = \"%u\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_luint(var) printf("[%s:%s:%d:P%zu] %s = \"%lu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
-#define debug_size_t(var) printf("[%s:%s:%d:P%zu] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug(var) printf("[%s:%s:%d:P%u] %s = \"%s\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_addr(var) printf("[%s:%s:%d:P%u] %s = \"%p\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_int(var) printf("[%s:%s:%d:P%u] %s = \"%d\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_uint(var) printf("[%s:%s:%d:P%u] %s = \"%u\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_luint(var) printf("[%s:%s:%d:P%u] %s = \"%lu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
+#define debug_size_t(var) printf("[%s:%s:%d:P%u] %s = \"%zu\"\n", __FILE__, __FUNCTION__, __LINE__, drake_platform_core_id(), #var, var); fflush(NULL)
 #else
 #define debug(var)
 #define debug_addr(var)
@@ -139,13 +139,16 @@ init_schedule(drake_exec_task_t *start, unsigned int number_of_task_instances)
 	// Reinitialize schedule
 	unsigned int i;
 	drake_exec_task_t *schedule = start;
-	for(i = 0; i < number_of_task_instances - 1; i++)
+	for(i = 0; i < number_of_task_instances - 1 && number_of_task_instances > 0; i++)
 	{
 		schedule[i].next = &schedule[i + 1];
 		schedule[i].round_next = &schedule[i + 1];
 	}
-	schedule[i].next = NULL;
-	schedule[i].round_next = NULL;
+	if(number_of_task_instances> 0)
+	{
+		schedule[i].next = NULL;
+		schedule[i].round_next = NULL;
+	}
 }
 
 
@@ -232,7 +235,7 @@ drake_stream_create_explicit(drake_application_t*(*get_app)(), drake_platform_t 
 			pelib_init(cfifo_t(char))(fifo);
 		}
 	}
-						//debug_addr(stream.application->core_private_link[0].link[14].queue->buffer);
+	//debug_addr(stream.application->core_private_link[0].link[14].queue->buffer);
 
 	return stream;
 }
@@ -242,19 +245,37 @@ drake_stream_init(drake_stream_t *stream, void *aux)
 {
 	int success;
 
-	init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
-
-	// This will come when the application is initialized
-	// By now it should be possible to initialize all tasks
-	unsigned int core = drake_platform_core_id();
-	drake_exec_task_t *exec_task;
-	for(exec_task = stream->application->schedule[0]; exec_task != NULL; exec_task = exec_task->next) 
+	int core_id = drake_platform_core_id();
+	if(core_id < stream->application->number_of_cores)
 	{
-		drake_task_t *task = exec_task->task;
-		if(task->state == DRAKE_TASK_STATE_INIT)
+		init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[core_id]);
+
+		// This will come when the application is initialized
+		// By now it should be possible to initialize all tasks
+		drake_exec_task_t *exec_task;
+		for(exec_task = stream->application->schedule[drake_platform_core_id()]; exec_task != NULL; exec_task = exec_task->next) 
 		{
-			success = success && task->init(aux);
-			task->state = DRAKE_TASK_STATE_START;
+			drake_task_t *task = exec_task->task;
+			task->instance = exec_task;
+			if(task->state == DRAKE_TASK_STATE_INIT)
+			{
+				unsigned int core_id = drake_platform_core_id();
+				if(core_id == exec_task->master_core)
+				{
+					*exec_task->return_value = task->init(aux);
+					if(exec_task->width > 1)
+					{
+						drake_task_pool_destroy(exec_task->pool);
+					}
+				}
+				else
+				{
+					drake_task_pool_create(exec_task->pool);
+				}
+				success = success && *exec_task->return_value;
+				task->state = DRAKE_TASK_STATE_START;
+			}
+			task->instance = NULL;
 		}
 	}
 
@@ -266,19 +287,39 @@ int
 drake_stream_destroy(drake_stream_t* stream)
 {
 	int success;
-	init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
 
-	// This will come when the application is initialized
-	// By now it should be possible to initialize all tasks
-	unsigned int core = drake_platform_core_id();
-	drake_exec_task_t *exec_task;
-	for(exec_task = stream->application->schedule[drake_platform_core_id()]; exec_task != NULL; exec_task = exec_task->next) 
+	int core_id = drake_platform_core_id();
+	if(core_id < stream->application->number_of_cores)
 	{
-		drake_task_t *task = exec_task->task;
-		if(task->state < DRAKE_TASK_STATE_DESTROY)
+		init_schedule(stream->application->schedule[drake_platform_core_id()], stream->application->number_of_task_instances[drake_platform_core_id()]);
+
+		// This will come when the application is initialized
+		// By now it should be possible to initialize all tasks
+		unsigned int core = drake_platform_core_id();
+		drake_exec_task_t *exec_task;
+		for(exec_task = stream->application->schedule[drake_platform_core_id()]; exec_task != NULL; exec_task = exec_task->next) 
 		{
-			success = success && task->destroy();
-			task->state = DRAKE_TASK_STATE_DESTROY;
+			drake_task_t *task = exec_task->task;
+			if(task->state < DRAKE_TASK_STATE_DESTROY)
+			{
+				task->instance = exec_task;
+				if(drake_platform_core_id() == exec_task->master_core)
+				{
+					*exec_task->return_value = task->destroy();
+					if(exec_task->width > 1)
+					{
+						drake_task_pool_destroy(exec_task->pool);
+					}
+				}
+				else
+				{
+					drake_task_pool_create(exec_task->pool);
+				}
+
+				success = success && *exec_task->return_value;
+				task->state = DRAKE_TASK_STATE_DESTROY;
+				task->instance = NULL;
+			}
 		}
 	}
 
@@ -288,6 +329,14 @@ drake_stream_destroy(drake_stream_t* stream)
 int
 drake_stream_run(drake_stream_t* stream)
 {
-	return drake_dynamic_scheduler(stream);
+	int core_id = drake_platform_core_id();
+	if(core_id < stream->application->number_of_cores)
+	{
+		return drake_dynamic_scheduler(stream);
+	}
+	else
+	{
+		return 1;
+	}
 }
 

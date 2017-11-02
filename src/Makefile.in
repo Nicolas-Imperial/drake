@@ -26,6 +26,8 @@ SAMPLES = 500
 ## Package configuration
 CONFIG = RELEASE
 
+pelib_version = >= 5.0.0
+
 ## Don't forget the double quotes for string
 ## Don't forget to escape them
 ## Power output file prefix
@@ -95,6 +97,7 @@ bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)
 bin_drake_deps =  
 bin_drake_libs = 
 bin_drake_pkg = pelib-core++ crown
+bin_drake_pkg_pelib-core++_version = $(pelib-version)
 bin_drake_ldflags = 
 bin_drake_static = 0
 
@@ -104,6 +107,7 @@ bincc_package = $(if $(APPLICATION),$(if $(BACKEND),drake-eval))
 bincc_drake-eval_src = eval.c
 bin_drake-eval_export = $(bincc_drake-eval_src) $(bincxx_drake-eval_src)
 bin_drake-eval_pkg = $(if $(DRAKE_PKG),$(DRAKE_PKG),$(APPLICATION)) drake $(BACKEND)
+bin_drake-eval_pkg_pelib-core++_version = $(pelib-version)
 bin_drake-eval_static = 0
 bin_drake-eval_embed = 
 bin_drake-eval_ldflags = 
@@ -116,6 +120,7 @@ bincxx__src =
 bincc__export = $(bincc__src) $(bincxx__src)
 bin__deps = 
 bin__pkg = 
+bin__pkg_pelib-core++_version = $(pelib-version)
 bin__libs = 
 bin__ldflags =
 bin__cflags =
@@ -136,6 +141,7 @@ bin__embed =
 # bin_foo_deps = $(FOO_DEPS)/foodeps.a
 ## Dependencies of package foo to other external packages resolvable by pkg-config
 # bin_foo_pkg = foolib
+bin_foo_pkg_pelib-core++_version = $(pelib-version)
 ## Minimal version of external dependency foolib
 # bin_foo_pkg_foolib_version = >= 3.15.2
 ## Manual arbitrary addictional libs required to build package foo
@@ -163,20 +169,20 @@ bin__embed =
 ## Static C library packages and their sources
 lib_package = drake drake-scheduler
 
-EXPERIMENTAL_CODE=0
-HARD_CODED_HELLO_WORLD=0
 libcc_drake_src = stream.c task.c application.c
 libcxx_drake_src = 
 lib_drake_cflags = 
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) eval.c
 lib_drake_pkg = pelib-core
-lib_pelib-drake-app_cxxflags_private = -DEXPERIMENTAL_CODE=$(EXPERIMENTAL_CODE) -DHARD_CODED_HELLO_WORLD=$(HARD_CODED_HELLO_WORLD)
+lib_drake_pkg_pelib-core++_version = $(pelib-version)
+lib_pelib-drake-app_cxxflags_private = 
 
 libcc_drake-scheduler_src = scheduler.c
 libcxx_drake-scheduler_src = 
 lib_drake-scheduler_cflags = 
 lib_drake-scheduler_export = $(libcc_drake-scheduler_src) $(libcxx_drake-scheduler_src) eval.c
 lib_drake-scheduler_pkg = 
+lib_drake-scheduler_pkg_pelib-core++_version = $(pelib-version)
 
 sharedcc_package = drake drake-scheduler
 sharedcxx_package = pelib-drake-app
@@ -186,21 +192,24 @@ sharedcxx_drake_src =
 shared_drake_cflags = -fPIC
 shared_drake_export = $(sharedcc_drake_src) $(sharedcxx_drake_src) eval.c
 shared_drake_pkg = pelib-core
+shared_drake_pkg_pelib-core++_version = $(pelib-version)
 
 sharedcc_pelib-drake-app_src = 
 sharedcxx_pelib-drake-app_src = DrakeApp.cpp drake-app.cpp
 shared_pelib-drake-app_export = $(sharedcc_pelib-drake-app_src) $(sharedcxx_pelib-drake-app_src) $(shared_pelib-drake-app_embed)
 shared_pelib-drake-app_pkg = pelib-core++
+shared_pelib-drake-app_pkg_pelib-core++_version = $(pelib-version)
 shared_pelib-drake-app_embed = drake_app.c
 shared_pelib-drake-app_cflags = -fPIC
 shared_pelib-drake-app_cxxflags = 
-shared_pelib-drake-app_cxxflags_private = -DEXPERIMENTAL_CODE=$(EXPERIMENTAL_CODE) -DHARD_CODED_HELLO_WORLD=$(HARD_CODED_HELLO_WORLD)
+shared_pelib-drake-app_cxxflags_private = 
 
 sharedcc_drake-scheduler_src = scheduler.c
 sharedcxx_drake-scheduler_src = 
 shared_drake-scheduler_cflags = -fPIC
 shared_drake-scheduler_export = $(sharedcc_drake-scheduler_src) $(sharedcxx_drake-scheduler_src) eval.c
 shared_drake-scheduler_pkg = 
+shared_drake-scheduler_pkg_pelib-core++_version = $(pelib-version)
 
 libcc__src = 
 libcxx__src = 
@@ -209,6 +218,7 @@ lib__export = $(libcc__src) $(libcxx_src)
 lib__libs = 
 lib__ldflags = 
 lib__pkg = 
+lib__pkg_pelib-core++_version = $(pelib-version)
 ## Flags integrated as non-private pkg-config flags
 ## libs
 lib__pkg_libs = 

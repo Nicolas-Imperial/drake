@@ -145,7 +145,7 @@ read_args(char **argv)
 		else if(!strcmp(*argv, "--output") || !strcmp(*argv, "-s"))
 		{
 			argv++;
-			while(*argv != '\0')
+			while(*argv != NULL)
 			{
 				if(!strcmp(*argv, "--schedule") || !strcmp(*argv, "-s"))
 				{

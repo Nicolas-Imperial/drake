@@ -19,7 +19,7 @@
 */
 
 #include <stddef.h>
-#include <drake/task.h>
+#include <stdio.h>
 
 #ifndef DRAKE_PLATFORM_H
 #define DRAKE_PLATFORM_H
@@ -42,6 +42,8 @@ typedef struct drake_platform *drake_platform_t;
 /** Abstract type for power measurement and recording **/
 typedef struct drake_power *drake_power_t;
 /** Memory descriptor **/
+typedef struct drake_local_barrier *drake_local_barrier_t;
+
 typedef enum drake_memory {DRAKE_MEMORY_UNDEFINED = 0, DRAKE_MEMORY_PRIVATE = 1, DRAKE_MEMORY_SHARED = 2, DRAKE_MEMORY_DISTRIBUTED = 3, DRAKE_MEMORY_SMALL_CHEAP = 4, DRAKE_MEMORY_LARGE_COSTLY = 8} drake_memory_t;
 /** Returns the size in byte of the corresponding core's allocatable memory of a given type **/
 size_t drake_platform_memory_size(unsigned int core, drake_memory_t type, unsigned int level);
@@ -89,13 +91,19 @@ int drake_platform_pull(volatile void* addr);
 /** Triggers the sending of data written at addr, to the corresponding core. The data may have been sent before the call, but it is guaranteed to have been sent after this function call. It is not guaranteed however, that the recicpient core has received it when the function returns. **/
 int drake_platform_commit(volatile void* addr);
 /** Returns the id of the core calling this function **/
-size_t drake_platform_core_id();
+unsigned int drake_platform_core_id();
 /** Returns the number of cores available at the time the streaming program is run. This must match the number of cores in the schedule of the streaming task begin run **/
 size_t drake_platform_core_size();
 /** Maximum number of cores the execution platform can offer **/
 size_t drake_platform_core_max();
-/** Barrier accross all cores involved in the streaming application running **/
+/** Barrier across all cores involved in the streaming application running **/
 void drake_platform_barrier(void*);
+/** Allocates a barrier across cores sharing memory **/
+drake_local_barrier_t drake_platform_local_barrier_alloc(unsigned int length, unsigned int core, drake_memory_t feature, unsigned int level);
+/** Wait at local barrier **/
+int drake_platform_local_barrier_wait(drake_local_barrier_t barrier);
+/** Destroy local barrier **/
+int drake_platform_local_barrier_destroy(drake_local_barrier_t barrier);
 /** Begins a critical section **/
 void drake_platform_exclusive_begin();
 /** Ends a critical section **/
