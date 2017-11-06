@@ -59,7 +59,7 @@ CC_TEST_DEPS = $(CC_DEPS)
 CC_TEST_LDFLAGS = -L.
 
 ## C++ global parameters
-CXXFLAGS_BASE = 
+CXXFLAGS_BASE = -std=c++11
 CXXFLAGS_PRIVATE = -isystem ../include
 CXXFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CXXFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1 $(asan_cflags)
@@ -96,7 +96,7 @@ bincxx_drake_src = drake.cpp
 bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)
 bin_drake_deps =  
 bin_drake_libs = 
-bin_drake_pkg = pelib-core++ crown
+bin_drake_pkg = pelib-core++
 bin_drake_pkg_pelib-core++_version = $(pelib-version)
 bin_drake_ldflags = 
 bin_drake_static = 0
