@@ -486,7 +486,7 @@ DrakeApp::dump(ostream& os, const Schedule &schedule) const
 	}
 	os << "	app->schedule = (drake_exec_task_t**)drake_platform_malloc(sizeof(drake_exec_task_t*) * app->number_of_cores, drake_platform_core_id(), private_fast, level_zero);" << endl;
 
-	map<pair<Task, unsigned int>, pair<unsigned int, unsigned int>> done;
+	map<unsigned int, pair<unsigned int, unsigned int>> done;
 	for(unsigned int i = 0; i < pt.getCores().size() && schedule.getSchedule().find(i) != schedule.getSchedule().end(); i++)
 	{
 		os << "	app->schedule[" << i << "] = (drake_exec_task_t*)drake_platform_malloc(sizeof(drake_exec_task_t) * " << schedule.getSchedule().find(i)->second.size() << ", drake_platform_core_id(), private_fast, level_zero);" << endl;
@@ -506,18 +506,18 @@ DrakeApp::dump(ostream& os, const Schedule &schedule) const
 
 			if(j->getWidth() > 1)
 			{
-				if(done.find(pair<Task, unsigned int>(j->getTask(), j->getInstance())) == done.end())
+				if(done.find(j->getMemory().getInstance()) == done.end())
 				{
 					os << "	app->schedule[" << i << "][" << core_index << "].return_value = (int*)drake_platform_malloc(sizeof(int), " << j->getMemory().getCore() << ", (drake_memory_t)(" << Memory::featureToString(j->getMemory().getFeature()) << "), " << j->getMemory().getLevel() << ");" << endl;
 					os << "	app->schedule[" << i << "][" << core_index << "].pool = (struct drake_task_pool*)drake_platform_malloc(sizeof(struct drake_task_pool), " << j->getMemory().getCore() << ", (drake_memory_t)(" << Memory::featureToString(j->getMemory().getFeature()) << "), " << j->getMemory().getLevel() << ");" << endl;
 					os << "	app->schedule[" << i << "][" << core_index << "].pool->barrier = drake_platform_local_barrier_alloc(" << j->getWidth() << ", " << j->getMemory().getCore() << ", (drake_memory_t)(" << Memory::featureToString(j->getMemory().getFeature()) << "), " << j->getMemory().getLevel() << ");" << endl;
 					os << "	app->schedule[" << i << "][" << core_index << "].pool->state = 0;" << endl;
-					done.insert(pair<pair<Task, unsigned int>, pair<unsigned int, unsigned int>>(pair<Task, unsigned int>(j->getTask(), j->getInstance()), pair<unsigned int, unsigned int>(i, core_index)));
+					done.insert(pair<unsigned int, pair<unsigned int, unsigned int>>(j->getMemory().getInstance(), pair<unsigned int, unsigned int>(i, core_index)));
 				}
 				else
 				{
-					unsigned int core = done.find(pair<Task, unsigned int>(j->getTask(), j->getInstance()))->second.first;
-					unsigned int instance = done.find(pair<Task, unsigned int>(j->getTask(), j->getInstance()))->second.second;
+						unsigned int core = done.find(j->getMemory().getInstance())->second.first;
+						unsigned int instance = done.find(j->getMemory().getInstance())->second.second;
 					os << "	app->schedule[" << i << "][" << core_index << "].return_value = app->schedule[" << core << "][" << instance << "].return_value;" << endl;
 					os << "	app->schedule[" << i << "][" << core_index << "].pool = app->schedule[" << core << "][" << instance << "].pool;" << endl;
 				}
@@ -714,8 +714,15 @@ DrakeApp::dump(ostream& os, const Schedule &schedule) const
 		os << "{" << endl;
 		os << "	switch(drake_task(" << i->getModule() << ", " << i->getName() << ")()->instance->instance)" << endl;
 		os << "	{" << endl;
+		set<int> done;
 		for(set<ExecTask>::const_iterator j = task_instances.find(*i)->second.begin(); j != task_instances.find(*i)->second.end(); j++)
 		{
+			if(done.find(j->getInstance()) != done.end())
+			{
+				continue;
+			}
+			done.insert(j->getInstance());
+
 			os << "		case " << j->getInstance() << ":" << endl;	
 			os << "			switch(drake_platform_core_id())" << endl;
 			os << "			{" << endl;
