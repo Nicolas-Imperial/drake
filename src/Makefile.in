@@ -59,7 +59,7 @@ CC_TEST_DEPS = $(CC_DEPS)
 CC_TEST_LDFLAGS = -L.
 
 ## C++ global parameters
-CXXFLAGS_BASE = 
+CXXFLAGS_BASE = -std=c++11
 CXXFLAGS_PRIVATE = -isystem ../include
 CXXFLAGS_CONFIG_RELEASE = -O3 -DNDEBUG
 CXXFLAGS_CONFIG_DEBUG = -g -O0 -DDEBUG=1 $(asan_cflags)
