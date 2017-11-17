@@ -30,12 +30,6 @@
 #include <pelib/Platform.hpp>
 #include <pelib/GraphML.hpp>
 
-#include <crown/allocation.h>
-#include <crown/mapping.h>
-#include <crown/scaling.h>
-#include <crown/annealing.h>
-#include <crown/crown.h>
-
 #include <pelib/DrakeCSchedule.hpp>
 #include <pelib/AmplInput.hpp>
 #include <pelib/AmplOutput.hpp>
@@ -47,7 +41,6 @@
 
 using namespace std;
 using namespace pelib;
-using namespace pelib::crown;
 
 enum action {NONE, NAME, TASKS, TASK, SCHEDULE};
 
