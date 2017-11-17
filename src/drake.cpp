@@ -25,17 +25,7 @@
 #include <string>
 #include <iomanip>
 
-#include <pelib/AmplInput.hpp>
-#include <pelib/AmplOutput.hpp>
 #include <pelib/Platform.hpp>
-#include <pelib/GraphML.hpp>
-
-#include <pelib/DrakeCSchedule.hpp>
-#include <pelib/AmplInput.hpp>
-#include <pelib/AmplOutput.hpp>
-#include <pelib/Vector.hpp>
-#include <pelib/Matrix.hpp>
-#include <pelib/Set.hpp>
 #include <pelib/GraphML.hpp>
 #include <pelib/Schedule.hpp>
 
