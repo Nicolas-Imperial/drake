@@ -173,8 +173,10 @@ int drake_buffer_depleted(drake_abstract_link_t *link);
 #define drake_application_destroy PELIB_##CONCAT_2(drake_application_destroy_, APPLICATION)
 #define drake_application_build PELIB_##CONCAT_2(drake_application_build_, APPLICATION)
 #define drake_application_number_of_tasks PELIB_##CONCAT_2(drake_application_number_of_tasks_, APPLICATION)
+#define drake_application_number_of_cores PELIB_##CONCAT_2(drake_application_number_of_cores_, APPLICATION)
 /** Returns the core id of a core within a parallel task **/
 unsigned int drake_application_number_of_tasks();
+unsigned int drake_application_number_of_cores();
 struct drake_application* drake_application_build();
 #else
 #define drake_application_create(application) PELIB_##CONCAT_2(drake_application_create_, application)
@@ -183,6 +185,7 @@ struct drake_application* drake_application_build();
 #define drake_application_destroy(application) PELIB_##CONCAT_2(drake_application_destroy_, application)
 #define drake_application_build(application) PELIB_##CONCAT_2(drake_application_build_, application)
 #define drake_application_number_of_tasks(application) PELIB_##CONCAT_2(drake_application_number_of_tasks_, application)
+#define drake_application_number_of_cores(application) PELIB_##CONCAT_2(drake_application_number_of_cores_, application)()
 struct drake_application* drake_application_build(application)();
 #endif
 

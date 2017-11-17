@@ -96,7 +96,7 @@ bincxx_drake_src = drake.cpp
 bin_drake_export = $(bincxx_drake_embed) $(bincxx_drake_src) $(bin_drake_src)
 bin_drake_deps =  
 bin_drake_libs = 
-bin_drake_pkg = pelib-core++ crown
+bin_drake_pkg = pelib-scheduling
 bin_drake_pkg_pelib-core++_version = $(pelib-version)
 bin_drake_ldflags = 
 bin_drake_static = 0
@@ -173,7 +173,7 @@ libcc_drake_src = stream.c task.c application.c
 libcxx_drake_src = 
 lib_drake_cflags = 
 lib_drake_export = $(libcc_drake_src) $(libcxx_drake_src) eval.c
-lib_drake_pkg = pelib-core
+lib_drake_pkg = 
 lib_drake_pkg_pelib-core++_version = $(pelib-version)
 lib_pelib-drake-app_cxxflags_private = 
 
@@ -185,7 +185,7 @@ lib_drake-scheduler_pkg =
 lib_drake-scheduler_pkg_pelib-core++_version = $(pelib-version)
 
 sharedcc_package = drake drake-scheduler
-sharedcxx_package = pelib-drake-app
+sharedcxx_package = pelib-drake-app pelib-drake-allocation pelib-drake-parallel
 
 sharedcc_drake_src = stream.c task.c application.c
 sharedcxx_drake_src = 
@@ -197,7 +197,7 @@ shared_drake_pkg_pelib-core++_version = $(pelib-version)
 sharedcc_pelib-drake-app_src = 
 sharedcxx_pelib-drake-app_src = DrakeApp.cpp drake-app.cpp
 shared_pelib-drake-app_export = $(sharedcc_pelib-drake-app_src) $(sharedcxx_pelib-drake-app_src) $(shared_pelib-drake-app_embed)
-shared_pelib-drake-app_pkg = pelib-core++
+shared_pelib-drake-app_pkg = pelib-scheduling
 shared_pelib-drake-app_pkg_pelib-core++_version = $(pelib-version)
 shared_pelib-drake-app_embed = drake_app.c
 shared_pelib-drake-app_cflags = -fPIC

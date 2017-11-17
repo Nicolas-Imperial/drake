@@ -24,9 +24,11 @@
 
 #ifdef __cplusplus
 #define drake_declare(application) \
-extern "C" struct drake_application* drake_application_build(application)();
+extern "C" struct drake_application* drake_application_build(application)(); \
+extern "C" unsigned int drake_application_number_of_cores(application);
 #else
 #define drake_declare(application) \
-struct drake_application* drake_application_build(application)();
+struct drake_application* drake_application_build(application)(); \
+unsigned int drake_application_number_of_cores(application);
 #endif
 
